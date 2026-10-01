@@ -32,6 +32,17 @@ In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safet
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-01 — **P7.3 (code done, live check pending)** — ADR-0008: Amplify JS v6 auth only (official, maintained,
+  works with an existing pool; SRP default confirmed in the installed source; localStorage tokens with CSP as the
+  mitigation). `auth/` (AuthService interface + Amplify implementation + preview fake, AuthContext, friendly Cognito
+  error messages that don't reveal whether an account exists), `api/client.ts` (Bearer header, one refresh-and-retry on
+  401 then sign-out, API error passthrough, network errors), screens: sign in / sign up / verify email / forgot
+  password (`AuthScreens.tsx`, `TextField`), `RequireAuth` route guard returning people to where they were. `main.tsx`
+  uses real auth when env is set; dev without env → labelled sample preview; prod without env → fails loudly.
+  Verified: 13 new web tests (34 web total; 313 overall); `npm run verify` exit 0; build OK (bundle 440 kB / 134 kB gz,
+  +~140 kB from Amplify); sign-in screen checked in the browser. **Remaining:** real sign-up/sign-in against the dev
+  user pool (added to P4.3). Dep: aws-amplify (runtime, web).
+
 - 2026-10-01 — **P7.2** — Components: `RatingControl` (1–10 radio group, arrow/Home/End keys, roving tabindex),
   `Modal` (Escape/close, focus in and back), `States` (Skeleton/LoadingState/EmptyState/ErrorState), `Stats`
   (StatCard with "Not enough data yet"/"Based on N", Leaderboard with shared ranks, RatingDistribution as plain HTML

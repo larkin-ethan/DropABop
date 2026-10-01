@@ -221,6 +221,8 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
     Cognito tokens: create party → join → share a song → rate → (results/stats return the "not ready" error while
     the week is open).
+  - *Also:* fill `apps/web/.env.development.local` from the stack outputs and do a real sign-up → email code → sign-in →
+    sign-out → forgot-password run through the website (closes P7.3).
   - *Done when:* unauthenticated call → 401; every endpoint behaves as in `docs/API.md` on dev; outputs (API URL,
     pool id, client id) recorded in `apps/web/.env.development.example` (no secrets exist in these values).
 
@@ -284,7 +286,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     LoadingState/Skeleton, EmptyState, ErrorState. Component tests with Testing Library.
   - *Done when:* tests pass; a `/dev/components` route (dev builds only) shows every component at 320px and 1440px.
 
-- [ ] **P7.3 — Authentication**
+- [ ] **P7.3 — Authentication** (code + tests done 2026-10-01; only the live check against the dev user pool remains, done in P4.3)
   - *Spec:* §9 · *ADR:* 0007 (choose the Cognito client library after checking current docs; prefer the smallest
     official option; tokens kept in memory/library storage, never in URLs)
   - *Do:* Sign up, email verification code, sign in, sign out, forgot/reset password, session refresh, protected

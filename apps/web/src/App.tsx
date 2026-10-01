@@ -1,9 +1,13 @@
-// Routes. Until the API is connected (P7.3/P8), dev builds show screens with sample data and say so clearly.
+// Routes. Sign-in screens are public; everything else needs a signed-in user (RequireAuth).
+// Until the screens are wired to the API (P8), they render sample data, and preview mode says so clearly.
 
-import { Route, Routes } from 'react-router';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
+import { useAuth } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
+import { LoadingState } from './components/States';
 import { Card } from './components/ui';
 import { sampleCurrentWeek, sampleMembers, sampleParty, sampleSongs } from './preview/sample-data';
+import { ForgotPasswordScreen, SignInScreen, SignUpScreen, VerifyEmailScreen } from './screens/AuthScreens';
 import { ComponentGallery } from './screens/ComponentGallery';
 import { HomeScreen } from './screens/HomeScreen';
 
@@ -24,11 +28,37 @@ function PreviewBanner() {
   );
 }
 
-export function App() {
+/** Sends signed-out visitors to sign in, then brings them back to where they were going. */
+function RequireAuth({ preview }: { preview: boolean }) {
+  const { status } = useAuth();
+  const location = useLocation();
+  if (status === 'loading') {
+    return (
+      <div className="mx-auto max-w-md px-4 py-20">
+        <LoadingState label="Checking your sign-in…" rows={2} />
+      </div>
+    );
+  }
+  if (status === 'signedOut') {
+    return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />;
+  }
   return (
     <AppShell partyName={sampleParty.name}>
-      {import.meta.env.DEV && <PreviewBanner />}
-      <Routes>
+      {preview && <PreviewBanner />}
+      <Outlet />
+    </AppShell>
+  );
+}
+
+export function App({ preview = false }: { preview?: boolean }) {
+  return (
+    <Routes>
+      <Route path="/sign-in" element={<SignInScreen />} />
+      <Route path="/sign-up" element={<SignUpScreen />} />
+      <Route path="/verify" element={<VerifyEmailScreen />} />
+      <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+
+      <Route element={<RequireAuth preview={preview} />}>
         <Route
           path="/"
           element={
@@ -53,7 +83,9 @@ export function App() {
         <Route path="/history" element={<ComingSoon title="History" task="P8.7" />} />
         <Route path="/settings" element={<ComingSoon title="Party settings" task="P8.10" />} />
         {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
-      </Routes>
-    </AppShell>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
