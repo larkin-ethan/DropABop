@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { createDataContext, type DataContext } from '../data/context';
 import { DomainError } from '../data/errors';
+import { unavailableSongLookup, type SongLookup } from '../providers/song-lookup';
 import { GENERIC_ERROR_MESSAGE, STATUS_BY_CODE } from './errors';
 import { logger } from './logger';
 import type { ApiEvent } from './request';
@@ -16,6 +17,8 @@ export interface Deps {
   now: () => Date;
   /** Random ids (UUIDs) for new records. */
   newId: () => string;
+  /** Looks up song details from a music service (P6.3). */
+  music: SongLookup;
 }
 
 export type ApiResult = APIGatewayProxyStructuredResultV2;
@@ -25,7 +28,12 @@ let productionDeps: Deps | undefined;
 
 /** Created on first use and reused while the Lambda container stays warm. */
 function getProductionDeps(): Deps {
-  productionDeps ??= { data: createDataContext(), now: () => new Date(), newId: () => randomUUID() };
+  productionDeps ??= {
+    data: createDataContext(),
+    now: () => new Date(),
+    newId: () => randomUUID(),
+    music: unavailableSongLookup, // replaced by the real provider registry in P6.3
+  };
   return productionDeps;
 }
 

@@ -14,6 +14,7 @@ const deps: Deps = {
   data: {} as DataContext,
   now: () => new Date('2026-10-07T17:00:00Z'),
   newId: () => '00000000-0000-4000-8000-000000000000',
+  music: { getSong: () => Promise.resolve(null) },
 };
 
 /** Captures everything written to stdout/stderr during a test. */

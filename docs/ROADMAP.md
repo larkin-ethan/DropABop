@@ -164,7 +164,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
   conditional put; returns status, today's weekday or "weekend", week end time, and "paused" if applicable),
   `GET /parties/{partyId}/rounds` (past weeks, paginated). Integration test: two simultaneous first requests create
   exactly one round. The server decides the date; the client never sends it.
-- [ ] **P5.7 — Recommendations:** `POST /rounds/{roundId}/recommendations` (server stamps today's date; rejects
+- [x] **P5.7 — Recommendations:** `POST /rounds/{roundId}/recommendations` (server stamps today's date; rejects
   weekends, a second song today, and closed weeks), `GET /rounds/{roundId}/recommendations` (all songs so far this
   week, grouped by day; respects anonymity setting D10; never includes other people's ratings while open).
 - [ ] **P5.8 — Votes:** `PUT /rounds/{roundId}/votes/{recommendationId}` (create or change while the week is OPEN,
@@ -251,7 +251,9 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     mechanism yourself — never paste it into chat or the repo. Give the AI the parameter **name**.
 
 - [ ] **P6.3 — Provider interface + first provider**
-  - *Do:* `services/api/src/providers/` — `MusicProvider` interface with capabilities (§10), a registry,
+  - *Do:* `services/api/src/providers/` — `MusicProvider` interface with capabilities (§10), a registry that
+    implements the existing `SongLookup` interface (`providers/song-lookup.ts`) and replaces `unavailableSongLookup`
+    in the production deps (`http/handler.ts`),
     and the v1 provider. `GET /songs/search?q=&provider=` (auth required, rate-limited, query length capped,
     results normalized to `Song`), `POST /songs/resolve` (paste-a-link fallback, D21). Provider HTTP calls
     mocked in unit tests; one opt-in live test.

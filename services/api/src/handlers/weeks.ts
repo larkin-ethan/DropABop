@@ -1,10 +1,17 @@
 // GET /parties/{partyId}/rounds/current and GET /parties/{partyId}/rounds (docs/API.md → Weeks).
 
-import type { Party, Round } from '@sotd/shared';
+import type { Party, PartyMember, Round } from '@sotd/shared';
 import { roundHistoryQuerySchema } from '@sotd/shared';
 import type { DataContext } from '../data/context';
 import { listMySubmissionDates, listWeekRecommendations, listWeekSubmissions } from '../data/recommendations';
-import { createRoundIfMissing, getLatestRound, listRounds, recordRoundStatus } from '../data/rounds';
+import { parseRoundId } from '../data/keys';
+import {
+  createRoundIfMissing,
+  getLatestRound,
+  getRound,
+  listRounds,
+  recordRoundStatus,
+} from '../data/rounds';
 import { listMyWeekVotes } from '../data/votes';
 import {
   getEffectiveWeekStatus,
@@ -13,8 +20,9 @@ import {
   getWeekWindow,
   planCurrentWeek,
 } from '../domain/week';
+import { fail } from '../http/errors';
 import { createHandler, ok, type HandlerFn } from '../http/handler';
-import { getAuthenticatedUser, parseQuery, pathId } from '../http/request';
+import { getAuthenticatedUser, parseQuery, pathId, pathParam, type ApiEvent } from '../http/request';
 import { loadPartyForMember } from './parties';
 
 export type CurrentWeek =
@@ -45,6 +53,29 @@ export async function resolveCurrentWeek(data: DataContext, party: Party, now: D
     return { round: await createRoundIfMissing(data, plan.round), reason: null };
   }
   return { round: null, reason: plan.reason, lastRound: plan.lastRound };
+}
+
+/**
+ * For `/rounds/{roundId}/…` routes: the round, its party, and the caller's membership. The party comes from the
+ * roundId itself, and membership of *that* party is checked, so a roundId can never be used to reach another
+ * party's data (spec §24). Unknown or malformed round ids → 404; non-members → 403.
+ */
+export async function loadRoundForMember(
+  event: ApiEvent,
+  data: DataContext,
+  userId: string,
+): Promise<{ round: Round; party: Party; membership: PartyMember }> {
+  const roundId = pathParam(event, 'roundId');
+  const parts = parseRoundId(roundId);
+  if (parts === null) {
+    fail('NOT_FOUND', 'We couldn’t find that week.');
+  }
+  const { party, membership } = await loadPartyForMember(data, parts.partyId, userId);
+  const round = await getRound(data, roundId);
+  if (round === null) {
+    fail('NOT_FOUND', 'We couldn’t find that week.');
+  }
+  return { round, party, membership };
 }
 
 /** Everything the home screen needs about this week, for the person asking. */

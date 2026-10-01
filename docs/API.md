@@ -171,3 +171,37 @@ Members only. Week history, newest first. `limit` 1–50 (default 20); pass `nex
 `200`: `{ "rounds": Round[], "nextCursor": "2026-09-14" | null }`. Status is `OPEN`, `CLOSED`, or
 `NOT_ENOUGH_SONGS` (fewer than 2 songs; no results). Errors: `400 VALIDATION_FAILED` (bad cursor/limit).
 
+### Songs (recommendations)
+
+Code: `services/api/src/handlers/recommendations.ts`. For every `/rounds/{roundId}/…` route, the party is taken from
+the `roundId` and the caller must be a member of *that* party (`loadRoundForMember`), so a round id can't be used
+to read another party's data.
+
+#### `POST /rounds/{roundId}/recommendations`
+
+Share today's song. Body: `{ "provider": "spotify", "providerSongId": "…" }`; nothing else is accepted (no
+title, links, or date). The server decides today's date in the week's timezone, looks the song up with the music
+service itself (P6.3), and stores it with a random id.
+
+`201`: `{ "song": SongView }` (see below). Errors: `409 ALREADY_SUBMITTED_TODAY`, `409 WEEKEND`,
+`409 WEEK_CLOSED` (week ended / not this week), `409 PARTY_PAUSED`, `403 NOT_A_MEMBER`,
+`400 VALIDATION_FAILED` (song not found or bad input), `404 NOT_FOUND` (unknown week),
+`502 PROVIDER_UNAVAILABLE` (music service down; until P6.3 this is always the case in production).
+
+#### `GET /rounds/{roundId}/recommendations`
+
+The week's songs so far, oldest first. `200`: `{ "round": Round, "songs": SongView[] }` where:
+
+```json
+{
+  "recommendationId": "…", "weekday": "MON", "submittedOn": "2026-10-05",
+  "song": { "songId": "…", "title": "…", "artist": "…", "album": "…", "albumArtUrl": "https://…",
+            "durationMs": 243000, "releaseDate": "…", "providers": [{ "provider": "spotify", "providerSongId": "…", "externalUrl": "https://…" }] },
+  "isMine": false,
+  "myRating": 8
+}
+```
+
+`recommendedBy` (a userId) appears only for your own songs, when the party reveals recommenders, or after the week
+ends (D10). Other people's ratings and averages never appear here (D9); see the results endpoint.
+

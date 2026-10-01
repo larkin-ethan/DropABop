@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.7 Recommendations (share a song)**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.8 Votes**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,15 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.7** — `handlers/recommendations.ts`: share today's song (body validated → rules via
+  `resolveCurrentWeek` + `canSubmitRecommendation` → server-side song lookup validated with `songSchema` → random id →
+  conditional write) and list the week's songs (privacy via `toOpenWeekSongView`; recommenders revealed after the week
+  ends or by setting). New `SongLookup` dependency (`providers/song-lookup.ts`): production uses
+  `unavailableSongLookup` (502 PROVIDER_UNAVAILABLE) until P6.3 — **sharing won't work in a deployed env until then**;
+  tests use a fake. `loadRoundForMember` (weeks.ts) scopes round routes to the round's own party. Verified:
+  integration 88 (8 new incl. cross-party roundId → 403, simultaneous shares → 201+409, weekend/ended/paused/other
+  week); `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.6** — `handlers/weeks.ts`: `resolveCurrentWeek` (shared: records the previous week's close,
   then `planCurrentWeek` → use/create/none), current-week endpoint (today, sharedToday, who shared today without
