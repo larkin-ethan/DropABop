@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 1. Next: **P1.3 Shared types & validation**, then Phase 2 (domain logic).
+Phase 2 — domain logic. Next: **P2.1 Week & day logic**.
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,13 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P1.3** — `@sotd/shared`: limits/enums (`limits.ts`), domain types (`types.ts`), API error shape +
+  codes (`errors.ts`), zod 4 request schemas (`schemas.ts`). Decisions made: all request schemas are strict (unknown
+  keys like `userId` are rejected, spec §24); recommendation requests carry only `{provider, providerSongId}` so the
+  server looks up song metadata itself (client can't forge titles/links); only https links accepted; invite codes
+  normalized to uppercase. Zod 4 APIs checked against https://zod.dev/api (2026-10-01). Verified: `npm run verify`
+  exit 0, 79 tests pass. Dependency added: zod ^4.6.5 (runtime, shared).
 
 - 2026-10-01 — **P1.2** — CI workflow: guardrails → setup-node (from `.nvmrc`, npm cache) → `npm ci` → `npm run verify`.
   Uses actions/checkout@v7 and actions/setup-node@v7 (latest majors via `git ls-remote`; inputs confirmed in the

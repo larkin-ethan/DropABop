@@ -47,7 +47,7 @@ The `/next-task` skill picks the first unchecked box.
     using the `.nvmrc` Node version.
   - *Done when:* workflow file is valid YAML and the same steps pass locally.
 
-- [ ] **P1.3 — Shared types & validation**
+- [x] **P1.3 — Shared types & validation**
   - *Spec:* §12, §14, §15, §26
   - *Do:* In `packages/shared`: TypeScript types for User, Party, PartyMember, PartySettings (incl. timezone,
     paused), Round (a week), RoundStatus (`OPEN | CLOSED | NOT_ENOUGH_SONGS`), Weekday (`MON`–`FRI`), Recommendation
