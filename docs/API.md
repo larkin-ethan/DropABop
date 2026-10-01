@@ -93,3 +93,33 @@ Errors: `400 VALIDATION_FAILED` (bad input, unexpected fields like `hostUserId`,
 Members only. `200`: `{ "party": Party, "members": PartyMember[], "isHost": boolean }`. `party.inviteCode` is
 visible to members (D16). Errors: `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
 
+### Invites & membership
+
+Code: `services/api/src/handlers/membership.ts`.
+
+#### `GET /invites/{code}`
+
+Preview before joining. The code is case-insensitive. Reveals only the party's name and capacity.
+`200`: `{ "partyId", "partyName", "memberCount", "maxMembers", "isFull", "alreadyMember" }`.
+Errors: `400 INVALID_INVITE` (unknown, malformed, or replaced code; all look the same).
+Rate limiting for this route is configured in P9.1.
+
+#### `POST /parties/{partyId}/join`
+
+Body: `{ "inviteCode": "SONG-7K4P" }`. Must be the party's current code. Also counts toward the 20-party limit.
+`200`: `{ "party", "members", "isHost": false }`.
+Errors: `400 INVALID_INVITE`, `409 ALREADY_MEMBER`, `409 PARTY_FULL`, `400 VALIDATION_FAILED` (20-party limit).
+The size limit and duplicate checks are enforced atomically in the database, so simultaneous joins can't overfill.
+
+#### `POST /parties/{partyId}/invite-code`
+
+Host only. Replaces the invite code; the old one stops working at once (D16).
+`200`: `{ "inviteCode": "SONG-XXXX" }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `409 CONFLICT` (changed by a
+simultaneous request; refresh).
+
+#### `DELETE /parties/{partyId}/members/{memberId}`
+
+Leave (`memberId` = yourself) or, as host, remove someone. Past songs and ratings stay (D17).
+`204`. Errors: `403 NOT_HOST` (removing someone else), `403 FORBIDDEN` (the host can't leave or be removed),
+`403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+

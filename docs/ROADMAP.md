@@ -155,7 +155,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
 
 - [x] **P5.2 — Profile:** `GET /users/me` (creates profile on first call), `PATCH /users/me`.
 - [x] **P5.3 — Parties:** `POST /parties`, `GET /parties`, `GET /parties/{partyId}` (members only).
-- [ ] **P5.4 — Invites & joining:** `GET /invites/{code}` (party name + room left; rate-limited route),
+- [x] **P5.4 — Invites & joining:** `GET /invites/{code}` (party name + room left; rate-limited route),
   `POST /parties/{partyId}/join` with code, `POST /parties/{partyId}/invite-code` (host regenerates),
   `DELETE /parties/{partyId}/members/{memberId}` (host removes / user leaves).
 - [ ] **P5.5 — Party settings:** `PATCH /parties/{partyId}/settings` (host only; validated values, including

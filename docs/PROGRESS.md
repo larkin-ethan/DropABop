@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.4 Invites & joining**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.5 Party settings**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,11 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.4** — `handlers/membership.ts`: invite preview (name + capacity only; all bad codes → same
+  INVALID_INVITE), join (code must be current and match the party; 20-party limit; DB re-checks atomically),
+  host-only code regeneration (retry on clash), leave/remove (host can't leave or be removed). Verified: integration
+  68 (10 new); `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.3** — `handlers/parties.ts`: create (host from verified user, random invite code with retry on
   clash, default settings), list mine, get one (members only). Shared helpers `loadPartyForMember` (404 vs 403) and
