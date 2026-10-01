@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 0 — prerequisites. Next: **P0.2 Install local tools [HUMAN]**, then P1.1.
+Phase 1. Next: **P1.0 Install Node.js 24 LTS [HUMAN]**, then P1.1 (monorepo skeleton).
 
 ## Blocked / Questions for Ethan
 
@@ -18,6 +18,7 @@ _None._
 - AWS region: _not chosen yet_ (P4.1)
 - AWS CLI profile: `sotd-dev` (planned)
 - Stacks: `sotd-dev`, `sotd-prod` (planned)
+- Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 
 ## Session log
 

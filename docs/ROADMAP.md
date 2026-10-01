@@ -15,7 +15,7 @@ The `/next-task` skill picks the first unchecked box.
   Spec, CLAUDE.md, roadmap, product decisions, ADRs, guardrail script, Claude Code hooks/skills, CI skeleton.
 
 - [x] **P0.2 — Install local tools** (split: each install now sits just before the phase that needs it —
-  Node LTS + Docker at P3.0, AWS CLI + SAM at P4.0 — so Phases 1–2 can be built on the existing Node 20.)
+  Node 24 at P1.0, Docker at P3.0, AWS CLI + SAM at P4.0.)
 
 - [x] **P0.3 — Design reference** [HUMAN]
   - Put the **second approved mockup** images in `docs/design/` (any filenames). Spec §20 treats it as
@@ -25,11 +25,18 @@ The `/next-task` skill picks the first unchecked box.
 
 ## Phase 1 — Project scaffolding
 
+- [ ] **P1.0 — Install Node.js 24 LTS** [HUMAN]
+  - Why: Lambda's newest stable runtime is `nodejs24.x` (supported to Apr 2028; `nodejs20.x` was deprecated
+    Apr 30, 2026, per https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html, checked 2026-10-01), and
+    current Vitest needs Node 22.12 or newer. Local Node should match production.
+  - Easiest: download the **Node.js 24 LTS macOS installer (.pkg)** from https://nodejs.org and run it. It replaces
+    the existing `/usr/local/bin/node` (v20.11).
+  - Done when: a new terminal shows `node -v` → `v24.x`.
+
 - [ ] **P1.1 — Monorepo skeleton**
   - *Spec:* §22, §35, §37, §39
   - *Do:* npm workspaces: `apps/web` (empty placeholder), `services/api`, `packages/shared`. Root
-    `tsconfig.base.json` (strict), `.nvmrc` (Node LTS matching the newest Lambda Node.js runtime —
-    check AWS docs), `.editorconfig`, Prettier, ESLint (typescript-eslint flat config), Vitest.
+    `tsconfig.base.json` (strict), `.nvmrc` = `24` (matches Lambda `nodejs24.x`), root `engines.node`, `.editorconfig`, Prettier, ESLint (typescript-eslint flat config), Vitest.
     Root scripts: `lint`, `typecheck`, `test`, `test:integration`, `guardrails`, `verify`
     (= lint + typecheck + test + guardrails), `format`.
   - *Done when:* `npm install && npm run verify` passes with one trivial test per workspace.
@@ -102,10 +109,10 @@ This is where correctness lives; handlers later just call these.
 
 ## Phase 3 — Data layer (DynamoDB)
 
-- [ ] **P3.0 — Install Node LTS and Docker** [HUMAN]
-  - Node.js matching `.nvmrc` (from https://nodejs.org or `nvm install`), and Docker Desktop or OrbStack
-    (local development only: runs DynamoDB Local for integration tests; never used in production).
-  - Done when: `node -v` matches `.nvmrc` and `docker info` succeeds.
+- [ ] **P3.0 — Install Docker** [HUMAN]
+  - Docker Desktop or OrbStack (local development only: runs DynamoDB Local for integration tests; never used
+    in production).
+  - Done when: `docker info` succeeds.
 
 - [ ] **P3.1 — Access patterns & table design (doc first)**
   - *Spec:* §4, §25

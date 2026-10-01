@@ -16,7 +16,8 @@ process.stdin.on('end', () => {
 
   const rules = [
     {
-      pattern: /--config-env[= ]+prod\b|--profile[= ]+\S*prod\b|\bsotd-prod\b/,
+      // Only real AWS/SAM invocations: doc edits or commit messages that merely mention "prod" are fine.
+      pattern: /\b(aws|sam)\s[^|;&]*(--config-env[= ]+prod\b|--profile[= ]+\S*prod\b|\bsotd-prod\b)/,
       reason: 'Production actions are done by Ethan, not the AI. Give him the exact command and explain what it does.',
     },
     {
