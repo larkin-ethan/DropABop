@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 1. Next: **P1.2 CI runs verify**, then P1.3 (shared types & validation).
+Phase 1. Next: **P1.3 Shared types & validation**, then Phase 2 (domain logic).
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,11 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P1.2** — CI workflow: guardrails → setup-node (from `.nvmrc`, npm cache) → `npm ci` → `npm run verify`.
+  Uses actions/checkout@v7 and actions/setup-node@v7 (latest majors via `git ls-remote`; inputs confirmed in the
+  setup-node README, 2026-10-01). Verified: YAML parses; `npm ci && npm run verify` exit 0 locally. **Not yet verified
+  on GitHub**: the `build` branch hasn't been pushed (push needs Ethan's OK).
 
 - 2026-10-01 — **P1.1** — npm workspaces (`packages/shared` as `@sotd/shared`, `services/api`, `apps/web`
   placeholder), strict `tsconfig.base.json`, ESLint flat config with type-aware rules, Prettier, Vitest unit +

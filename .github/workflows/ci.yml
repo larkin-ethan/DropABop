@@ -1,5 +1,8 @@
 name: CI
 
+# Runs the same checks as `npm run verify` locally: format, lint, typecheck, unit tests, guardrails.
+# Integration tests (DynamoDB Local) and deploys get their own jobs in later phases.
+
 on:
   pull_request:
   push:
@@ -8,27 +11,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      # Always runs, even before the app exists: cost and security rules from the spec.
+      # Fast, dependency-free cost and security rules. Runs first so violations are reported even if the build breaks.
       - name: Guardrails
         run: bash scripts/guardrails.sh
 
-      # The steps below activate once Phase 1 (P1.1) creates package.json and .nvmrc.
-      - uses: actions/setup-node@v4
-        if: hashFiles('package.json') != ''
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
 
       - name: Install
-        if: hashFiles('package.json') != ''
         run: npm ci
 
-      - name: Lint, typecheck, unit tests
-        if: hashFiles('package.json') != ''
+      - name: Verify (format, lint, typecheck, unit tests, guardrails)
         run: npm run verify

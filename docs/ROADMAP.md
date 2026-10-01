@@ -42,7 +42,7 @@ The `/next-task` skill picks the first unchecked box.
   - *Done when:* `npm install && npm run verify` passes with one trivial test per workspace.
   - *Docs:* create `docs/DEVELOPMENT.md` (prereqs, install, commands, repo layout).
 
-- [ ] **P1.2 — CI runs verify**
+- [x] **P1.2 — CI runs verify**
   - *Do:* Update `.github/workflows/ci.yml` to run `npm ci` + `npm run verify` on PRs and pushes to main
     using the `.nvmrc` Node version.
   - *Done when:* workflow file is valid YAML and the same steps pass locally.
