@@ -139,51 +139,13 @@ This is where correctness lives; handlers later just call these.
 
 ---
 
-## Phase 4 — Dev infrastructure (AWS SAM)
+## Phase 5 — API endpoints (built and tested locally, before Phase 4)
 
-- [ ] **P4.0 — Install AWS CLI v2 and AWS SAM CLI** [HUMAN]
-  - Official installers: AWS CLI v2 and AWS SAM CLI (macOS packages or Homebrew).
-  - Done when: `aws --version` and `sam --version` succeed.
-
-- [ ] **P4.1 — AWS account safety setup** [HUMAN]
-  - Follow `docs/DEPLOYMENT.md` → "Account safety" (the AI writes that section first if missing):
-    enable MFA on root, create an IAM Identity Center user for daily work, set a **$5/month budget** with
-    email alerts at 50%/80%/100% actual and 100% forecasted, enable Free Tier usage alerts, pick a region.
-    Run `aws configure sso` with profile name `sotd-dev`.
-  - Done when: `aws sts get-caller-identity --profile sotd-dev` works and the budget exists.
-
-- [ ] **P4.2 — SAM template: core stack**
-  - *Spec:* §3, §6, §9, §36, §41 · *ADR:* 0002
-  - *Do:* `infra/template.yaml` + `infra/samconfig.toml` with `dev` and `prod` config-envs (separate stack
-    names `sotd-dev` / `sotd-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1, PITR on for prod),
-    Cognito User Pool (email sign-in, email verification, strong password policy) + public app client
-    (no secret, SRP + refresh), HTTP API with **JWT authorizer** (issuer + audience), CORS limited to the
-    stage's frontend origin, default route throttling, one `GET /health` Lambda (Node LTS, arm64, 128–256 MB,
-    log group with 14-day retention). Per-function least-privilege IAM (only the table, only needed actions).
-  - *Done when:* `sam validate --lint` and `sam build` pass; `bash scripts/guardrails.sh` passes; a unit test parses
-    `infra/template.yaml` and asserts the table's key schema equals `TABLE_KEY_SCHEMA`
-    (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
-  - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
-
-- [ ] **P4.3 — First dev deploy** [HUMAN approves the command]
-  - *Do:* AI runs `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then
-    calls `/health` with and without a token to prove the authorizer works.
-  - *Done when:* unauthenticated call → 401; outputs (API URL, pool id, client id) recorded in
-    `apps/web/.env.development.example` (no secrets exist in these values).
-
-- [ ] **P4.4 — Cost & failure alarms**
-  - *Spec:* §7, §33
-  - *Do:* In the template: SNS topic + email subscription (parameter), CloudWatch alarms for Lambda errors
-    (sum ≥ 5 in 5 min), API 5xx, and DynamoDB throttles. AWS Budget resource as a second safety net.
-  - *Done when:* deployed to dev; user confirms the SNS subscription email. Docs list every billable resource.
-
----
-
-## Phase 5 — API endpoints
-
+This phase runs before Phase 4 so the API can be built while AWS account setup (P4.0/P4.1) happens in parallel.
 Each task: handler in `services/api/src/handlers/`, thin (parse → auth context → domain → data → response),
-unit tests with mocked data layer **and** integration tests against DynamoDB Local, route in the template,
-entry in `docs/API.md` (method, path, auth, body schema, responses, errors).
+unit tests with mocked data layer **and** integration tests against DynamoDB Local (handlers invoked with
+realistic API Gateway events), entry in `docs/API.md` (method, path, auth, body schema, responses, errors).
+Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.3.
 
 - [ ] **P5.1 — Handler toolkit**
   - *Do:* `getAuthenticatedUser(event)` (reads `sub`/email from JWT authorizer claims only), `parseBody(schema)`,
@@ -219,8 +181,52 @@ entry in `docs/API.md` (method, path, auth, body schema, responses, errors).
     removed member. Verifies 401/403/404 as appropriate and that no route accepts a client-supplied userId.
   - *Done when:* sweep passes; any gap fixed.
 
-Done when (each of P5.2–P5.10): tests for success + every rule violation pass; deployed to dev and smoke-tested
-with a real Cognito token; `docs/API.md` updated.
+Done when (each of P5.2–P5.10): unit + integration tests for success and every rule violation pass;
+`docs/API.md` updated.
+
+---
+
+## Phase 4 — Dev infrastructure (AWS SAM)
+
+- [ ] **P4.0 — Install AWS CLI v2 and AWS SAM CLI** [HUMAN]
+  - Official installers: AWS CLI v2 and AWS SAM CLI (macOS packages or Homebrew).
+  - Done when: `aws --version` and `sam --version` succeed.
+
+- [ ] **P4.1 — AWS account safety setup** [HUMAN]
+  - Follow `docs/DEPLOYMENT.md` → "Account safety" (the AI writes that section first if missing):
+    enable MFA on root, create an IAM Identity Center user for daily work, set a **$5/month budget** with
+    email alerts at 50%/80%/100% actual and 100% forecasted, enable Free Tier usage alerts, pick a region.
+    Run `aws configure sso` with profile name `sotd-dev`.
+  - Done when: `aws sts get-caller-identity --profile sotd-dev` works and the budget exists.
+
+- [ ] **P4.2 — SAM template: core stack**
+  - *Spec:* §3, §6, §9, §36, §41 · *ADR:* 0002
+  - *Do:* `infra/template.yaml` + `infra/samconfig.toml` with `dev` and `prod` config-envs (separate stack
+    names `sotd-dev` / `sotd-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1 / ADR-0005: on-demand,
+    `OnDemandThroughput` caps, PITR + deletion protection in prod), every Phase 5 route with its handler,
+    Cognito User Pool (email sign-in, email verification, strong password policy) + public app client
+    (no secret, SRP + refresh), HTTP API with **JWT authorizer** (issuer + audience), CORS limited to the
+    stage's frontend origin, default route throttling, one `GET /health` Lambda (Node LTS, arm64, 128–256 MB,
+    log group with 14-day retention). Per-function least-privilege IAM (only the table, only needed actions).
+  - *Done when:* `sam validate --lint` and `sam build` pass; `bash scripts/guardrails.sh` passes; a unit test parses
+    `infra/template.yaml` and asserts the table's key schema equals `TABLE_KEY_SCHEMA`
+    (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
+  - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
+
+- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command]
+  - *Do:* AI runs `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then calls
+    `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
+    user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
+    Cognito tokens: create party → join → share a song → rate → (results/stats return the "not ready" error while
+    the week is open).
+  - *Done when:* unauthenticated call → 401; every endpoint behaves as in `docs/API.md` on dev; outputs (API URL,
+    pool id, client id) recorded in `apps/web/.env.development.example` (no secrets exist in these values).
+
+- [ ] **P4.4 — Cost & failure alarms**
+  - *Spec:* §7, §33
+  - *Do:* In the template: SNS topic + email subscription (parameter), CloudWatch alarms for Lambda errors
+    (sum ≥ 5 in 5 min), API 5xx, and DynamoDB throttles. AWS Budget resource as a second safety net.
+  - *Done when:* deployed to dev; user confirms the SNS subscription email. Docs list every billable resource.
 
 ---
 

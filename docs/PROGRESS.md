@@ -2,7 +2,8 @@
 
 ## Current focus
 
-Phase 4 — dev infrastructure. Next: **P4.0 Install AWS CLI + SAM CLI [HUMAN]**, then **P4.1 AWS account safety setup [HUMAN]**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.1 Handler toolkit**.
+In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
 
