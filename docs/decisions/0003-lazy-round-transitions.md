@@ -26,9 +26,9 @@ week, track the current day, and lock ratings at the end.
 **Lazy evaluation.** With 10–20 users someone opens the app shortly after any boundary. Even if nobody
 does, every request still gives the correct answer, because status is always derived from time.
 
-Ratings lock because every rating write includes a condition tied to the week's end time and is checked
-against the **server** clock. A rating sent after Sunday 23:59:59 is rejected even if the week hasn't
-been marked `CLOSED` yet. Submissions are likewise checked against the server's idea of "today" in the
+Ratings lock in two layers, both based on the **server** clock (details in `docs/DATABASE.md`): the API rejects a
+rating once `now >= endsAt`, even if the week hasn't been marked `CLOSED` yet; and results and stats ignore any
+rating saved at or after `endsAt`, so a request that straddles midnight can't change the outcome. Submissions are likewise checked against the server's idea of "today" in the
 party timezone (weekdays only, one per member per day).
 
 ## Cost

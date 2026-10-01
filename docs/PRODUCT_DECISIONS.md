@@ -42,8 +42,8 @@ this deliberate change to spec §13–§15.
   your generosity stats.
 - **D7 — Ratings are integers 1–10.** One rating per member per song.
 - **D8 — Changing a rating** is allowed any time while the week is `OPEN`. Once the week closes, ratings are
-  immutable. This is enforced server-side: the rating write is conditional on the week not having ended,
-  checked against the server clock, not the client.
+  immutable. This is enforced server-side with the server clock (never the client's): ratings are rejected once
+  the week has ended, and any rating saved after the end is ignored in results and stats.
 - **D9 — Hidden until the week ends.** While the week is open, nobody sees other people's ratings or
   averages (prevents bias). You see only your own ratings and which songs you haven't rated yet.
 - **D10 — Recommender anonymity** (confirmed by Ethan, 2026-10-01). Default: while the week is open, songs are

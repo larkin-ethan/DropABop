@@ -103,8 +103,17 @@ export interface WeekResults {
   totalRatings: number;
 }
 
+/**
+ * Ratings that count for a week: those saved (server time) before the week ended. The API rejects late ratings
+ * up front; this second layer stops a request that straddles midnight from changing results (docs/DATABASE.md).
+ */
+export function countableVotes(votes: Vote[], round: Pick<Round, 'roundId' | 'endsAt'>): Vote[] {
+  const endsAt = new Date(round.endsAt).getTime();
+  return votes.filter((v) => v.roundId === round.roundId && new Date(v.updatedAt).getTime() < endsAt);
+}
+
 export interface CalculateWeekResultsInput {
-  round: Pick<Round, 'roundId'>;
+  round: Pick<Round, 'roundId' | 'endsAt'>;
   recommendations: Recommendation[];
   votes: Vote[];
   viewerId: string;
@@ -121,7 +130,8 @@ export function roundToOneDecimal(value: number): number {
  * Ratings on your own song (which the API never accepts) are ignored defensively (D6).
  */
 export function calculateWeekResults(input: CalculateWeekResultsInput): WeekResults {
-  const { recommendations, votes, viewerId, settings } = input;
+  const { recommendations, viewerId, settings } = input;
+  const votes = countableVotes(input.votes, input.round);
 
   // Group valid ratings by song.
   const votesBySong = new Map<string, Vote[]>();

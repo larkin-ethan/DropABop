@@ -109,12 +109,7 @@ This is where correctness lives; handlers later just call these.
 
 ## Phase 3 — Data layer (DynamoDB)
 
-- [ ] **P3.0 — Install Docker** [HUMAN]
-  - Docker Desktop or OrbStack (local development only: runs DynamoDB Local for integration tests; never used
-    in production).
-  - Done when: `docker info` succeeds.
-
-- [ ] **P3.1 — Access patterns & table design (doc first)**
+- [x] **P3.1 — Access patterns & table design (doc first)**
   - *Spec:* §4, §25
   - *Do:* Write `docs/DATABASE.md`: every access pattern from §25 plus any the API needs; single-table
     key design (PK/SK + at most 2 GSIs) mapping each pattern to a Query/GetItem; item shapes; which
@@ -122,6 +117,11 @@ This is where correctness lives; handlers later just call these.
     rating writes conditional on the week's end time; first-request week creation with `attribute_not_exists`;
     party size limit; unique membership). Capacity mode decision with current pricing link (ADR-0005).
   - *Done when:* every pattern maps to a key-based operation; no Scan; reviewed against §25 list.
+
+- [ ] **P3.0 — Install Docker** [HUMAN]
+  - Docker Desktop or OrbStack (local development only: runs DynamoDB Local for integration tests; never used
+    in production).
+  - Done when: `docker info` succeeds.
 
 - [ ] **P3.2 — Local DynamoDB for tests**
   - *Do:* `docker-compose.yml` with `amazon/dynamodb-local`; `services/api/scripts/create-local-table.ts`
@@ -134,7 +134,8 @@ This is where correctness lives; handlers later just call these.
     `putRecommendation`, `putVote`, `getRoundVotes`, …) using `@aws-sdk/lib-dynamodb`. Conditional writes
     map `ConditionalCheckFailedException` to domain errors with friendly messages.
   - *Done when:* integration tests cover each function including every conditional-write failure
-    (second song on the same day, join full party, rating after the week ends, two simultaneous week creations).
+    (second song on the same day, join full party, duplicate join, two simultaneous week creations, old invite code
+    after regeneration).
 
 ---
 

@@ -30,12 +30,14 @@ no duplicate ratings, friendly error messages, and votes can be changed only whi
 
 ## Consequences
 
-- **Uniqueness:** a member's recommendation key includes the date (`week#day#user`), so a conditional put
-  enforces one per day without reading first.
+- **Uniqueness:** each shared song also writes a marker item keyed by week, member, and date
+  (`SUBMITTED#<week>#<userId>#<date>`, see `docs/DATABASE.md`) with a conditional put, so one-per-day holds even
+  under simultaneous requests.
 - **Day boundaries** depend on the party's timezone, and must be computed on the server from the server clock.
   Daylight-saving weeks need tests.
-- **Rating lock:** the vote write is conditional on the week's end time (from ADR-0003's lazy model), so a
-  vote sent one second after Sunday 23:59:59 is rejected even if nobody has "closed" the week yet.
+- **Rating lock:** checked against the week's end time with the server clock before writing, and late-saved ratings
+  are ignored when counting (ADR-0003, `docs/DATABASE.md`), so a rating sent after Sunday 23:59:59 never counts,
+  even if nobody has "closed" the week yet.
 - **Volume:** up to 5 × 20 = 100 songs per week per party. That's still tiny for DynamoDB (one Query per week
   for songs, one per week for votes), but the voting UI must group songs by day and show progress.
 - **Stats** now accumulate up to 5× faster per member, so minimum-sample thresholds are reached sooner. The

@@ -229,6 +229,20 @@ describe('calculateWeekResults (spec §16, D11, D12)', () => {
     ]);
   });
 
+  it('ignores ratings saved at or after the week ended, even if the request started just before', () => {
+    const late = calculateWeekResults({
+      round,
+      recommendations: [rec('a', 'alice', 'MON')],
+      votes: [
+        { ...vote('a', 'bob', 8), updatedAt: '2026-10-12T04:59:59.999Z' },
+        { ...vote('a', 'carol', 1), updatedAt: '2026-10-12T05:00:00.000Z' },
+      ],
+      viewerId: 'alice',
+      settings: { showWhoRatedWhat: false },
+    });
+    expect(late.songs[0]).toMatchObject({ averageRating: 8, ratingCount: 1 });
+  });
+
   it('handles a week with no ratings at all', () => {
     const empty = calculateWeekResults({
       round,

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 3 — data layer. Next: **P3.0 Install Docker [HUMAN]**, then P3.1 (access patterns & table design doc — doesn't need Docker).
+Phase 3 — data layer. Next: **P3.0 Install Docker [HUMAN]**, then P3.2 (DynamoDB Local) and P3.3 (repository functions).
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,15 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P3.1** — `docs/DATABASE.md`: single table, no GSIs, one partition per party; 16 access patterns all
+  GetItem/single-partition Query; write table with every condition/transaction (party size, unique membership, one
+  week per week, one song per day via marker item, invite regeneration). ADR-0005: on-demand + `OnDemandThroughput`
+  caps, PITR + deletion protection in prod (pricing/free-tier/CFN property verified on official pages 2026-10-01).
+  Design finding: DynamoDB conditions can't compare to "now", so the rating lock is two layers — server-clock check
+  before write + ignore votes saved at/after `endsAt`. Implemented: `countableVotes` (results) and `buildStatsData`
+  now takes the closed rounds and drops open-week data and late votes (closed-weeks rule now enforced in code, not
+  by callers). Updated ADR-0003/0004, D8, P3.3 wording. Verified: `npm run verify` exit 0, 222 tests (3 new).
 
 - 2026-10-01 — **P2.5** — `domain/party.ts`: `generateInviteCode` (node:crypto, rejection sampling to avoid bias),
   `canJoinParty` (invalid/regenerated code, already member, full, last spot), `isHost`, `canViewParty`,

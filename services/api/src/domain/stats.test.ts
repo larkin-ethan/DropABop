@@ -86,7 +86,12 @@ function dataset(specs: SongSpec[], extraVotes: Vote[] = []) {
       });
     }
   });
-  return buildStatsData(recommendations, votes);
+  // Every week in the fixtures counts as closed, ending well after the fixture ratings.
+  const closedRounds = [...new Set(recommendations.map((r) => r.roundId))].map((roundId) => ({
+    roundId,
+    endsAt: '2100-01-01T00:00:00.000Z',
+  }));
+  return buildStatsData(recommendations, votes, closedRounds);
 }
 
 /** `count` songs by `by`, each rated `rating` by `rater`. */
@@ -114,6 +119,64 @@ describe('maths helpers', () => {
 });
 
 describe('buildStatsData', () => {
+  const rec = (id: string, by: string, roundId: string): Recommendation => ({
+    recommendationId: id,
+    roundId,
+    partyId: 'p1',
+    userId: by,
+    submittedOn: '2026-10-05',
+    weekday: 'MON',
+    song: {
+      songId: id,
+      title: id,
+      artist: 'A',
+      album: null,
+      albumArtUrl: null,
+      durationMs: null,
+      releaseDate: null,
+      providers: [{ provider: 'spotify', providerSongId: id, externalUrl: `https://open.example.com/${id}` }],
+    },
+    createdAt: '2026-10-05T12:00:00.000Z',
+  });
+  const v = (
+    recommendationId: string,
+    roundId: string,
+    userId: string,
+    rating: number,
+    updatedAt: string,
+  ): Vote => ({
+    roundId,
+    recommendationId,
+    userId,
+    rating,
+    updatedAt,
+  });
+
+  it('uses only the closed weeks it is given (open weeks’ ratings are hidden, D9)', () => {
+    const data = buildStatsData(
+      [rec('closed-song', 'bob', 'closed-week'), rec('open-song', 'bob', 'open-week')],
+      [
+        v('closed-song', 'closed-week', 'alice', 6, '2026-10-06T00:00:00.000Z'),
+        v('open-song', 'open-week', 'alice', 10, '2026-10-13T00:00:00.000Z'),
+      ],
+      [{ roundId: 'closed-week', endsAt: '2026-10-12T05:00:00.000Z' }],
+    );
+    expect(data.songs.map((s) => s.recommendation.recommendationId)).toEqual(['closed-song']);
+    expect(data.partyAverageGiven).toBe(6);
+  });
+
+  it('ignores ratings saved at or after the week ended (rating lock)', () => {
+    const data = buildStatsData(
+      [rec('s', 'bob', 'w')],
+      [
+        v('s', 'w', 'alice', 8, '2026-10-12T04:59:59.999Z'),
+        v('s', 'w', 'carol', 1, '2026-10-12T05:00:00.000Z'),
+      ],
+      [{ roundId: 'w', endsAt: '2026-10-12T05:00:00.000Z' }],
+    );
+    expect(data.songs[0]?.ratings).toEqual([8]);
+  });
+
   it('ignores self-ratings and ratings for unknown songs', () => {
     const data = dataset(
       [{ id: 's1', by: 'bob', ratings: { alice: 8, bob: 10 } }],

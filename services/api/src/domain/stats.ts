@@ -2,13 +2,14 @@
 // docs/PRODUCT_DECISIONS.md and are explained for users in docs/STATISTICS.md.
 //
 // Rules that apply to every stat:
-// - Input is CLOSED weeks only. Open weeks' ratings are hidden (D9), so including them could leak them.
-//   Weeks that closed as NOT_ENOUGH_SONGS are excluded too.
+// - CLOSED weeks only. Open weeks' ratings are hidden (D9), so including them could leak them. Weeks that
+//   closed as NOT_ENOUGH_SONGS are excluded too. buildStatsData enforces this: it keeps only songs and ratings
+//   from the weeks it's given, and only ratings saved before each week ended (docs/DATABASE.md, rating lock).
 // - If the minimum sample isn't met, the result says "not enough data" with how much there is and how much
 //   is needed. We never show a number we can't back up (spec §17).
 // - Ratings on your own song (never accepted by the API) and ratings for unknown songs are ignored.
 
-import type { Recommendation, Vote } from '@sotd/shared';
+import type { Recommendation, Round, Vote } from '@sotd/shared';
 import { MAX_RATING, MIN_RATING } from '@sotd/shared';
 
 // ---------------------------------------------------------------------------
@@ -74,12 +75,27 @@ export interface StatsData {
   partyAverageGiven: number | null;
 }
 
-/** Call once per request with the party's closed-week recommendations and votes. */
-export function buildStatsData(recommendations: Recommendation[], votes: Vote[]): StatsData {
+/**
+ * Call once per request. `closedRounds` must be the party's weeks with status CLOSED (not OPEN, not
+ * NOT_ENOUGH_SONGS); anything from other weeks is dropped here, as are ratings saved after a week ended.
+ */
+export function buildStatsData(
+  allRecommendations: Recommendation[],
+  allVotes: Vote[],
+  closedRounds: Pick<Round, 'roundId' | 'endsAt'>[],
+): StatsData {
+  const endsAtByRound = new Map(closedRounds.map((r) => [r.roundId, new Date(r.endsAt).getTime()]));
+  const recommendations = allRecommendations.filter((r) => endsAtByRound.has(r.roundId));
   const recById = new Map(recommendations.map((r) => [r.recommendationId, r]));
-  const validVotes = votes.filter((v) => {
+  const validVotes = allVotes.filter((v) => {
     const rec = recById.get(v.recommendationId);
-    return rec !== undefined && rec.userId !== v.userId;
+    const endsAt = endsAtByRound.get(v.roundId);
+    return (
+      rec !== undefined &&
+      rec.userId !== v.userId && // never count self-ratings
+      endsAt !== undefined &&
+      new Date(v.updatedAt).getTime() < endsAt // rating lock
+    );
   });
 
   const ratingsBySong = new Map<string, number[]>();
