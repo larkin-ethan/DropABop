@@ -221,3 +221,35 @@ Errors: `409 WEEK_CLOSED`, `403 OWN_SONG`, `403 NOT_A_MEMBER`, `404 NOT_FOUND` (
 
 `200`: `{ "votes": [{ "recommendationId", "rating", "updatedAt" }] }`. Your ratings only.
 
+### Results
+
+#### `GET /rounds/{roundId}/results`
+
+Members only, after the week ends. Code: `services/api/src/handlers/results.ts`. Ratings saved after the week's end
+are ignored.
+
+`200`:
+
+```json
+{
+  "round": Round,
+  "results": {
+    "roundId": "…",
+    "songs": [{ "recommendationId": "…", "rank": 1, "weekday": "TUE", "submittedOn": "…", "song": { … },
+                "recommendedBy": "userId", "averageRating": 9.5, "ratingCount": 4,
+                "distribution": [0,0,0,0,0,0,0,0,2,2], "myRating": 10 }],
+    "days": [{ "weekday": "MON", "songIds": ["…"], "winnerIds": ["…"] }, … 5 days],
+    "totalRatings": 23
+  },
+  "members": [{ "userId": "…", "displayName": "…", "avatarColor": "#…" }]
+}
+```
+
+- Ranks: equal displayed averages share a rank (1, 1, 3); unrated songs last (D12). `distribution[0]` = number of 1s.
+- `winnerIds` = that day's Song of the Day (several if tied; empty if none rated).
+- `ratings: [{ userId, rating }]` is added to each song only when the party's `showWhoRatedWhat` is on (D11).
+- `members` gives names for current members; a `recommendedBy` not in the list has left the party.
+
+Errors: `403 RESULTS_NOT_READY` ("Results unlock when the week ends on Sunday night." or, for weeks with fewer than
+2 songs, "Not enough songs were shared this week…"), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.9 Results**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.10 Stats & leaderboard** (+ ADR-0006).
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,11 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.9** — `handlers/results.ts`: results after the week ends (`canViewResults`), lazy close
+  recorded, `calculateWeekResults` with party visibility settings, plus current member names. Verified: integration
+  100 (6 new: locked while open, full ranking + daily winners + revealed recommenders, who-rated-what toggle, late
+  rating ignored, <2 songs → no results + history NOT_ENOUGH_SONGS, non-member 403); `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.8** — `handlers/votes.ts`: rate/change rating (song must be in this round; `canCastVote`;
   `updatedAt` from a fresh clock read) and list my ratings. Verified: integration 94 (6 new: change of mind, last-ms

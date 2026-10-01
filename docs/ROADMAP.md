@@ -171,7 +171,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
   checked with `canCastVote`; `updatedAt` from a fresh server clock read at write time; rejects own songs),
   `GET /rounds/{roundId}/votes/me`.
   Integration test: a rating sent after the week's end time is rejected even if the round is still stored as OPEN.
-- [ ] **P5.9 — Results:** `GET /rounds/{roundId}/results` (403 until the week has ended; weekly ranking, per-day
+- [x] **P5.9 — Results:** `GET /rounds/{roundId}/results` (403 until the week has ended; weekly ranking, per-day
   groups, daily winners; applies visibility settings).
 - [ ] **P5.10 — Stats:** `GET /users/me/stats?partyId=`, `GET /parties/{partyId}/stats`, `GET /parties/{partyId}/leaderboard`.
   Decide in the task whether stats are computed on read or stored at round close (ADR-0006; prefer on-read if
