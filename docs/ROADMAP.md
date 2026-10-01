@@ -176,7 +176,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
 - [x] **P5.10 — Stats:** `GET /users/me/stats?partyId=`, `GET /parties/{partyId}/stats`, `GET /parties/{partyId}/leaderboard`.
   Decide in the task whether stats are computed on read or stored at round close (ADR-0006; prefer on-read if
   a party's full history is a handful of queries).
-- [ ] **P5.11 — Authorization test sweep**
+- [x] **P5.11 — Authorization test sweep**
   - *Do:* Table-driven integration test hitting **every** route as: no token, non-member, member, host,
     removed member. Verifies 401/403/404 as appropriate and that no route accepts a client-supplied userId.
   - *Done when:* sweep passes; any gap fixed.

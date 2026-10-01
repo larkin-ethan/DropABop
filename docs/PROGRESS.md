@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.11 Authorization test sweep** (last Phase 5 task).
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Phase 5 code complete; independent review of Phase 5 next, then Phase 4 (needs Ethan's P4.0/P4.1) or Phase 6.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,11 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.11** — `handlers/authorization.integration.test.ts`: table-driven sweep of all 19 routes ×
+  {no token, ID token} → 401, and × {outsider, left member, member, host} → expected status/error code; plus
+  client-supplied identity checks (body rejected, path/query ignored, strict query rejects extras). No gaps found.
+  Verified: integration 169 (63 in the sweep), unit 280; `npm run verify` exit 0. **Phase 5 complete.**
 
 - 2026-10-01 — **P5.10** — `handlers/stats.ts`: personal stats, group stats, leaderboards, computed on read from
   closed weeks (ADR-0006, new). Closed weeks are chosen by *effective* status (time + song count), not the stored
