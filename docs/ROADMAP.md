@@ -236,7 +236,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
 
 ## Phase 6 — Music providers
 
-- [ ] **P6.1 — Provider research (doc first, no code)**
+- [x] **P6.1 — Provider research (doc first, no code)**
   - *Spec:* §10–12, §40 rule 4
   - *Do:* Using **current official docs only**, write `docs/MUSIC_PROVIDERS.md` with a table per candidate
     (Spotify Web API + Web Playback SDK, Apple MusicKit JS / Apple Music API, iTunes Search API, YouTube Data API +

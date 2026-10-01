@@ -7,6 +7,9 @@ In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safet
 
 ## Blocked / Questions for Ethan
 
+- [ ] 2026-10-01 — **Approve ADR-0007 (music plan)?** iTunes search (free, no accounts), an Apple Music badge on every
+  song, and optional Spotify/YouTube links pasted by the sharer. Blocks P6.3 and P8.4 (Share screen). (P6.1)
+
 - [ ] 2026-10-01 — **Removed members rejoining:** after the host removes someone, that person can rejoin with the same
   invite code unless the host regenerates it. Default plan: the app suggests "Regenerate the invite code?" right after
   a removal. Alternative: regenerate automatically on every removal. (P8.10)
@@ -31,6 +34,12 @@ In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safet
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P6.1** — Research (research subagent, official sources only, every claim cited; UNCONFIRMED items
+  marked) → `docs/MUSIC_PROVIDERS.md` + ADR-0007 (**Proposed**, needs Ethan's approval). Key findings: Spotify Dev Mode
+  now needs the owner's Premium, 5-user cap, terms forbid our snapshot and multi-service integration; Apple Music API
+  $99/yr and playback-tied terms; YouTube search 100/day + 30-day refresh rule; Odesli API retired 2026-07-31; iTunes
+  Search API free/keyless. Proposed v1: iTunes search + Apple Music badge + member-pasted Spotify/YouTube links.
 
 - 2026-10-01 — **P7.3 (code done, live check pending)** — ADR-0008: Amplify JS v6 auth only (official, maintained,
   works with an existing pool; SRP default confirmed in the installed source; localStorage tokens with CSP as the
