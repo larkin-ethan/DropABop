@@ -25,7 +25,7 @@ The `/next-task` skill picks the first unchecked box.
 
 ## Phase 1 — Project scaffolding
 
-- [ ] **P1.0 — Install Node.js 24 LTS** [HUMAN]
+- [x] **P1.0 — Install Node.js 24 LTS** [HUMAN]
   - Why: Lambda's newest stable runtime is `nodejs24.x` (supported to Apr 2028; `nodejs20.x` was deprecated
     Apr 30, 2026, per https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html, checked 2026-10-01), and
     current Vitest needs Node 22.12 or newer. Local Node should match production.
@@ -33,7 +33,7 @@ The `/next-task` skill picks the first unchecked box.
     the existing `/usr/local/bin/node` (v20.11).
   - Done when: a new terminal shows `node -v` → `v24.x`.
 
-- [ ] **P1.1 — Monorepo skeleton**
+- [x] **P1.1 — Monorepo skeleton**
   - *Spec:* §22, §35, §37, §39
   - *Do:* npm workspaces: `apps/web` (empty placeholder), `services/api`, `packages/shared`. Root
     `tsconfig.base.json` (strict), `.nvmrc` = `24` (matches Lambda `nodejs24.x`), root `engines.node`, `.editorconfig`, Prettier, ESLint (typescript-eslint flat config), Vitest.

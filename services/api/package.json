@@ -1,0 +1,13 @@
+{
+  "name": "@sotd/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lambda handlers, domain rules, data access, and music providers.",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sotd/shared": "*"
+  }
+}

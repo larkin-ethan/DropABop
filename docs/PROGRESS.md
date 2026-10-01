@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 1. Next: **P1.0 Install Node.js 24 LTS [HUMAN]**, then P1.1 (monorepo skeleton).
+Phase 1. Next: **P1.2 CI runs verify**, then P1.3 (shared types & validation).
 
 ## Blocked / Questions for Ethan
 
@@ -19,10 +19,19 @@ _None._
 - AWS CLI profile: `sotd-dev` (planned)
 - Stacks: `sotd-dev`, `sotd-prod` (planned)
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
+- Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
+- Toolchain: TypeScript ~6.0.3 (TS 7 unsupported by typescript-eslint), ESLint 10, Vitest 5, Prettier 3.
 
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P1.1** — npm workspaces (`packages/shared` as `@sotd/shared`, `services/api`, `apps/web`
+  placeholder), strict `tsconfig.base.json`, ESLint flat config with type-aware rules, Prettier, Vitest unit +
+  integration configs, `.nvmrc` = 24, root scripts incl. `verify`, `docs/DEVELOPMENT.md`. Verified: `npm run verify`
+  exit 0 (3 test files / 3 tests pass, guardrails pass). Negative check: a deliberate type error fails `typecheck`
+  (exit 2) and an un-awaited promise fails lint (`no-floating-promises`). Leftovers: none.
+- 2026-10-01 — **P1.0** — Ethan installed Node 24. Verified `node -v` = v24.21.0.
 
 - 2026-10-01 — **P0.3** — Added approved mockup `docs/design/mockup-v2-overview.webp` and `docs/design/README.md`
   (visual language, layout, screen-by-screen map to roadmap tasks, adaptations for the weekly model). New decisions

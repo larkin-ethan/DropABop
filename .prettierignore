@@ -1,0 +1,9 @@
+# Docs are hand-formatted; Prettier would realign tables and churn diffs.
+*.md
+package-lock.json
+node_modules
+dist
+build
+coverage
+.aws-sam
+docs/design

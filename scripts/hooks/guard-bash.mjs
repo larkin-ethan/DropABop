@@ -18,18 +18,22 @@ process.stdin.on('end', () => {
     {
       // Only real AWS/SAM invocations: doc edits or commit messages that merely mention "prod" are fine.
       pattern: /\b(aws|sam)\s[^|;&]*(--config-env[= ]+prod\b|--profile[= ]+\S*prod\b|\bsotd-prod\b)/,
-      reason: 'Production actions are done by Ethan, not the AI. Give him the exact command and explain what it does.',
+      reason:
+        'Production actions are done by Ethan, not the AI. Give him the exact command and explain what it does.',
     },
     {
-      pattern: /\b(aws|sam)\b[^|;&]*\b(delete|remove|rm|rb|terminate|purge|destroy|delete-stack|delete-table|delete-bucket)\b/,
-      reason: 'Deleting AWS resources or data is a human-only action. Explain what should be deleted and why, and let Ethan run it.',
+      pattern:
+        /\b(aws|sam)\b[^|;&]*\b(delete|remove|rm|rb|terminate|purge|destroy|delete-stack|delete-table|delete-bucket)\b/,
+      reason:
+        'Deleting AWS resources or data is a human-only action. Explain what should be deleted and why, and let Ethan run it.',
     },
     {
       pattern: /\baws\s+iam\s+create-access-key\b|\baws\s+configure\s+set\b.*secret/,
       reason: 'Long-lived AWS access keys are not used in this project (SSO for people, OIDC for CI).',
     },
     {
-      pattern: /\baws\s+(budgets|ce|billing|account|organizations)\b[^|;&]*\b(create|update|put|delete|close)\b/,
+      pattern:
+        /\baws\s+(budgets|ce|billing|account|organizations)\b[^|;&]*\b(create|update|put|delete|close)\b/,
       reason: 'Billing and account settings are changed by Ethan only.',
     },
     {

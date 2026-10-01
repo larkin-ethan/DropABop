@@ -1,0 +1,13 @@
+{
+  "name": "@sotd/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "React frontend (Vite app is created in roadmap task P7.1).",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sotd/shared": "*"
+  }
+}

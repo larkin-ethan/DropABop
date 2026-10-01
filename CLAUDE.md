@@ -107,6 +107,6 @@ npm install            # install all workspaces
 npm run verify         # lint + typecheck + unit tests + guardrails (run before every commit)
 npm test               # unit tests (Vitest)
 npm run test:integration   # needs DynamoDB Local (docker compose up -d)
-npm run dev            # frontend dev server
+npm run dev            # frontend dev server (from P7.1)
 bash scripts/guardrails.sh # rule checks only
 ```

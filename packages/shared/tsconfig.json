@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Runs in both the browser and Lambda, so no Node or DOM types here.
+    "types": []
+  },
+  "include": ["src"]
+}
