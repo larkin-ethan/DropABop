@@ -74,7 +74,7 @@ as `userId`).
 
 ### Parties
 
-Code: `services/api/src/handlers/parties.ts`. A person can be in at most 20 parties (D15, §32).
+Code: `services/api/src/handlers/parties.ts`. A person can be in at most 5 parties (D15, §32).
 
 #### `POST /parties`
 
@@ -82,7 +82,7 @@ Body (`createPartyRequestSchema`): `name` (1–60), `timezone` (IANA, e.g. `Amer
 (2–50, default 20). The caller becomes the host. A random invite code (`SONG-XXXX`) is generated.
 
 `201`: `{ "party": Party, "members": [hostMember], "isHost": true }`.
-Errors: `400 VALIDATION_FAILED` (bad input, unexpected fields like `hostUserId`, or already in 20 parties).
+Errors: `400 VALIDATION_FAILED` (bad input, unexpected fields like `hostUserId`, or already in 5 parties).
 
 #### `GET /parties`
 
@@ -106,9 +106,9 @@ Rate limiting for this route is configured in P9.1.
 
 #### `POST /parties/{partyId}/join`
 
-Body: `{ "inviteCode": "SONG-7K4P" }`. Must be the party's current code. Also counts toward the 20-party limit.
+Body: `{ "inviteCode": "SONG-7K4P" }`. Must be the party's current code. Also counts toward the 5-party limit.
 `200`: `{ "party", "members", "isHost": false }`.
-Errors: `400 INVALID_INVITE`, `409 ALREADY_MEMBER`, `409 PARTY_FULL`, `400 VALIDATION_FAILED` (20-party limit).
+Errors: `400 INVALID_INVITE`, `409 ALREADY_MEMBER`, `409 PARTY_FULL`, `400 VALIDATION_FAILED` (5-party limit).
 The size limit and duplicate checks are enforced atomically in the database, so simultaneous joins can't overfill.
 
 #### `POST /parties/{partyId}/invite-code`

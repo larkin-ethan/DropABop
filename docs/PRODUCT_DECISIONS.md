@@ -70,12 +70,14 @@ this deliberate change to spec §13–§15.
 - **D13 — Host.** The creator is the host. Host can: change the party timezone, pause/resume the party, edit settings,
   regenerate the invite code, remove members. Host transfer is out of scope for v1.
 - **D14 — Max size** 20 (configurable 2–50 by host; server-enforced).
-- **D15 — Multiple parties.** A user may belong to several parties (at most 20, as basic abuse protection, §32;
+- **D15 — Multiple parties.** A user may belong to several parties (at most **5**, confirmed by Ethan 2026-10-01, as basic abuse protection, §32;
   a soft limit, so simultaneous requests could briefly exceed it); the UI remembers the last one opened.
 - **D16 — Invite code** format `SONG-XXXX` using an unambiguous alphabet (no 0/O/1/I/L). One active code per
   party; host can regenerate (old code stops working). Join link = `https://<app>/join/SONG-XXXX`.
 - **D17 — Leaving** a party is allowed; your past votes and recommendations stay in history and stats. The host
   can't leave or be removed (no host transfer in v1). The member limit can't be set below the current member count.
+  After the host removes someone, the app asks "Make a new invite link?" so the removed person can't rejoin with the
+  old one (Ethan, 2026-10-01; built in P8.10).
 
 ## Profiles (§19)
 
@@ -85,7 +87,9 @@ this deliberate change to spec §13–§15.
 
 ## Music (§10, §11, §12)
 
-- **D20 — v1 provider plan: provider-neutral first** (Ethan, 2026-10-01: the group uses a mix of services).
+- **D20 — v1 provider plan: provider-neutral first** (Ethan, 2026-10-01: the group uses a mix of services). **Decided in
+  ADR-0007 (approved 2026-10-01):** iTunes Search API for search and song details, a "Listen on Apple Music" badge on
+  every song, and optional Spotify/YouTube links pasted by the person sharing.
   The final choice is made in P6.1 after checking current official docs. Target:
   - One song search that needs **no user login and no paid developer account**.
   - Every song shows official "Open in Spotify / Apple Music / YouTube" links wherever they can be resolved

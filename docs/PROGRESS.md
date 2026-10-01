@@ -7,15 +7,8 @@ In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safet
 
 ## Blocked / Questions for Ethan
 
-- [ ] 2026-10-01 — **Approve ADR-0007 (music plan)?** iTunes search (free, no accounts), an Apple Music badge on every
-  song, and optional Spotify/YouTube links pasted by the sharer. Blocks P6.3 and P8.4 (Share screen). (P6.1)
-
-- [ ] 2026-10-01 — **Removed members rejoining:** after the host removes someone, that person can rejoin with the same
-  invite code unless the host regenerates it. Default plan: the app suggests "Regenerate the invite code?" right after
-  a removal. Alternative: regenerate automatically on every removal. (P8.10)
-- [ ] 2026-10-01 — **Confirm D15:** I added a limit of 20 parties per person as basic abuse protection (spec §32). OK?
-
-<!-- Add items as: - [ ] YYYY-MM-DD — question — (task id) -->
+_None open._ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app asks the host to make a new
+invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 
 ## Environment facts
 

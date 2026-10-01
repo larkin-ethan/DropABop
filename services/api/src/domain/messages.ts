@@ -20,7 +20,7 @@ export const MESSAGES = {
   PARTY_FULL: 'This party is full.',
   ALREADY_MEMBER: 'You’re already in this party.',
   TOO_MANY_PARTIES:
-    'You’re already in the maximum number of parties (20). Leave one to join or create another.',
+    'You’re already in the maximum number of parties (5). Leave one to join or create another.',
   INVALID_INVITE: 'That invite code isn’t valid. Ask the host for the latest link.',
   RESULTS_NOT_READY: 'Results unlock when the week ends on Sunday night.',
   NO_RESULTS: 'Not enough songs were shared this week, so there are no results.',

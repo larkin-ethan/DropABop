@@ -248,7 +248,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - *Done when:* every row has a citation; recommendation recorded as ADR-0007.
   - **Stop and ask Ethan** to approve ADR-0007 if it needs a paid account or a developer-app registration.
 
-- [ ] **P6.2 — Provider registration** [HUMAN] (only if ADR-0007 needs one)
+- [x] **P6.2 — Provider registration** [HUMAN] (only if ADR-0007 needs one) — not needed: ADR-0007 uses no accounts.
   - Register the developer app(s) and put any client secret into SSM Parameter Store / the approved
     mechanism yourself — never paste it into chat or the repo. Give the AI the parameter **name**.
 

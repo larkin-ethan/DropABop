@@ -4,7 +4,7 @@ How Song of the Day finds songs and links people to them, what each music servic
 Every fact below was checked against the provider's official documentation or terms on **2026-10-01** (sources at the
 end). Provider rules change often: re-check before relying on anything here, and update the date.
 
-**Decision:** [ADR-0007](decisions/0007-music-provider-plan.md). Status: Proposed, waiting for Ethan's approval.
+**Decision:** [ADR-0007](decisions/0007-music-provider-plan.md), approved by Ethan on 2026-10-01.
 
 ## Summary
 

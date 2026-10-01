@@ -1,4 +1,5 @@
 import type { Party } from '@sotd/shared';
+import { MAX_PARTIES_PER_USER } from '@sotd/shared';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
 import { newId } from '../../test/fixtures';
@@ -65,7 +66,7 @@ describe('POST /parties', () => {
 
   it('limits how many parties one person can be in (spec §32)', async () => {
     const userId = newId();
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < MAX_PARTIES_PER_USER; i++) {
       expect((await createPartyAs(userId)).statusCode).toBe(201);
     }
     const tooMany = await createPartyAs(userId);

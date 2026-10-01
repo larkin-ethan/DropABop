@@ -8,7 +8,7 @@ export const MIN_PARTY_SIZE = 2;
 export const MAX_PARTY_SIZE = 50;
 
 /** D15 / spec §32: a person can be in at most this many parties (stops one account creating unlimited parties). */
-export const MAX_PARTIES_PER_USER = 20;
+export const MAX_PARTIES_PER_USER = 5; // Ethan, 2026-10-01
 
 /** Spec §15 / D7: ratings are whole numbers from 1 to 10. */
 export const MIN_RATING = 1;

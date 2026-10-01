@@ -1,6 +1,6 @@
 # ADR-0007: v1 music plan: iTunes Search for songs, member-pasted Spotify/YouTube links
 
-- **Status:** Proposed. Needs Ethan's approval (it changes what song cards show and how sharing works).
+- **Status:** Accepted (approved by Ethan, 2026-10-01).
 - **Date:** 2026-10-01
 - **Spec sections:** §10, §11, §12, §14 · Decisions D20, D21, D22 · Details: `docs/MUSIC_PROVIDERS.md`
 
@@ -19,7 +19,7 @@ official docs and terms (2026-10-01, `docs/MUSIC_PROVIDERS.md`) found:
 - **YouTube:** **100 searches/day**; stored data must be refreshed or deleted within 30 days.
 - **Odesli/song.link API:** retired 2026-07-31.
 
-## Decision (proposed)
+## Decision
 
 1. **Search: iTunes Search API**, server-side in Lambda, results cached briefly, `country=us`, 10 results.
 2. **Snapshot per shared song** from iTunes: id, title, artist, album, duration, release date, artwork URL,
