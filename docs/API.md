@@ -205,3 +205,19 @@ The week's songs so far, oldest first. `200`: `{ "round": Round, "songs": SongVi
 `recommendedBy` (a userId) appears only for your own songs, when the party reveals recommenders, or after the week
 ends (D10). Other people's ratings and averages never appear here (D9); see the results endpoint.
 
+### Ratings
+
+Code: `services/api/src/handlers/votes.ts`.
+
+#### `PUT /rounds/{roundId}/votes/{recommendationId}`
+
+Body: `{ "rating": 8 }` (whole number 1–10). Creates or replaces your rating while the week is open; locked from
+Monday 00:00 in the week's timezone (D8). You can't rate your own songs (D6).
+`200`: `{ "vote": { "recommendationId", "rating", "updatedAt" } }`.
+Errors: `409 WEEK_CLOSED`, `403 OWN_SONG`, `403 NOT_A_MEMBER`, `404 NOT_FOUND` (song not in this week),
+`400 VALIDATION_FAILED`.
+
+#### `GET /rounds/{roundId}/votes/me`
+
+`200`: `{ "votes": [{ "recommendationId", "rating", "updatedAt" }] }`. Your ratings only.
+

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.8 Votes**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.9 Results**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,11 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.8** — `handlers/votes.ts`: rate/change rating (song must be in this round; `canCastVote`;
+  `updatedAt` from a fresh clock read) and list my ratings. Verified: integration 94 (6 new: change of mind, last-ms
+  accept + Monday lock keeps the earlier rating, own song, invalid ratings/extra fields, cross-party attempts both
+  ways, only-my-votes); `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.7** — `handlers/recommendations.ts`: share today's song (body validated → rules via
   `resolveCurrentWeek` + `canSubmitRecommendation` → server-side song lookup validated with `songSchema` → random id →
