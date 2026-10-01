@@ -173,7 +173,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
   Integration test: a rating sent after the week's end time is rejected even if the round is still stored as OPEN.
 - [x] **P5.9 — Results:** `GET /rounds/{roundId}/results` (403 until the week has ended; weekly ranking, per-day
   groups, daily winners; applies visibility settings).
-- [ ] **P5.10 — Stats:** `GET /users/me/stats?partyId=`, `GET /parties/{partyId}/stats`, `GET /parties/{partyId}/leaderboard`.
+- [x] **P5.10 — Stats:** `GET /users/me/stats?partyId=`, `GET /parties/{partyId}/stats`, `GET /parties/{partyId}/leaderboard`.
   Decide in the task whether stats are computed on read or stored at round close (ADR-0006; prefer on-read if
   a party's full history is a handful of queries).
 - [ ] **P5.11 — Authorization test sweep**

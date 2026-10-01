@@ -253,3 +253,29 @@ are ignored.
 Errors: `403 RESULTS_NOT_READY` ("Results unlock when the week ends on Sunday night." or, for weeks with fewer than
 2 songs, "Not enough songs were shared this week…"), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
 
+### Stats & leaderboards
+
+Code: `services/api/src/handlers/stats.ts`. Computed on request from **closed weeks only** (ADR-0006); definitions
+and minimums in `docs/STATISTICS.md`. Every stat is either
+`{ "status": "ok", "value": …, "sampleSize": N }` or `{ "status": "not-enough-data", "sampleSize": N, "required": M }`.
+"Most …" stats return `value` as a list of tied winners `{ id, value, sampleSize, song? }` (`song` summary for
+song-based stats). Each response includes `members` (names for current members) and `weeksPlayed`.
+Results only change when a week closes, so clients should cache these.
+
+#### `GET /users/me/stats?partyId=…`
+
+Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRecommended` (number),
+`highestRatedRecommendation`, `lowestRatedRecommendation`, `generosity`, `ratingDistribution` (10 counts),
+`favoriteArtists` (top 3), `musicalTwin`. Errors: `400` (missing partyId), `403 NOT_A_MEMBER`.
+
+#### `GET /parties/{partyId}/stats`
+
+`songsShared`, `ratingsGiven`, `highestRatedSong`, `crowdFavorite`, `mostDivisive`, `mostControversial`,
+`everyoneAgreed`, `darkHorse`, `mostGenerousVoter`, `toughestCritic`. Members only.
+
+#### `GET /parties/{partyId}/leaderboard`
+
+`highestAverageSongRating` (songs, with `song` summary), `highestAverageRecommendationScore`, `mostConsistent`,
+`mostSurprising`, `mostPopular`: each a ranked list of `{ id, rank, value, sampleSize }` containing only entries
+that meet the minimum sample. Ties share a rank. Members only.
+

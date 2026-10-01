@@ -175,6 +175,11 @@ export const roundHistoryQuerySchema = z.strictObject({
     .optional(),
 });
 
+/** GET /users/me/stats?partyId=… */
+export const personalStatsQuerySchema = z.strictObject({
+  partyId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' }),
+});
+
 /** POST /songs/resolve — paste-a-link fallback (D21). */
 export const resolveSongRequestSchema = z.strictObject({
   url: httpsUrlSchema,
