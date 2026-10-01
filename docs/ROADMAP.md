@@ -99,7 +99,7 @@ This is where correctness lives; handlers later just call these.
   - *Done when:* every stat has tests for: normal case, below-minimum sample, ties.
   - *Docs:* create `docs/STATISTICS.md` mirroring the definitions with formulas (user-facing wording too).
 
-- [ ] **P2.5 — Invite codes & permissions**
+- [x] **P2.5 — Invite codes & permissions**
   - *Spec:* §8, §24, §26 · *Decisions:* D13–D17
   - *Do:* `generateInviteCode(randomSource)` (crypto-random, unambiguous alphabet); `canJoinParty(...)`
     (code active, room left, not already member); `isHost`, `canManageParty`.

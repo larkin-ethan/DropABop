@@ -72,7 +72,8 @@ this deliberate change to spec §13–§15.
 - **D15 — Multiple parties.** A user may belong to several parties; the UI remembers the last one opened.
 - **D16 — Invite code** format `SONG-XXXX` using an unambiguous alphabet (no 0/O/1/I/L). One active code per
   party; host can regenerate (old code stops working). Join link = `https://<app>/join/SONG-XXXX`.
-- **D17 — Leaving** a party is allowed; your past votes and recommendations stay in history and stats.
+- **D17 — Leaving** a party is allowed; your past votes and recommendations stay in history and stats. The host
+  can't leave or be removed (no host transfer in v1). The member limit can't be set below the current member count.
 
 ## Profiles (§19)
 

@@ -22,6 +22,10 @@ export const MESSAGES = {
   INVALID_INVITE: 'That invite code isn’t valid. Ask the host for the latest link.',
   RESULTS_NOT_READY: 'Results unlock when the week ends on Sunday night.',
   NO_RESULTS: 'Not enough songs were shared this week, so there are no results.',
+  MEMBER_NOT_FOUND: 'That person isn’t in this party.',
+  HOST_CANNOT_LEAVE: 'The host can’t leave or be removed from their own party.',
+  maxBelowMembers: (count: number) =>
+    `This party already has ${count} members, so the limit can’t be lower than ${count}.`,
 } as const;
 
 /** Outcome of a rule check: allowed, or the reason it isn't (code for the app, message for people). */

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 2 — domain logic. Next: **P2.5 Invite codes & permissions** (last Phase 2 task).
+Phase 3 — data layer. Next: **P3.0 Install Docker [HUMAN]**, then P3.1 (access patterns & table design doc — doesn't need Docker).
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,12 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P2.5** — `domain/party.ts`: `generateInviteCode` (node:crypto, rejection sampling to avoid bias),
+  `canJoinParty` (invalid/regenerated code, already member, full, last spot), `isHost`, `canViewParty`,
+  `canManageParty` (party record must agree with role), `canRemoveMember` (leave / host removes / host can't leave),
+  `canSetMaxMembers`. Added host-can't-leave + limit rule to D17. Verified: `npm run verify` exit 0, 219 tests.
+  **Phase 2 complete.**
 
 - 2026-10-01 — **P2.4** — `domain/stats.ts`: every personal/group stat from the PRODUCT_DECISIONS table plus five
   leaderboards; `Stat<T>` = ok {value, sampleSize} | not-enough-data {sampleSize, required}; superlatives return all
