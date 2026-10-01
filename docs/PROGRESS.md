@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.2 Profile endpoints**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.3 Parties endpoints**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,12 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.2** — `handlers/users.ts` (`getMe` returns profile + parties, creating the profile on first
+  call; `updateMe` field-level update), `domain/profile.ts` (default name "New member" since access tokens carry no
+  name/email; deterministic palette avatar color). Test infra: `test/handler-deps.ts` (real local DB + controllable
+  clock). Verified: integration 51 tests (7 new: create-on-first-call, idempotent, 401, update, body `userId`
+  rejected, friendly validation message, empty update), unit 280; `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.1** — `services/api/src/http/`: `request.ts` (`getAuthenticatedUser` from verified JWT claims
   only + requires `token_use = access`; `parseBody` with 10 KB cap, base64, friendly zod errors; `parseQuery`;

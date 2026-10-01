@@ -47,4 +47,27 @@ token, headers, body, or email (`services/api/src/http/logger.ts` redacts these 
 
 ## Endpoints
 
-_Added task by task from P5.2 onward._
+### Profile
+
+#### `GET /users/me`
+
+Your profile and the parties you're in. Creates the profile on the first call (display name "New member", a
+generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
+
+`200`:
+
+```json
+{
+  "user": { "userId": "…", "displayName": "Ethan", "avatarColor": "#3B82F6", "preferredProvider": null, "createdAt": "…" },
+  "parties": [{ "partyId": "…", "partyName": "Ethan's Music Party", "role": "host", "joinedAt": "…" }]
+}
+```
+
+#### `PATCH /users/me`
+
+Body (`updateProfileRequestSchema`, at least one field): `displayName` (1–40 chars, trimmed), `avatarColor`
+(`#RRGGBB`), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22).
+Updates only the given fields; your name/color in party member lists updates too.
+
+`200`: `{ "user": { … } }`. Errors: `400 VALIDATION_FAILED` (bad value, empty update, or any unexpected field such
+as `userId`).
