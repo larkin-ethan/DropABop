@@ -129,7 +129,7 @@ This is where correctness lives; handlers later just call these.
     `test:integration` script that runs against it.
   - *Done when:* `docker compose up -d && npm run test:integration` runs a smoke test that writes and reads an item.
 
-- [ ] **P3.3 — Repository functions**
+- [x] **P3.3 — Repository functions**
   - *Do:* `services/api/src/data/` — plain async functions (`getParty`, `listUserParties`, `addMember`,
     `putRecommendation`, `putVote`, `getRoundVotes`, …) using `@aws-sdk/lib-dynamodb`. Conditional writes
     map `ConditionalCheckFailedException` to domain errors with friendly messages.
@@ -205,8 +205,9 @@ entry in `docs/API.md` (method, path, auth, body schema, responses, errors).
 - [ ] **P5.7 — Recommendations:** `POST /rounds/{roundId}/recommendations` (server stamps today's date; rejects
   weekends, a second song today, and closed weeks), `GET /rounds/{roundId}/recommendations` (all songs so far this
   week, grouped by day; respects anonymity setting D10; never includes other people's ratings while open).
-- [ ] **P5.8 — Votes:** `PUT /rounds/{roundId}/votes/{recommendationId}` (create or change while the week is OPEN;
-  conditional on week end time; rejects own songs), `GET /rounds/{roundId}/votes/me`.
+- [ ] **P5.8 — Votes:** `PUT /rounds/{roundId}/votes/{recommendationId}` (create or change while the week is OPEN,
+  checked with `canCastVote`; `updatedAt` from a fresh server clock read at write time; rejects own songs),
+  `GET /rounds/{roundId}/votes/me`.
   Integration test: a rating sent after the week's end time is rejected even if the round is still stored as OPEN.
 - [ ] **P5.9 — Results:** `GET /rounds/{roundId}/results` (403 until the week has ended; weekly ranking, per-day
   groups, daily winners; applies visibility settings).

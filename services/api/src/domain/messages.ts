@@ -23,6 +23,7 @@ export const MESSAGES = {
   RESULTS_NOT_READY: 'Results unlock when the week ends on Sunday night.',
   NO_RESULTS: 'Not enough songs were shared this week, so there are no results.',
   MEMBER_NOT_FOUND: 'That person isn’t in this party.',
+  INVITE_JUST_CHANGED: 'The invite code was just changed. Refresh to see the new one.',
   HOST_CANNOT_LEAVE: 'The host can’t leave or be removed from their own party.',
   maxBelowMembers: (count: number) =>
     `This party already has ${count} members, so the limit can’t be lower than ${count}.`,

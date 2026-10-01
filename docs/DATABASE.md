@@ -79,13 +79,32 @@ then enforces the same rules again, so two simultaneous requests can't both get 
 | Create profile (first sign-in) | `Put USER#u/PROFILE` with `attribute_not_exists(PK)` | Created once; later calls read it |
 | Create party | Transaction: put `META`, host `MEMBER#`, `USER#/PARTY#` link, `INVITE#code`, each `attribute_not_exists` | No half-created party; invite code is unique (retry with a new code on clash) |
 | Join party | Transaction: update `META` with `memberCount < settings.maxMembers` and `inviteCode = :code`, then `ADD memberCount 1`; put `MEMBER#u` and `USER#u/PARTY#p` with `attribute_not_exists` | **Party size limit** and **no duplicate membership** hold even if several people join at once; an old code can't be used after regeneration |
-| Leave / remove member | Transaction: delete `MEMBER#u` (must exist) and `USER#u/PARTY#p`; `ADD memberCount -1` | Count stays accurate |
-| Regenerate invite code | Transaction: put new `INVITE#new` (`attribute_not_exists`), delete `INVITE#old`, update `META` with `inviteCode = :old` | Old code stops working at the same moment |
-| Update settings | `Update META` (host checked in code from META) | — |
-| Start a week | `Put ROUND#week` with `attribute_not_exists(SK)` | **Exactly one round per week**, even if several people open the app at once; the loser re-reads it |
+| Leave / remove member | Transaction: delete `MEMBER#u` with `attribute_exists(PK) AND role <> host`, delete `USER#u/PARTY#p`; `ADD memberCount -1` | Count stays accurate (a double removal decrements once); the host can't be removed (D17) |
+| Regenerate invite code | Transaction: put new `INVITE#new` (`attribute_not_exists`), delete `INVITE#old`, update `META` with `inviteCode = :old` | Old code stops working at the same moment; a double tap gets "The invite code was just changed" (`CONFLICT`) |
+| Update settings / rename | `Update META` (host checked in code); a new `maxMembers` also requires `memberCount <= :maxMembers`. A rename then updates each member's `USER#/PARTY#` link (best-effort, see below) | Limit can't drop below the member count |
+| Update profile | `Update USER#u/PROFILE` setting only the changed fields; then copies displayName/avatarColor onto each `MEMBER#u` item (best-effort) | Edits from two devices to different fields don't undo each other |
+| Start a week | `Put ROUND#week` with `attribute_not_exists(PK)` | **Exactly one round per week**, even if several people open the app at once; the loser re-reads it |
 | Record a week's close | `Update ROUND#week SET status` with `status = :open` | Recorded once; correctness never depends on it (status is derived from time, ADR-0003) |
-| Share a song | Transaction: put `SUBMITTED#week#u#date` with `attribute_not_exists(SK)` + put `REC#week#recId` | **One song per member per day**. A second attempt fails the marker condition → "You've already shared your song for today." |
+| Share a song | Transaction: put `SUBMITTED#week#u#date` with `attribute_not_exists(PK)` + put `REC#week#recId` | **One song per member per day**. A second attempt fails the marker condition → "You've already shared your song for today." |
 | Rate / change a rating | `Put VOTE#week#u#recId` (overwrites the previous rating) | **One rating per member per song** (the key is unique per member + song) |
+
+Every transaction goes through `transactWrite`, which retries briefly (up to 3 attempts) **only** when DynamoDB
+cancels it because another transaction touched the same item at that instant (`TransactionConflict`). Condition
+failures are never retried; they're real answers such as "party full".
+
+### Copies that are best-effort
+
+Two pieces of data are copied for cheap reads and kept in sync **best-effort** (eventually consistent):
+the party name on each member's `USER#/PARTY#` link, and a member's display name / avatar color on their
+`MEMBER#` items. If someone leaves a party mid-update, their copy is simply skipped. The source of truth is always
+`META` (party) and `PROFILE` (user). A rename racing a join can leave one stale link name until the next rename;
+that's acceptable for a display label.
+
+### Pagination
+
+`listRounds` (history) returns up to 20 weeks per page (max 50). Its cursor is the last week's start date
+(`2026-09-14`), not a raw database key, so a crafted cursor can't read outside the party's partition. Malformed
+cursors are rejected.
 
 ### The rating lock (D8)
 
@@ -93,9 +112,14 @@ DynamoDB conditions can't compare against "the current time", so the lock is enf
 
 1. **Before writing**, the handler checks `now < round.endsAt` with the server clock (`canCastVote`). After the week
    ends, rating requests are rejected with "This week has ended, so ratings are locked."
-2. **When counting**, results and stats ignore any rating whose server-set `updatedAt` is at or after `endsAt`.
-   A request that passes the check at 23:59:59.999 but is written a few milliseconds after midnight can't change
-   the results.
+2. **When counting**, results and stats ignore any rating whose server-set `updatedAt` is at or after `endsAt`
+   (`countableVotes`, `buildStatsData`). `updatedAt` is read from the server clock at write time, separately from the
+   check in step 1. A request that passes the check at 23:59:59.999 but is written a few milliseconds after midnight
+   can't add a late rating.
+
+   Known edge: because a rating change overwrites the previous rating, a *change* that lands in that millisecond
+   window removes the member's earlier on-time rating rather than leaving it. The window is milliseconds wide and the
+   outcome is "that rating doesn't count", which we accept.
 
 ## Data size and cost at our scale
 

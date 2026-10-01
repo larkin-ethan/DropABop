@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 3 — data layer. Next: **P3.3 Repository functions**.
+Phase 4 — dev infrastructure. Next: **P4.0 Install AWS CLI + SAM CLI [HUMAN]**, then **P4.1 AWS account safety setup [HUMAN]**.
 
 ## Blocked / Questions for Ethan
 
@@ -27,6 +27,19 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P3.3** — Data layer in `services/api/src/data/`: `keys.ts` (validated key builders, `parseRoundId`),
+  `errors.ts` (`DomainError`, condition/transaction failure helpers), `context.ts` (`DataContext`, paginated queries,
+  `transactWrite` with conflict-only retry), `users.ts`, `parties.ts`, `rounds.ts`, `recommendations.ts`, `votes.ts`.
+  **Independent spec review** (subagent) returned 1 MUST FIX — regenerating the invite code twice with the same old
+  code surfaced a raw error — fixed (`CONFLICT` "just changed" message, new error code). Also applied its SHOULD FIXes:
+  host can't be removed (DB condition), profile updates set only changed fields, rename/profile copies best-effort,
+  `putRecommendation` asserts partition match + UUID id (D10), scoping comments for handlers, invite key regex uses
+  the strict shared pattern, `isTransactionConflictOnly` moved to errors.ts, fixtures use the real code generator,
+  DATABASE.md drift fixed (settings/profile rows, best-effort copies, pagination, rating-lock edge). Probed real
+  concurrency: losers of simultaneous joins/shares get friendly DomainErrors. Verified: `npm run verify` exit 0;
+  integration 44 tests pass (races: 3-way last spot, same-user double join, double removal, double regenerate,
+  simultaneous same-day shares, 5 simultaneous week creations, profile edits from two devices). **Phase 3 complete.**
 
 - 2026-10-01 — **P3.2** — `docker-compose.yml` (amazon/dynamodb-local:3.3.1, in-memory, bound to 127.0.0.1),
   `db:up`/`db:down` scripts, `data/table-definition.ts` (single key schema), `data/client.ts` (env-configured client;
