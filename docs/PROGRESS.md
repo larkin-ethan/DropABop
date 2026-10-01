@@ -32,6 +32,16 @@ In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safet
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-01 — **P7.2** — Components: `RatingControl` (1–10 radio group, arrow/Home/End keys, roving tabindex),
+  `Modal` (Escape/close, focus in and back), `States` (Skeleton/LoadingState/EmptyState/ErrorState), `Stats`
+  (StatCard with "Not enough data yet"/"Based on N", Leaderboard with shared ranks, RatingDistribution as plain HTML
+  bars — no chart library needed), plus existing Button/Card/Avatar/AlbumArt/ProgressBar/SongCard. Vitest now has two
+  projects (`node`, `web` with jsdom + Testing Library + jest-dom). Dev-only `/dev/components` gallery (excluded from
+  the production bundle — verified by grepping dist). Verified: 21 component tests; `npm run verify` exit 0 (300
+  tests); gallery at 320px and 1440px: no horizontal scroll, sidebar visible on desktop, no console errors (checked
+  programmatically — the browser pane was hidden, so no screenshots this time). Dev deps: @testing-library/{react,dom,
+  user-event,jest-dom}, jsdom.
+
 - 2026-10-01 — **P7.1** (done early at Ethan's request to see the UI) — `apps/web`: Vite 8 + React 19 + React
   Router 8 (declarative mode; API checked in its docs) + TanStack Query 5 + Tailwind 4 (`@tailwindcss/vite`).
   Tokens sampled from the mockup with PIL → `index.css` `@theme`, recorded in docs/design/README.md. `AppShell`

@@ -4,6 +4,7 @@ import { Route, Routes } from 'react-router';
 import { AppShell } from './components/AppShell';
 import { Card } from './components/ui';
 import { sampleCurrentWeek, sampleMembers, sampleParty, sampleSongs } from './preview/sample-data';
+import { ComponentGallery } from './screens/ComponentGallery';
 import { HomeScreen } from './screens/HomeScreen';
 
 function ComingSoon({ title, task }: { title: string; task: string }) {
@@ -51,6 +52,7 @@ export function App() {
         <Route path="/leaderboard" element={<ComingSoon title="Leaderboard" task="P8.9" />} />
         <Route path="/history" element={<ComingSoon title="History" task="P8.7" />} />
         <Route path="/settings" element={<ComingSoon title="Party settings" task="P8.10" />} />
+        {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
       </Routes>
     </AppShell>
   );

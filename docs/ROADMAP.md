@@ -277,7 +277,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     and fails loudly if missing.
   - *Done when:* `npm run dev` shows a styled placeholder; build output is static files only.
 
-- [ ] **P7.2 — Component library**
+- [x] **P7.2 — Component library**
   - *Spec:* §22, §28, §29
   - *Do:* Button, Card, Modal, Avatar (initials, D18), SongCard, AlbumArt (with loading/fallback), RatingControl
     (1–10, keyboard + touch accessible), StatCard, Leaderboard, Chart (pick one small lib or SVG — justify),
