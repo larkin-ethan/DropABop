@@ -71,3 +71,25 @@ Updates only the given fields; your name/color in party member lists updates too
 
 `200`: `{ "user": { … } }`. Errors: `400 VALIDATION_FAILED` (bad value, empty update, or any unexpected field such
 as `userId`).
+
+### Parties
+
+Code: `services/api/src/handlers/parties.ts`. A person can be in at most 20 parties (D15, §32).
+
+#### `POST /parties`
+
+Body (`createPartyRequestSchema`): `name` (1–60), `timezone` (IANA, e.g. `America/Chicago`), optional `maxMembers`
+(2–50, default 20). The caller becomes the host. A random invite code (`SONG-XXXX`) is generated.
+
+`201`: `{ "party": Party, "members": [hostMember], "isHost": true }`.
+Errors: `400 VALIDATION_FAILED` (bad input, unexpected fields like `hostUserId`, or already in 20 parties).
+
+#### `GET /parties`
+
+`200`: `{ "parties": [{ "partyId", "partyName", "role", "joinedAt" }] }`. The caller's parties only.
+
+#### `GET /parties/{partyId}`
+
+Members only. `200`: `{ "party": Party, "members": PartyMember[], "isHost": boolean }`. `party.inviteCode` is
+visible to members (D16). Errors: `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+

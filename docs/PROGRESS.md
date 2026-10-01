@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.3 Parties endpoints**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.4 Invites & joining**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,12 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.3** — `handlers/parties.ts`: create (host from verified user, random invite code with retry on
+  clash, default settings), list mine, get one (members only). Shared helpers `loadPartyForMember` (404 vs 403) and
+  `assertCanJoinAnotherParty`. Decision: max 20 parties per person (D15, §32; `MAX_PARTIES_PER_USER`). Verified:
+  integration 58 (7 new incl. 20-party limit, non-member 403, unknown 404, malformed id 404, `hostUserId` in body
+  rejected); `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.2** — `handlers/users.ts` (`getMe` returns profile + parties, creating the profile on first
   call; `updateMe` field-level update), `domain/profile.ts` (default name "New member" since access tokens carry no

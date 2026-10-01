@@ -69,7 +69,8 @@ this deliberate change to spec §13–§15.
 - **D13 — Host.** The creator is the host. Host can: change the party timezone, pause/resume the party, edit settings,
   regenerate the invite code, remove members. Host transfer is out of scope for v1.
 - **D14 — Max size** 20 (configurable 2–50 by host; server-enforced).
-- **D15 — Multiple parties.** A user may belong to several parties; the UI remembers the last one opened.
+- **D15 — Multiple parties.** A user may belong to several parties (at most 20, as basic abuse protection, §32);
+  the UI remembers the last one opened.
 - **D16 — Invite code** format `SONG-XXXX` using an unambiguous alphabet (no 0/O/1/I/L). One active code per
   party; host can regenerate (old code stops working). Join link = `https://<app>/join/SONG-XXXX`.
 - **D17 — Leaving** a party is allowed; your past votes and recommendations stay in history and stats. The host
