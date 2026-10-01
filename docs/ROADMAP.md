@@ -147,7 +147,7 @@ unit tests with mocked data layer **and** integration tests against DynamoDB Loc
 realistic API Gateway events), entry in `docs/API.md` (method, path, auth, body schema, responses, errors).
 Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.3.
 
-- [ ] **P5.1 — Handler toolkit**
+- [x] **P5.1 — Handler toolkit**
   - *Do:* `getAuthenticatedUser(event)` (reads `sub`/email from JWT authorizer claims only), `parseBody(schema)`,
     `ok/badRequest/forbidden/notFound/conflict` helpers, a top-level error wrapper that logs (no tokens, no full
     events) and returns friendly messages; a tiny structured logger with a redaction list.
@@ -205,7 +205,9 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     names `sotd-dev` / `sotd-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1 / ADR-0005: on-demand,
     `OnDemandThroughput` caps, PITR + deletion protection in prod), every Phase 5 route with its handler,
     Cognito User Pool (email sign-in, email verification, strong password policy) + public app client
-    (no secret, SRP + refresh), HTTP API with **JWT authorizer** (issuer + audience), CORS limited to the
+    (no secret, SRP + refresh), HTTP API with **JWT authorizer** (issuer + audience = app client id; routes require
+    the `aws.cognito.signin.user.admin` scope or equivalent so only access tokens pass — check current Cognito docs;
+    handlers also require `token_use = access`), CORS limited to the
     stage's frontend origin, default route throttling, one `GET /health` Lambda (Node LTS, arm64, 128–256 MB,
     log group with 14-day retention). Per-function least-privilege IAM (only the table, only needed actions).
   - *Done when:* `sam validate --lint` and `sam build` pass; `bash scripts/guardrails.sh` passes; a unit test parses
