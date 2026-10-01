@@ -8,6 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1144.0",
+    "@aws-sdk/lib-dynamodb": "^3.1144.0",
     "@sotd/shared": "*",
     "luxon": "^3.7.2"
   },

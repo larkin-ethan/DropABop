@@ -1,0 +1,9 @@
+# Local development only: DynamoDB Local for integration tests. Nothing here runs in AWS.
+# Start:  npm run db:up      Stop:  npm run db:down
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.1
+    # In-memory: data disappears when the container stops, so tests always start clean.
+    command: ['-jar', 'DynamoDBLocal.jar', '-inMemory', '-sharedDb']
+    ports:
+      - '127.0.0.1:8000:8000'

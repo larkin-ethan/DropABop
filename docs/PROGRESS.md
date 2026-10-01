@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 3 — data layer. Next: **P3.0 Install Docker [HUMAN]**, then P3.2 (DynamoDB Local) and P3.3 (repository functions).
+Phase 3 — data layer. Next: **P3.3 Repository functions**.
 
 ## Blocked / Questions for Ethan
 
@@ -20,11 +20,23 @@ _None._
 - Stacks: `sotd-dev`, `sotd-prod` (planned)
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
+- Docker Desktop installed (engine 25.0.3). Its CLI is not on PATH by default: prefix commands with
+  `export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"`.
 - Toolchain: TypeScript ~6.0.3 (TS 7 unsupported by typescript-eslint), ESLint 10, Vitest 5, Prettier 3.
 
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P3.2** — `docker-compose.yml` (amazon/dynamodb-local:3.3.1, in-memory, bound to 127.0.0.1),
+  `db:up`/`db:down` scripts, `data/table-definition.ts` (single key schema), `data/client.ts` (env-configured client;
+  `assertLocalEndpoint` refuses non-localhost endpoints), vitest global setup that recreates the test table (also
+  refuses non-local), smoke integration test, CI `integration` job with a DynamoDB Local service container. Used a
+  global setup instead of a separate create-table script (Node can't run our extensionless TS imports directly).
+  Verified: integration smoke test passes against DynamoDB Local; pointing the run at a real AWS endpoint fails with
+  "must be localhost" before any network call; `npm run verify` exit 0, 231 tests. Deps: @aws-sdk/client-dynamodb,
+  @aws-sdk/lib-dynamodb (runtime, api). CI integration job not yet run on GitHub (branch unpushed).
+- 2026-10-01 — **P3.0** — Ethan installed Docker Desktop; started it; `docker info` works (engine 25.0.3).
 
 - 2026-10-01 — **P3.1** — `docs/DATABASE.md`: single table, no GSIs, one partition per party; 16 access patterns all
   GetItem/single-partition Query; write table with every condition/transaction (party size, unique membership, one

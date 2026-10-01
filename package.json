@@ -2,7 +2,7 @@
   "name": "song-of-the-day",
   "private": true,
   "type": "module",
-  "description": "Private social music app: one song per member per weekday, rated 1–10 by the group.",
+  "description": "Private social music app: one song per member per weekday, rated 1\u201310 by the group.",
   "engines": {
     "node": ">=24 <25"
   },
@@ -17,6 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
     "guardrails": "bash scripts/guardrails.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

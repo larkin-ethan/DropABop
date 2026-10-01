@@ -32,7 +32,9 @@ npm run verify
 | `npm run verify` | Format check, lint, typecheck, unit tests, guardrails. **Run before every commit.** CI runs the same. |
 | `npm test` | Unit tests once (Vitest). |
 | `npm run test:watch` | Unit tests, re-running on save. |
-| `npm run test:integration` | Integration tests against DynamoDB Local (from P3.2; needs Docker). |
+| `npm run db:up` | Start DynamoDB Local in Docker (in-memory, port 8000, localhost only). |
+| `npm run db:down` | Stop it (all local data disappears). |
+| `npm run test:integration` | Integration tests against DynamoDB Local. Run `npm run db:up` first. The test table is recreated on every run. |
 | `npm run lint` | ESLint (type-aware: catches un-awaited promises, unsafe `any`, etc.). |
 | `npm run typecheck` | TypeScript in every workspace (no output files; it only checks). |
 | `npm run format` | Auto-format with Prettier. Run this if `format:check` fails. |
@@ -55,6 +57,19 @@ scripts/             guardrails.sh and Claude Code hook scripts
 - `@sotd/shared` points straight at its TypeScript source (`packages/shared/src/index.ts`). There's no build
   step: Vite (frontend) and esbuild (Lambdas) compile it as part of their own builds.
 - TypeScript runs in "check only" mode (`noEmit`) with shared settings in `tsconfig.base.json`.
+
+## Docker (DynamoDB Local)
+
+Docker Desktop must be running. If `docker` isn't found in your terminal, Docker Desktop hasn't added its
+command-line tool to your PATH. Either enable it in Docker Desktop → Settings → Advanced, or run this in the
+terminal before the `db:` commands:
+
+```bash
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+```
+
+Safety: the API's database client and the integration test setup both **refuse any custom endpoint that isn't
+localhost** (`assertLocalEndpoint` in `services/api/src/data/client.ts`). Local work can't reach a real table.
 
 ## Tests
 

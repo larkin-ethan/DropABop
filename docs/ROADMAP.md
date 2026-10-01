@@ -118,12 +118,12 @@ This is where correctness lives; handlers later just call these.
     party size limit; unique membership). Capacity mode decision with current pricing link (ADR-0005).
   - *Done when:* every pattern maps to a key-based operation; no Scan; reviewed against §25 list.
 
-- [ ] **P3.0 — Install Docker** [HUMAN]
+- [x] **P3.0 — Install Docker** [HUMAN]
   - Docker Desktop or OrbStack (local development only: runs DynamoDB Local for integration tests; never used
     in production).
   - Done when: `docker info` succeeds.
 
-- [ ] **P3.2 — Local DynamoDB for tests**
+- [x] **P3.2 — Local DynamoDB for tests**
   - *Do:* `docker-compose.yml` with `amazon/dynamodb-local`; `services/api/scripts/create-local-table.ts`
     creating the table from the same definition as the SAM template (single source for key schema);
     `test:integration` script that runs against it.
@@ -160,7 +160,9 @@ This is where correctness lives; handlers later just call these.
     (no secret, SRP + refresh), HTTP API with **JWT authorizer** (issuer + audience), CORS limited to the
     stage's frontend origin, default route throttling, one `GET /health` Lambda (Node LTS, arm64, 128–256 MB,
     log group with 14-day retention). Per-function least-privilege IAM (only the table, only needed actions).
-  - *Done when:* `sam validate --lint` and `sam build` pass; `bash scripts/guardrails.sh` passes.
+  - *Done when:* `sam validate --lint` and `sam build` pass; `bash scripts/guardrails.sh` passes; a unit test parses
+    `infra/template.yaml` and asserts the table's key schema equals `TABLE_KEY_SCHEMA`
+    (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
 - [ ] **P4.3 — First dev deploy** [HUMAN approves the command]
