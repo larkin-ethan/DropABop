@@ -268,7 +268,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
 
 ## Phase 7 — Frontend foundation
 
-- [ ] **P7.1 — Vite app + design tokens**
+- [x] **P7.1 — Vite app + design tokens**
   - *Spec:* §20–22, §37
   - *Do:* Vite + React + TS + React Router + TanStack Query + Tailwind in `apps/web`. Design tokens sampled from
     `docs/design/mockup-v2-overview.webp` per `docs/design/README.md` (contrast-checked to WCAG AA; record final

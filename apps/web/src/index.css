@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens, sampled from docs/design/mockup-v2-overview.webp (see docs/design/README.md).
+ * Use them as Tailwind classes: bg-bg, bg-surface, text-primary, border-line, etc.
+ */
+@theme {
+  --color-bg: #011420; /* page background: very dark navy */
+  --color-surface: #01192b; /* cards, sidebar */
+  --color-surface-raised: #022238; /* hover / nested cards */
+  --color-active: #013a62; /* active nav item */
+  --color-line: #0d3352; /* card borders */
+  --color-glow: #1aa4fe; /* neon-blue border glow */
+
+  --color-primary: #00e7d0; /* teal: main buttons */
+  --color-primary-ink: #01231f; /* text on teal buttons */
+  --color-blue: #1aa4fe; /* links, active, progress */
+  --color-purple: #8b5cf6; /* logo gradient, highlights */
+  --color-gold: #f5c542; /* winners, stars */
+  --color-success: #22c55e;
+
+  --color-ink: #e6f1ff; /* main text */
+  --color-muted: #8ba3bf; /* secondary text */
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius-card: 1rem;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle neon edge used on cards in the mockup. */
+.card-glow {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-glow) 22%, transparent),
+    0 8px 30px -12px color-mix(in srgb, var(--color-glow) 35%, transparent);
+}
+
+/* Keyboard focus is always visible (accessibility). */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

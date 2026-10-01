@@ -32,6 +32,16 @@ In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safet
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-01 — **P7.1** (done early at Ethan's request to see the UI) — `apps/web`: Vite 8 + React 19 + React
+  Router 8 (declarative mode; API checked in its docs) + TanStack Query 5 + Tailwind 4 (`@tailwindcss/vite`).
+  Tokens sampled from the mockup with PIL → `index.css` `@theme`, recorded in docs/design/README.md. `AppShell`
+  (sidebar ≥ md, bottom tab bar on mobile), basic components (`ui.tsx`, `Icon`, `SongCard`), `config.ts` (lazy env
+  read, fails loudly), `.env.example`. Head start on P8.3: `HomeScreen` rendered with sample data (dev-only banner
+  says so; other routes show "built in task …"). **P8.3 is not done** (no API wiring, states, or tests yet).
+  `.claude/launch.json` "web" for the preview. Verified: `npm run build -w @sotd/web` → static files only
+  (298 kB JS / 22 kB CSS); screenshots at desktop and 375px; 320px has no horizontal scroll; no console errors;
+  `npm run verify` exit 0.
+
 - 2026-10-01 — **Phase 5 review** — Independent spec review of P5.1–P5.11 returned 1 MUST FIX: the current-week
   endpoint listed *who* shared today, which combined with the (polled) songs list revealed whose song is whose,
   defeating D10. Fixed: only `sharedTodayCount` by default; `sharedTodayUserIds` only when the party reveals

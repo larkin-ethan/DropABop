@@ -12,8 +12,21 @@ decisions disagree, keep the mockup's look and follow the decisions' rules.
 
 ## Visual language (to be turned into tokens in P7.1)
 
-Colours below are approximate descriptions. In P7.1, sample the actual values from the image, check contrast
-(WCAG AA), and record the final tokens here.
+Final tokens, sampled from the image in P7.1 and defined in `apps/web/src/index.css` (`@theme`). Use them as
+Tailwind classes (`bg-surface`, `text-primary`, `border-line`, …). Contrast check of every text/background pair
+happens in P8.12.
+
+| Token | Value | Token | Value |
+|---|---|---|---|
+| `bg` | `#011420` | `primary` (teal) | `#00E7D0` |
+| `surface` | `#01192B` | `primary-ink` (text on teal) | `#01231F` |
+| `surface-raised` | `#022238` | `blue` | `#1AA4FE` |
+| `active` (nav) | `#013A62` | `purple` | `#8B5CF6` |
+| `line` (borders) | `#0D3352` | `gold` | `#F5C542` |
+| `glow` | `#1AA4FE` | `success` | `#22C55E` |
+| `ink` (text) | `#E6F1FF` | `muted` (text) | `#8BA3BF` |
+
+Descriptions of the original look, kept for reference:
 
 | Token | Looks like | Used for |
 |---|---|---|

@@ -31,6 +31,11 @@ export default tseslint.config(
     },
   },
   {
+    // The frontend runs in the browser.
+    files: ['apps/web/**/*.{ts,tsx}'],
+    languageOptions: { globals: { ...globals.browser } },
+  },
+  {
     // Plain JavaScript (config files, hook scripts) isn't in any tsconfig, so skip type-aware rules there.
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     extends: [tseslint.configs.disableTypeChecked],
