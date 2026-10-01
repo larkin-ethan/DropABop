@@ -63,11 +63,19 @@ export interface Round {
   /** Deterministic: derived from partyId and weekStart. */
   roundId: string;
   partyId: string;
-  /** The Monday that starts this week, in the party's timezone. */
+  /** The Monday that starts this week, in the round's timezone. */
   weekStart: IsoDate;
-  /** Monday 00:00 in the party's timezone. */
+  /**
+   * The party's timezone when this week was created. Days within the week follow this zone even if the
+   * host changes the party timezone mid-week; the change applies from the next week.
+   */
+  timezone: string;
+  /** Monday 00:00 in the round's timezone. */
   startsAt: IsoDateTime;
-  /** End of Sunday in the party's timezone. Ratings lock at this instant. */
+  /**
+   * The following Monday 00:00 (exclusive). The week is open while now < endsAt; ratings lock at this
+   * instant. Shown to people as "Sunday 11:59 pm".
+   */
   endsAt: IsoDateTime;
   /**
    * Stored status. Never read this directly to decide what's allowed: the effective status comes

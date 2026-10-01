@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 2 — domain logic. Next: **P2.1 Week & day logic**.
+Phase 2 — domain logic. Next: **P2.2 Recommendation & voting rules**.
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,15 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P2.1** — `services/api/src/domain/week.ts`: week windows, submission day, effective status, pending
+  close, and `planCurrentWeek`. Library: Luxon (readable immutable API, built-in zones, ISO Monday weeks; Temporal not
+  in Node 24). Decisions made (documented in D1 / ADR-0003): rounds store their timezone and a timezone change applies
+  from the next week; new weeks start only after the previous ends and for a later Monday (no overlap/id reuse);
+  `endsAt` is the exclusive next-Monday instant; round ids use `partyId.<Monday>` (URL-safe, not `#`). Verified: 32 week
+  tests (all weekdays, weekend, Fri/Sun midnight edges, US DST 167h/169h weeks, Kolkata/Auckland/Tokyo, 60 consecutive
+  weeks, pause, east/west timezone changes); mutation check: disabling the overlap rules fails 2 tests. `npm run verify`
+  exit 0, 111 tests. Dependency added: luxon (runtime, api) + @types/luxon (dev).
 
 - 2026-10-01 — **P1.3** — `@sotd/shared`: limits/enums (`limits.ts`), domain types (`types.ts`), API error shape +
   codes (`errors.ts`), zod 4 request schemas (`schemas.ts`). Decisions made: all request schemas are strict (unknown

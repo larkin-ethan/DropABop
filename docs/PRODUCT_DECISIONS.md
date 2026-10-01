@@ -12,7 +12,8 @@ this deliberate change to spec §13–§15.
 - **D1 — One song per member per day, Monday–Friday.** Each member may submit **one song per day** on
   Mon, Tue, Wed, Thu, and Fri (up to 5 songs per member per week). Days are optional: skipping a day is fine.
   - A "day" runs midnight to midnight in the **party's timezone** (IANA name; defaults to the host's browser
-    timezone when the party is created; host can change it).
+    timezone when the party is created; host can change it). A timezone change **takes effect from the next
+    week**; the current week keeps the timezone it started with, so days and the lock time never shift mid-week.
   - No backfilling: a missed day can't be filled in later. No submissions on Saturday or Sunday.
   - A second submission on the same day returns: *"You've already shared your song for today."*
   - A submitted song can't be edited or swapped (spec §14). Pick carefully.
@@ -28,7 +29,7 @@ this deliberate change to spec §13–§15.
   - The host can **pause** the party (no new weeks start until resumed), e.g. for holidays. Pausing during an
     open week lets that week finish normally.
 - **D3 — Lazy weeks.** No scheduler. A week's id comes from the party and the Monday date
-  (e.g. `partyId#2026-10-05`). The first request in a new week creates that week's round with a conditional
+  (e.g. `partyId.2026-10-05`). The first request in a new week creates that week's round with a conditional
   put (exactly one wins if two people arrive at once). Whether a week is `OPEN` or `CLOSED` is always computed
   from the current time, and the first request after it ends records the close. See ADR-0003.
 - **D4 — Weeks never overlap.** Exactly one round per party per week.

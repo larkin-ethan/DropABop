@@ -64,7 +64,7 @@ The `/next-task` skill picks the first unchecked box.
 Everything here is plain TypeScript in `services/api/src/domain/` with exhaustive unit tests.
 This is where correctness lives; handlers later just call these.
 
-- [ ] **P2.1 — Week & day logic**
+- [x] **P2.1 — Week & day logic**
   - *Spec:* §13–15 · *Decisions:* D1–D5 · *ADRs:* 0003, 0004
   - *Do:* `getWeekWindow(timezone, now)` → week id (`<Monday date>`), start (Mon 00:00), end (Sun 23:59:59.999),
     in the party timezone and daylight-saving-correct (use `Intl` or a small, well-maintained date library;
