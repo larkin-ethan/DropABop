@@ -99,6 +99,8 @@ this deliberate change to spec §13–§15.
 ## Statistics definitions (§17, §18)
 
 All stats are labeled "calculated" in the UI and show their sample size ("Based on N …").
+Stats use **closed weeks only** (open weeks' ratings are hidden, D9; "not enough songs" weeks are excluded).
+Ties are shown as joint winners.
 If the minimum sample isn't met, show "Not enough data yet" — never a number.
 
 | Stat | Definition | Minimum sample |
@@ -108,14 +110,14 @@ If the minimum sample isn't met, show "Not enough data yet" — never a number.
 | Average score received (= Average Recommendation Score) | Mean of the song averages of songs the user recommended | 3 recommendations |
 | Generosity | User's average rating given − party's average rating given (positive = generous) | 10 ratings |
 | Most generous voter / Toughest critic | Highest / lowest Generosity in the party | 10 ratings each |
-| Highest-rated song / Crowd favorite | Highest song average (crowd favorite also requires ≥ 75% of eligible members to have rated it) | 3 ratings |
+| Highest-rated song / Crowd favorite | Highest song average (crowd favorite also requires ratings from ≥ 75% of that week's active raters — people who rated at least one song that week — not counting the recommender) | 3 ratings |
 | Most divisive | Highest standard deviation of ratings | 4 ratings |
 | Most controversial | Largest share of "extreme" ratings with both sides present: min(share ≤ 3, share ≥ 8) × 2 | 4 ratings |
 | Everyone agreed | Lowest standard deviation of ratings | 4 ratings |
-| Dark horse | Song whose average beats its recommender's prior Average score received by the most | recommender has ≥ 3 prior songs |
+| Dark horse | Song whose average beats its recommender's average from earlier songs by the most (positive only) | song has 3 ratings; recommender has ≥ 3 earlier rated songs |
 | Musical twin | Other member with the smallest mean absolute difference in ratings on songs you both rated | 5 shared songs |
 | Most consistent | Lowest standard deviation of a user's song averages | 3 recommendations |
-| Most surprising | Recommender with the most dark-horse wins | 1 dark-horse win |
+| Most surprising | Recommender with the most songs that beat their own earlier average by ≥ 1.0 point | 1 such song |
 | Most popular | Most ratings ≥ 8 received across all recommendations | 3 recommendations |
 | Favorite artists | Artists the user rated highest on average | 2 songs by the artist |
 

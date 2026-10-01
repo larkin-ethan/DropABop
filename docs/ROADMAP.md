@@ -92,7 +92,7 @@ This is where correctness lives; handlers later just call these.
   - *Done when:* tests cover ties (overall and for a day's winner), a day with no songs, zero-rating songs,
     visibility settings on/off, and that hidden fields are absent (not just empty) from the output.
 
-- [ ] **P2.4 — Statistics**
+- [x] **P2.4 — Statistics**
   - *Spec:* §17, §18 · *Decisions:* stats table
   - *Do:* One small function per stat in the PRODUCT_DECISIONS table, each returning
     `{ value, sampleSize } | { notEnoughData: true, sampleSize, required }`.

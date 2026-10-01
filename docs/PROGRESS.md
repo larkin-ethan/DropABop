@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 2 — domain logic. Next: **P2.4 Statistics**.
+Phase 2 — domain logic. Next: **P2.5 Invite codes & permissions** (last Phase 2 task).
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,14 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P2.4** — `domain/stats.ts`: every personal/group stat from the PRODUCT_DECISIONS table plus five
+  leaderboards; `Stat<T>` = ok {value, sampleSize} | not-enough-data {sampleSize, required}; superlatives return all
+  tied winners. Stats take closed weeks only (caller's job; documented). Tightened three definitions so they're
+  computable (crowd favorite = 75% of that week's active raters excl. recommender; dark horse needs 3 song ratings;
+  most surprising = songs beating own earlier average by ≥1.0). New `docs/STATISTICS.md`. Verified: 36 stats tests
+  (normal / below minimum / ties); found and fixed a test that couldn't fail (crowd-favorite recommender exclusion),
+  then confirmed by mutation that it now catches the bug. `npm run verify` exit 0, 197 tests.
 
 - 2026-10-01 — **P2.3** — `domain/results.ts`: `toOpenWeekSongView` (D9/D10 privacy while open), `canViewResults`,
   `calculateWeekResults` (weekly ranking, per-day groups, daily winners incl. ties, anonymous distribution, viewer
