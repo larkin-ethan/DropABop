@@ -54,12 +54,12 @@ Colours below are approximate descriptions. In P7.1, sample the actual values fr
 | 6 | Create a New Party | P8.3 | Fields: party name, max members (default 20), timezone (detected). Drop "Privacy: Private (invite only)", since every party is private. |
 | 7, 11 | Join Party (code / link) | P8.2 | As drawn. |
 | 8 | Home / Today's Party (before round) | P8.3 | Becomes **Home / Today**: "Share today's song" call to action, members with today's ✓ status, countdown to Sunday 11:59 pm. "Next round starts in 3 hours" → shows on weekends as "New week starts Monday". |
-| 9 | Home (during recommendation) | P8.3 | "Round 3 of 5 · Recommendation Phase" → **"Wednesday · Day 3 of 5"**. "Song Submissions" list = today's songs; show who has shared today (anonymous songs per D10). |
+| 9 | Home (during recommendation) | P8.3 | "Round 3 of 5 · Recommendation Phase" → **"Wednesday · Day 3 of 5"**. "Song Submissions" list = today's songs, anonymous (D10). Show **"3 of 5 shared today"** (a count). Per-person ✓ marks only when the party reveals recommenders, because names next to a song list would reveal whose song is whose. |
 | 10 | Recommend a Song (search) | P8.4 | Provider tabs (Spotify / Apple Music / YouTube / YouTube Music) only for providers ADR-0007 actually supports; v1 is likely one search tab plus paste-a-link. |
 | 11 (second panel) | Confirm recommendation | P8.4 | Title "Share today's song". Remove the song's star rating (it hasn't been rated yet). Add "You can't change it after sharing." |
 | 12 | Voting / Party View | P8.5 | "Round 3 of 5 · Voting Phase" → **"This week's songs"**, grouped by day with an Unrated filter. The 1–10 grid RatingControl stays as drawn. Hide recommender names (D10). |
 | 14 | Vote Submitted | P8.5 | Becomes a lightweight "Rating saved ✓ · you can change it until Sunday 11:59 pm" confirmation (toast or inline). "View Results" → "Results unlock Sunday night". |
-| 15 | Waiting for Everyone | P8.3 / P8.5 | **Must not show other people's scores** (the mockup shows "8/10, 7/10"). That breaks D9. Show progress only: who has shared today, and your own "12 of 31 rated". |
+| 15 | Waiting for Everyone | P8.3 / P8.5 | **Must not show other people's scores** (the mockup shows "8/10, 7/10"). That breaks D9. Show progress only: how many have shared today (names only if recommenders are revealed), and your own "12 of 31 rated". |
 | 16 | Results / End of Day ("Round Complete!", Today's Winner) | P8.6 | Becomes **Weekly Results** ("Week Complete!"): the crown card shows each day's **Song of the Day** winner, then the full weekly ranking. |
 | 17 | Detailed Results (Overview / Ratings / Voters tabs) | P8.6 | As drawn. The "Voters" tab and per-person "Vote Breakdown" only appear if `showWhoRatedWhat` is on (D11); otherwise show anonymous counts. |
 | 18 | Expanded (personal) stats | P8.8 | As drawn. Each figure shows "Based on N" or "Not enough data yet". |

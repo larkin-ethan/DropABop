@@ -152,14 +152,16 @@ Members only. The home screen's main call; poll it every 30–60 s while the app
   "today": { "weekday": "WED", "date": "2026-10-07", "dayNumber": 3 },
   "sharedToday": false,
   "mySubmissionDates": ["2026-10-05"],
-  "sharedTodayUserIds": ["…"],
+  "sharedTodayCount": 3,
   "progress": { "songCount": 7, "ratableCount": 5, "ratedCount": 3 }
 }
 ```
 
 - `today` is `null` on Saturday and Sunday (rating still open, sharing closed).
 - `endsAt` is the exclusive end (next Monday 00:00 in the week's timezone); show it as "Sunday 11:59 pm".
-- `sharedTodayUserIds` says *who* has shared today, never *which* song is theirs (D10).
+- `sharedTodayCount` is how many people have shared today. *Who* has shared (`sharedTodayUserIds`) is included
+  **only** when the party has `revealRecommenderDuringVoting` on: otherwise, comparing that list with the songs list
+  over time would reveal whose song is whose (D10).
 - `ratableCount` excludes your own songs; `ratedCount` is how many of those you've rated.
 
 `200` when there's no current week: `{ "round": null, "reason": "paused" | "between-weeks", "nextWeekStartsAt": "…" | null, "lastRoundId": "…" | null }`.
@@ -266,7 +268,8 @@ Results only change when a week closes, so clients should cache these.
 
 Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRecommended` (number),
 `highestRatedRecommendation`, `lowestRatedRecommendation`, `generosity`, `ratingDistribution` (10 counts),
-`favoriteArtists` (top 3), `musicalTwin`. Errors: `400` (missing partyId), `403 NOT_A_MEMBER`.
+`favoriteArtists` (top 3), `musicalTwin`. Errors: `400` (missing partyId), `403 NOT_A_MEMBER`,
+`404 NOT_FOUND` (unknown party).
 
 #### `GET /parties/{partyId}/stats`
 

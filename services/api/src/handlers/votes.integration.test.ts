@@ -7,6 +7,7 @@ import { runHandler } from '../http/handler';
 import { joinPartyFn } from './membership';
 import { createPartyHandlerFn } from './parties';
 import { submitRecommendationFn } from './recommendations';
+import { getResultsFn } from './results';
 import { castVoteFn, listMyVotesFn } from './votes';
 import { getCurrentWeekFn } from './weeks';
 
@@ -98,6 +99,46 @@ describe('PUT /rounds/{roundId}/votes/{recommendationId}', () => {
       error: { code: 'WEEK_CLOSED', message: 'This week has ended, so ratings are locked.' },
     });
     expect((await myVotes(memberId, round.roundId)).votes[0]?.rating).toBe(7);
+  });
+
+  it('saves the rating with a fresh clock read, so a request straddling midnight doesn’t count', async () => {
+    const { round, hostId, memberId, songId } = await setup();
+    // Results need at least 2 songs this week.
+    await runHandler(
+      submitRecommendationFn,
+      apiEvent({
+        userId: memberId,
+        pathParameters: { roundId: round.roundId },
+        body: { provider: 'spotify', providerSongId: 'm1' },
+      }),
+      deps,
+    );
+    // Clock that moves during the request: the check sees Sunday 23:59:59.999, the save happens after midnight.
+    const reads = [SUNDAY_LAST_MS, '2026-10-12T05:00:00.001Z'];
+    const movingClock = { ...deps, now: () => new Date(reads.shift() ?? '2026-10-12T05:00:00.001Z') };
+
+    const result = await runHandler(
+      castVoteFn,
+      apiEvent({
+        userId: memberId,
+        pathParameters: { roundId: round.roundId, recommendationId: songId },
+        body: { rating: 3 },
+      }),
+      movingClock,
+    );
+    expect(result.statusCode).toBe(200); // passed the check…
+    const saved = (bodyOf(result) as { vote: { updatedAt: string } }).vote.updatedAt;
+    expect(saved >= round.endsAt).toBe(true); // …but was stamped after the end
+
+    deps.setNow('2026-10-12T15:00:00.000Z');
+    const results = bodyOf(
+      await runHandler(
+        getResultsFn,
+        apiEvent({ userId: hostId, pathParameters: { roundId: round.roundId } }),
+        deps,
+      ),
+    ) as { results: { songs: { recommendationId: string; ratingCount: number }[] } };
+    expect(results.results.songs.find((s) => s.recommendationId === songId)?.ratingCount).toBe(0);
   });
 
   it('won’t let you rate your own song', async () => {

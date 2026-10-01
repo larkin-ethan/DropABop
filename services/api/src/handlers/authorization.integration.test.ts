@@ -24,6 +24,7 @@ const deps = testDeps('2026-10-07T17:00:00.000Z'); // Wednesday, week open
 afterAll(() => deps.data.db.destroy());
 vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
+// The "outsider" is a member of a *different* party, so every route also checks cross-party access.
 const ids = { host: newId(), member: newId(), left: newId(), outsider: newId(), extra: newId() };
 let party: Party;
 let round: Round;
@@ -32,6 +33,7 @@ let hostSongId: string;
 const call = (fn: HandlerFn, options: EventOptions) => runHandler(fn, apiEvent(options), deps);
 
 beforeAll(async () => {
+  await call(createPartyHandlerFn, { userId: ids.outsider, body: { name: 'Other party', timezone: 'UTC' } });
   party = (
     bodyOf(
       await call(createPartyHandlerFn, {
@@ -124,13 +126,6 @@ const routes: RouteCase[] = [
     name: 'PATCH /parties/{partyId}/settings',
     fn: updateSettingsFn,
     request: () => ({ pathParameters: { partyId: party.partyId }, body: { showWhoRatedWhat: false } }),
-    expect: hostOnly(200),
-  },
-  {
-    name: 'POST /parties/{partyId}/invite-code',
-    fn: regenerateInviteFn,
-    // Only checks who may call it; the sweep regenerates last (see ordering below) so the code stays valid.
-    request: () => ({ pathParameters: { partyId: party.partyId } }),
     expect: hostOnly(200),
   },
   {
@@ -230,6 +225,13 @@ const routes: RouteCase[] = [
       member: 'INVALID_INVITE',
       host: 'INVALID_INVITE',
     },
+  },
+  {
+    name: 'POST /parties/{partyId}/invite-code',
+    fn: regenerateInviteFn,
+    // Last in the list: the host's call replaces the invite code, which earlier cases rely on.
+    request: () => ({ pathParameters: { partyId: party.partyId } }),
+    expect: hostOnly(200),
   },
 ];
 

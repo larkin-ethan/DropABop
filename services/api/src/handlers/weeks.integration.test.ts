@@ -26,7 +26,8 @@ interface CurrentWeekBody {
   reason: string | null;
   today: { weekday: string; date: string; dayNumber: number } | null;
   sharedToday: boolean;
-  sharedTodayUserIds: string[];
+  sharedTodayCount: number;
+  sharedTodayUserIds?: string[];
   progress: { songCount: number; ratableCount: number; ratedCount: number };
   nextWeekStartsAt?: string | null;
 }
@@ -83,17 +84,29 @@ describe('GET /parties/{partyId}/rounds/current', () => {
     expect(body.progress).toEqual({ songCount: 0, ratableCount: 0, ratedCount: 0 });
   });
 
-  it('reports who has shared today and each person’s rating progress', async () => {
+  it('reports how many shared today and each person’s own rating progress', async () => {
     const { party, hostId, memberId } = await setupParty();
+    const thirdId = newId();
+    await runHandler(
+      joinPartyFn,
+      apiEvent({
+        userId: thirdId,
+        pathParameters: { partyId: party.partyId },
+        body: { inviteCode: party.inviteCode },
+      }),
+      deps,
+    );
     const round = (await currentWeek(hostId, party)).body.round as Round;
     const hostSong = aRecommendation(round, hostId, '2026-10-07');
+    const memberSong = aRecommendation(round, memberId, '2026-10-06'); // yesterday
     await putRecommendation(deps.data, hostSong);
-    await putRecommendation(deps.data, aRecommendation(round, memberId, '2026-10-06')); // yesterday
+    await putRecommendation(deps.data, memberSong);
     await putVote(deps.data, aVote(hostSong, memberId, 8));
+    await putVote(deps.data, aVote(memberSong, thirdId, 3)); // someone else's rating: must not count for the host
 
     const host = (await currentWeek(hostId, party)).body;
     expect(host.sharedToday).toBe(true);
-    expect(host.sharedTodayUserIds).toEqual([hostId]);
+    expect(host.sharedTodayCount).toBe(1);
     expect(host.progress).toEqual({ songCount: 2, ratableCount: 1, ratedCount: 0 });
 
     const member = (await currentWeek(memberId, party)).body;
@@ -101,12 +114,32 @@ describe('GET /parties/{partyId}/rounds/current', () => {
     expect(member.progress).toEqual({ songCount: 2, ratableCount: 1, ratedCount: 1 });
   });
 
+  it('only says *who* shared today when the party reveals recommenders (D10)', async () => {
+    const { party, hostId, memberId } = await setupParty();
+    const round = (await currentWeek(hostId, party)).body.round as Round;
+    await putRecommendation(deps.data, aRecommendation(round, hostId, '2026-10-07'));
+
+    // By default: count only. A list of who shared, compared with the songs list, would reveal whose song is whose.
+    expect((await currentWeek(memberId, party)).body).not.toHaveProperty('sharedTodayUserIds');
+
+    await runHandler(
+      updateSettingsFn,
+      apiEvent({
+        userId: hostId,
+        pathParameters: { partyId: party.partyId },
+        body: { revealRecommenderDuringVoting: true },
+      }),
+      deps,
+    );
+    expect((await currentWeek(memberId, party)).body.sharedTodayUserIds).toEqual([hostId]);
+  });
+
   it('has no submission day on the weekend', async () => {
     const { party, hostId } = await setupParty();
     deps.setNow(SATURDAY);
     const { body } = await currentWeek(hostId, party);
     expect(body.today).toBeNull();
-    expect(body.sharedTodayUserIds).toEqual([]);
+    expect(body.sharedTodayCount).toBe(0);
     expect(body.status).toBe('OPEN');
   });
 

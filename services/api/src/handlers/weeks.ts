@@ -105,6 +105,8 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
     listMyWeekVotes(data, round.roundId, userId),
   ]);
   const today = getSubmissionDay(round.timezone, current);
+  const sharedTodayIds =
+    today === null ? [] : submissions.filter((s) => s.date === today.date).map((s) => s.userId);
   const ratableSongIds = new Set(songs.filter((s) => s.userId !== userId).map((s) => s.recommendationId));
 
   return ok({
@@ -115,9 +117,11 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
     today,
     sharedToday: today !== null && myDates.includes(today.date),
     mySubmissionDates: myDates,
-    /** Who has shared a song today (not which song; D10). */
-    sharedTodayUserIds:
-      today === null ? [] : submissions.filter((s) => s.date === today.date).map((s) => s.userId),
+    /** How many people have shared a song today. */
+    sharedTodayCount: sharedTodayIds.length,
+    // *Who* has shared today is only shown when the party reveals recommenders (D10). Otherwise, comparing this list
+    // with the songs list (which the app polls) would reveal who shared each song.
+    ...(party.settings.revealRecommenderDuringVoting ? { sharedTodayUserIds: sharedTodayIds } : {}),
     progress: {
       songCount: songs.length,
       ratableCount: ratableSongIds.size,

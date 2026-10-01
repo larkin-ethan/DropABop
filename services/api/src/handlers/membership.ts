@@ -55,6 +55,9 @@ export const joinPartyFn: HandlerFn = async (event, { data, now }) => {
     getMembership(data, partyId, userId),
   ]);
   assertAllowed(canJoinParty({ party, providedCode: inviteCode, alreadyMember: existing !== null }));
+  if (party === null) {
+    fail('INVALID_INVITE', MESSAGES.INVALID_INVITE); // canJoinParty already rejects this; keeps types honest
+  }
   await assertCanJoinAnotherParty(data, userId);
 
   const profile = await getOrCreateUserProfile(data, buildNewUser(userId, now()));
@@ -67,7 +70,7 @@ export const joinPartyFn: HandlerFn = async (event, { data, now }) => {
     joinedAt: now().toISOString(),
   };
   // The database re-checks the code, the size limit, and duplicate membership atomically.
-  await joinParty(data, { partyId, name: party?.name ?? '' }, inviteCode, member);
+  await joinParty(data, party, inviteCode, member);
 
   const [updated, members] = await Promise.all([getParty(data, partyId), listMembers(data, partyId)]);
   return ok({ party: updated, members, isHost: false });

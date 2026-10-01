@@ -166,7 +166,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
   exactly one round. The server decides the date; the client never sends it.
 - [x] **P5.7 — Recommendations:** `POST /rounds/{roundId}/recommendations` (server stamps today's date; rejects
   weekends, a second song today, and closed weeks), `GET /rounds/{roundId}/recommendations` (all songs so far this
-  week, grouped by day; respects anonymity setting D10; never includes other people's ratings while open).
+  week, oldest first, each with its weekday so the app groups by day; respects anonymity setting D10; never includes other people's ratings while open).
 - [x] **P5.8 — Votes:** `PUT /rounds/{roundId}/votes/{recommendationId}` (create or change while the week is OPEN,
   checked with `canCastVote`; `updatedAt` from a fresh server clock read at write time; rejects own songs),
   `GET /rounds/{roundId}/votes/me`.

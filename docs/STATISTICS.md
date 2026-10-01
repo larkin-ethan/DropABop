@@ -28,7 +28,7 @@ needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.
 | Generosity | Do you rate higher or lower than the group? | Your average given − the party's average given. +1.2 = you rate 1.2 points above the group | 10 ratings |
 | Rating distribution | Which ratings you hand out | Count of each rating 1–10 you gave | 1 rating |
 | Favorite artists | Artists you rate highest | Your average rating per artist, top 3 | 2 songs by that artist |
-| Musical twin | Whose taste matches yours | The member whose ratings differ least from yours on songs you both rated (average gap in points; 0 = identical) | 5 shared songs |
+| Musical twin | Whose taste matches yours (note: a gap of 0 reveals that you and your twin rated those songs identically, even if the party hides who rated what; it uses closed weeks only) | The member whose ratings differ least from yours on songs you both rated (average gap in points; 0 = identical) | 5 shared songs |
 
 ## Group stats
 

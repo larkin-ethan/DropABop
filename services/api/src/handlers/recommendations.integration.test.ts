@@ -8,6 +8,7 @@ import { joinPartyFn } from './membership';
 import { createPartyHandlerFn } from './parties';
 import { listRecommendationsFn, submitRecommendationFn } from './recommendations';
 import { updateSettingsFn } from './settings';
+import { castVoteFn } from './votes';
 import { getCurrentWeekFn } from './weeks';
 
 const deps = testDeps();
@@ -151,9 +152,32 @@ describe('POST /rounds/{roundId}/recommendations', () => {
 
 describe('GET /rounds/{roundId}/recommendations', () => {
   it('hides who shared each song during the week, and shows only your own ratings', async () => {
-    const { round, hostId, memberId } = await setup();
+    const { party, round, hostId, memberId } = await setup();
     await share(hostId, round.roundId);
     await share(memberId, round.roundId, { provider: 'youtube', providerSongId: 'yt1' });
+    // A third member rates the host's song; that rating must never appear for anyone else (D9).
+    const thirdId = newId();
+    await runHandler(
+      joinPartyFn,
+      apiEvent({
+        userId: thirdId,
+        pathParameters: { partyId: party.partyId },
+        body: { inviteCode: party.inviteCode },
+      }),
+      deps,
+    );
+    const hostSongId = (await list(thirdId, round.roundId)).body.songs.find(
+      (s) => !s.isMine && s.song.title === 'Song abc',
+    )?.recommendationId as string;
+    await runHandler(
+      castVoteFn,
+      apiEvent({
+        userId: thirdId,
+        pathParameters: { roundId: round.roundId, recommendationId: hostSongId },
+        body: { rating: 9 },
+      }),
+      deps,
+    );
 
     const { status, body } = await list(memberId, round.roundId);
     expect(status).toBe(200);
@@ -162,6 +186,7 @@ describe('GET /rounds/{roundId}/recommendations', () => {
     const mySong = body.songs.find((s) => s.isMine);
     expect(hostSong).not.toHaveProperty('recommendedBy');
     expect(hostSong).not.toHaveProperty('averageRating');
+    expect(hostSong?.myRating).toBeNull(); // the third member's 9 is not shown as the viewer's rating
     expect(mySong?.recommendedBy).toBe(memberId);
   });
 

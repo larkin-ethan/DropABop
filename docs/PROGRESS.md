@@ -2,12 +2,15 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Phase 5 code complete; independent review of Phase 5 next, then Phase 4 (needs Ethan's P4.0/P4.1) or Phase 6.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Phase 5 complete and reviewed. Next roadmap task: **P4.0 Install AWS CLI + SAM [HUMAN]**, then **P4.1 account safety [HUMAN]** (guide: `docs/DEPLOYMENT.md`). P6.1 (music provider research, doc only) can proceed meanwhile.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
 
-_None._
+- [ ] 2026-10-01 — **Removed members rejoining:** after the host removes someone, that person can rejoin with the same
+  invite code unless the host regenerates it. Default plan: the app suggests "Regenerate the invite code?" right after
+  a removal. Alternative: regenerate automatically on every removal. (P8.10)
+- [ ] 2026-10-01 — **Confirm D15:** I added a limit of 20 parties per person as basic abuse protection (spec §32). OK?
 
 <!-- Add items as: - [ ] YYYY-MM-DD — question — (task id) -->
 
@@ -28,6 +31,16 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **Phase 5 review** — Independent spec review of P5.1–P5.11 returned 1 MUST FIX: the current-week
+  endpoint listed *who* shared today, which combined with the (polled) songs list revealed whose song is whose,
+  defeating D10. Fixed: only `sharedTodayCount` by default; `sharedTodayUserIds` only when the party reveals
+  recommenders (D10, API.md, design README screens 9/15 updated). SHOULD FIXes applied: moving-clock test proving
+  `updatedAt` uses a fresh clock read (mutation-checked: fails if the check time is reused); D9 tests with a third
+  member's rating (myRating stays null; progress unaffected); sweep outsider now belongs to another party
+  (cross-party on every route) and regenerate moved last with an accurate comment; API.md 404 for stats; roadmap
+  wording; D15 soft-limit note; musical-twin note in STATISTICS.md; membership/recommendations readability.
+  Logged two product questions above. Verified: unit 280, integration 171, `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.11** — `handlers/authorization.integration.test.ts`: table-driven sweep of all 19 routes ×
   {no token, ID token} → 401, and × {outsider, left member, member, host} → expected status/error code; plus

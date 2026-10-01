@@ -2,6 +2,7 @@
 
 import type { Recommendation } from '@sotd/shared';
 import { songSchema, submitRecommendationRequestSchema } from '@sotd/shared';
+import { parseRoundId } from '../data/keys';
 import { listMySubmissionDates, listWeekRecommendations, putRecommendation } from '../data/recommendations';
 import { listMyWeekVotes } from '../data/votes';
 import { toOpenWeekSongView } from '../domain/results';
@@ -12,7 +13,6 @@ import { created, createHandler, ok, type HandlerFn } from '../http/handler';
 import { getAuthenticatedUser, parseBody, pathParam } from '../http/request';
 import { loadPartyForMember } from './parties';
 import { loadRoundForMember, resolveCurrentWeek } from './weeks';
-import { parseRoundId } from '../data/keys';
 
 /**
  * Share today's song (spec §14, D1). The server decides today's date, looks the song up with the music service
@@ -20,6 +20,7 @@ import { parseRoundId } from '../data/keys';
  */
 export const submitRecommendationFn: HandlerFn = async (event, { data, now, newId, music }) => {
   const { userId } = getAuthenticatedUser(event);
+  // Not loadRoundForMember: on the first request of a week the round may not exist yet; resolveCurrentWeek creates it.
   const roundId = pathParam(event, 'roundId');
   const parts = parseRoundId(roundId);
   if (parts === null) {
