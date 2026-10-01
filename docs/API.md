@@ -123,3 +123,12 @@ Leave (`memberId` = yourself) or, as host, remove someone. Past songs and rating
 `204`. Errors: `403 NOT_HOST` (removing someone else), `403 FORBIDDEN` (the host can't leave or be removed),
 `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
 
+### Party settings
+
+#### `PATCH /parties/{partyId}/settings`
+
+Host only. Code: `services/api/src/handlers/settings.ts`. Body (`updatePartySettingsRequestSchema`, at least one
+field): `name`, `maxMembers` (2–50, not below the current member count), `timezone` (applies from next week),
+`paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`. The invite code and host can't be changed here.
+`200`: `{ "party", "members", "isHost": true }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `400 VALIDATION_FAILED`.
+

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.5 Party settings**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.6 Weeks (current week & history)**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,9 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.5** — `handlers/settings.ts`: host-only rename + settings; size limit checked in code and DB;
+  unknown fields (host, invite code) rejected by the strict schema. Verified: integration 72 (4 new); verify exit 0.
 
 - 2026-10-01 — **P5.4** — `handlers/membership.ts`: invite preview (name + capacity only; all bad codes → same
   INVALID_INVITE), join (code must be current and match the party; 20-party limit; DB re-checks atomically),

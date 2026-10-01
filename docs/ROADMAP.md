@@ -158,7 +158,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
 - [x] **P5.4 — Invites & joining:** `GET /invites/{code}` (party name + room left; rate-limited route),
   `POST /parties/{partyId}/join` with code, `POST /parties/{partyId}/invite-code` (host regenerates),
   `DELETE /parties/{partyId}/members/{memberId}` (host removes / user leaves).
-- [ ] **P5.5 — Party settings:** `PATCH /parties/{partyId}/settings` (host only; validated values, including
+- [x] **P5.5 — Party settings:** `PATCH /parties/{partyId}/settings` (host only; validated values, including
   timezone and pause/resume).
 - [ ] **P5.6 — Weeks:** `GET /parties/{partyId}/rounds/current` (creates this week's round on first request with a
   conditional put; returns status, today's weekday or "weekend", week end time, and "paused" if applicable),
