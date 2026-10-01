@@ -65,7 +65,7 @@ async function setup(): Promise<{ party: Party; round: Round; hostId: string; me
 const share = (
   userId: string,
   roundId: string,
-  body: unknown = { provider: 'spotify', providerSongId: 'abc' },
+  body: unknown = { provider: 'appleMusic', providerSongId: '100' },
 ) => runHandler(submitRecommendationFn, apiEvent({ userId, pathParameters: { roundId }, body }), deps);
 
 const list = async (userId: string, roundId: string) => {
@@ -91,16 +91,47 @@ describe('POST /rounds/{roundId}/recommendations', () => {
         submittedOn: '2026-10-07',
         isMine: true,
         recommendedBy: hostId,
-        song: { title: 'Song abc' },
+        song: { title: 'Song 100' },
       },
     });
+  });
+
+  it('stores the sharer’s pasted Spotify/YouTube links as clean URLs (ADR-0007)', async () => {
+    const { round, hostId } = await setup();
+    const result = await share(hostId, round.roundId, {
+      provider: 'appleMusic',
+      providerSongId: '100',
+      links: {
+        spotify: 'https://open.spotify.com/track/1eyzqe2QqGZUmfcPZtrIyt?si=tracking123',
+        youtube: 'https://youtu.be/dX3k_QDnzHE',
+      },
+    });
+    expect(result.statusCode).toBe(201);
+    const providers = (
+      bodyOf(result) as { song: { song: { providers: { provider: string; externalUrl: string }[] } } }
+    ).song.song.providers;
+    expect(providers.map((p) => [p.provider, p.externalUrl])).toEqual([
+      ['appleMusic', 'https://music.apple.com/us/song/test/100'],
+      ['spotify', 'https://open.spotify.com/track/1eyzqe2QqGZUmfcPZtrIyt'],
+      ['youtube', 'https://www.youtube.com/watch?v=dX3k_QDnzHE'],
+    ]);
+  });
+
+  it('rejects a pasted link that isn’t really Spotify', async () => {
+    const { round, hostId } = await setup();
+    const result = await share(hostId, round.roundId, {
+      provider: 'appleMusic',
+      providerSongId: '100',
+      links: { spotify: 'https://open.spotify.com.evil.example/track/1eyzqe2QqGZUmfcPZtrIyt' },
+    });
+    expect(result.statusCode).toBe(400);
   });
 
   it('allows one song per day: a second today fails, tomorrow works', async () => {
     const { round, hostId } = await setup();
     expect((await share(hostId, round.roundId)).statusCode).toBe(201);
 
-    const again = await share(hostId, round.roundId, { provider: 'youtube', providerSongId: 'other' });
+    const again = await share(hostId, round.roundId, { provider: 'appleMusic', providerSongId: '200' });
     expect(again.statusCode).toBe(409);
     expect(code(again)).toEqual({
       code: 'ALREADY_SUBMITTED_TODAY',
@@ -140,10 +171,10 @@ describe('POST /rounds/{roundId}/recommendations', () => {
     const { round, hostId } = await setup();
     expect((await share(newId(), round.roundId)).statusCode).toBe(403);
     expect(
-      code(await share(hostId, round.roundId, { provider: 'spotify', providerSongId: 'missing-1' })).code,
+      code(await share(hostId, round.roundId, { provider: 'appleMusic', providerSongId: '999001' })).code,
     ).toBe('VALIDATION_FAILED');
     expect(
-      (await share(hostId, round.roundId, { provider: 'spotify', providerSongId: 'x', title: 'Forged' }))
+      (await share(hostId, round.roundId, { provider: 'appleMusic', providerSongId: '100', title: 'Forged' }))
         .statusCode,
     ).toBe(400);
     expect((await share(hostId, 'not-a-round')).statusCode).toBe(404);
@@ -154,7 +185,7 @@ describe('GET /rounds/{roundId}/recommendations', () => {
   it('hides who shared each song during the week, and shows only your own ratings', async () => {
     const { party, round, hostId, memberId } = await setup();
     await share(hostId, round.roundId);
-    await share(memberId, round.roundId, { provider: 'youtube', providerSongId: 'yt1' });
+    await share(memberId, round.roundId, { provider: 'appleMusic', providerSongId: '300' });
     // A third member rates the host's song; that rating must never appear for anyone else (D9).
     const thirdId = newId();
     await runHandler(
@@ -167,7 +198,7 @@ describe('GET /rounds/{roundId}/recommendations', () => {
       deps,
     );
     const hostSongId = (await list(thirdId, round.roundId)).body.songs.find(
-      (s) => !s.isMine && s.song.title === 'Song abc',
+      (s) => !s.isMine && s.song.title === 'Song 100',
     )?.recommendationId as string;
     await runHandler(
       castVoteFn,

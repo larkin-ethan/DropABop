@@ -181,14 +181,22 @@ to read another party's data.
 
 #### `POST /rounds/{roundId}/recommendations`
 
-Share today's song. Body: `{ "provider": "spotify", "providerSongId": "…" }`; nothing else is accepted (no
-title, links, or date). The server decides today's date in the week's timezone, looks the song up with the music
-service itself (P6.3), and stores it with a random id.
+Share today's song. Body:
+
+```json
+{ "provider": "appleMusic", "providerSongId": "828259377",
+  "links": { "spotify": "https://open.spotify.com/track/…", "youtube": "https://youtu.be/…" } }
+```
+
+`providerSongId` is the iTunes/Apple Music track id from song search (ADR-0007). `links` is optional: the sharer's
+own Spotify/YouTube links to the same song, validated and stored as clean URLs (tracking parameters removed).
+Nothing else is accepted (no title, artwork, or date). The server decides today's date in the week's timezone and
+looks the song up itself.
 
 `201`: `{ "song": SongView }` (see below). Errors: `409 ALREADY_SUBMITTED_TODAY`, `409 WEEKEND`,
 `409 WEEK_CLOSED` (week ended / not this week), `409 PARTY_PAUSED`, `403 NOT_A_MEMBER`,
-`400 VALIDATION_FAILED` (song not found or bad input), `404 NOT_FOUND` (unknown week),
-`502 PROVIDER_UNAVAILABLE` (music service down; until P6.3 this is always the case in production).
+`400 VALIDATION_FAILED` (song not found, bad link, or bad input), `404 NOT_FOUND` (unknown week),
+`502 PROVIDER_UNAVAILABLE` (song lookup busy or down).
 
 #### `GET /rounds/{roundId}/recommendations`
 
@@ -281,4 +289,22 @@ Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRec
 `highestAverageSongRating` (songs, with `song` summary), `highestAverageRecommendationScore`, `mostConsistent`,
 `mostSurprising`, `mostPopular`: each a ranked list of `{ id, rank, value, sampleSize }` containing only entries
 that meet the minimum sample. Ties share a rank. Members only.
+
+### Song search
+
+Code: `services/api/src/handlers/songs.ts`, catalog `services/api/src/providers/itunes.ts` (iTunes Search API,
+ADR-0007). Signed-in users only. Results are cached for 10 minutes per Lambda container to stay well under iTunes'
+~20 calls/minute.
+
+#### `GET /songs/search?q=midnight+city`
+
+`q`: 2–100 characters. `200`: `{ "songs": Song[] }` (up to 10). Each song's `providers[0]` is Apple Music with
+its `music.apple.com` link; `albumArtUrl` is a 300×300 image URL (show the "Listen on Apple Music" badge next to
+it). Errors: `400 VALIDATION_FAILED`, `502 PROVIDER_UNAVAILABLE` ("Song search is busy right now…").
+
+#### `POST /songs/resolve`
+
+Paste an Apple Music song link instead of searching (D21). Body: `{ "url": "https://music.apple.com/us/album/…?i=…" }`
+(or `…/song/<name>/<id>`). `200`: `{ "song": Song }`. Errors: `400 VALIDATION_FAILED` (not an Apple Music song
+link, or Apple doesn't have the song), `502 PROVIDER_UNAVAILABLE`.
 

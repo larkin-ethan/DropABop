@@ -6,6 +6,7 @@
 // ignored (spec §24: identity comes only from the verified token).
 
 import { z } from 'zod';
+import { parseAppleMusicSongUrl, parseSpotifyTrackUrl, parseYouTubeUrl } from './links';
 import {
   DISPLAY_NAME_MAX_LENGTH,
   INVITE_CODE_PATTERN,
@@ -135,20 +136,36 @@ export const joinPartyRequestSchema = z.strictObject({
   inviteCode: inviteCodeSchema,
 });
 
+/** An optional Spotify track link pasted by the person sharing (ADR-0007). */
+export const spotifyLinkSchema = z.string().refine((url) => parseSpotifyTrackUrl(url) !== null, {
+  error: 'That doesn’t look like a Spotify song link.',
+});
+
+/** An optional YouTube / YouTube Music link pasted by the person sharing (ADR-0007). */
+export const youtubeLinkSchema = z
+  .string()
+  .refine((url) => parseYouTubeUrl(url) !== null, { error: 'That doesn’t look like a YouTube link.' });
+
 /**
  * POST /rounds/{roundId}/recommendations
  *
- * The client sends only *which* song (service + that service's id). The server looks the song up with
- * the provider itself, so titles, artwork, and links can't be forged by the client. The date is never
- * sent: the server decides "today" in the party's timezone (ADR-0003).
+ * The client sends only *which* song (its iTunes / Apple Music track id, ADR-0007). The server looks the song up
+ * itself, so titles, artwork, and links can't be forged by the client. Optional Spotify/YouTube links are just URLs
+ * the server validates and stores. The date is never sent: the server decides "today" (ADR-0003).
  */
 export const submitRecommendationRequestSchema = z.strictObject({
-  provider: musicProviderSchema,
+  provider: z.literal('appleMusic', { error: 'Please choose a song from search.' }),
   providerSongId: z
     .string()
     .trim()
-    .min(1, { error: 'Please choose a song.' })
+    .regex(/^\d{1,20}$/, { error: 'Please choose a song.' })
     .max(PROVIDER_SONG_ID_MAX_LENGTH, { error: 'Please choose a song.' }),
+  links: z
+    .strictObject({
+      spotify: spotifyLinkSchema.optional(),
+      youtube: youtubeLinkSchema.optional(),
+    })
+    .optional(),
 });
 
 /** PUT /rounds/{roundId}/votes/{recommendationId} */
@@ -161,9 +178,8 @@ export const songSearchQuerySchema = z.strictObject({
   q: z
     .string()
     .trim()
-    .min(1, { error: 'Type a song or artist to search.' })
+    .min(2, { error: 'Type at least 2 characters to search.' })
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
-  provider: musicProviderSchema.optional(),
 });
 
 /** GET /parties/{partyId}/rounds?limit=&cursor= (week history). Query strings arrive as text. */
@@ -180,9 +196,11 @@ export const personalStatsQuerySchema = z.strictObject({
   partyId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' }),
 });
 
-/** POST /songs/resolve — paste-a-link fallback (D21). */
+/** POST /songs/resolve — paste an Apple Music song link instead of searching (D21). */
 export const resolveSongRequestSchema = z.strictObject({
-  url: httpsUrlSchema,
+  url: z.string().refine((url) => parseAppleMusicSongUrl(url) !== null, {
+    error: 'Paste an Apple Music song link (music.apple.com/…), or search instead.',
+  }),
 });
 
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;

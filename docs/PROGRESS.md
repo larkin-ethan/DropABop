@@ -28,6 +28,15 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-01 — **P6.3 + P6.4** — iTunes catalog (`providers/itunes.ts`: search + lookup, 5 s timeout, 10-min
+  in-memory cache, 403/429 → friendly busy message, results validated with `songSchema`, 300×300 artwork via the
+  observed URL pattern), `SongLookup` now has `searchSongs`, `PROVIDER_CAPABILITIES` (spec §10), production deps use
+  the iTunes catalog. Shared `links.ts` (Spotify/YouTube/Apple Music URL parsers, canonical + search links) and
+  updated schemas: submit = `{provider:'appleMusic', providerSongId: digits, links?}`, search `q` ≥ 2 chars, resolve =
+  Apple Music links only. Sharing stores pasted links as canonical URLs. New `GET /songs/search`, `POST /songs/resolve`
+  (both added to the authorization sweep). Verified: live response sampled and live opt-in test passed against the
+  real iTunes API; unit 348 (+1 live skipped by default), integration 179; `npm run verify` exit 0.
+
 - 2026-10-01 — **P6.1** — Research (research subagent, official sources only, every claim cited; UNCONFIRMED items
   marked) → `docs/MUSIC_PROVIDERS.md` + ADR-0007 (**Proposed**, needs Ethan's approval). Key findings: Spotify Dev Mode
   now needs the owner's Premium, 5-user cap, terms forbid our snapshot and multi-service integration; Apple Music API

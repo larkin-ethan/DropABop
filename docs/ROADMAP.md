@@ -252,7 +252,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - Register the developer app(s) and put any client secret into SSM Parameter Store / the approved
     mechanism yourself — never paste it into chat or the repo. Give the AI the parameter **name**.
 
-- [ ] **P6.3 — Provider interface + first provider**
+- [x] **P6.3 — Provider interface + first provider**
   - *Do:* `services/api/src/providers/` — `MusicProvider` interface with capabilities (§10), a registry that
     implements the existing `SongLookup` interface (`providers/song-lookup.ts`) and replaces `unavailableSongLookup`
     in the production deps (`http/handler.ts`),
@@ -261,7 +261,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     mocked in unit tests; one opt-in live test.
   - *Done when:* searching from dev returns normalized songs; provider errors become friendly messages.
 
-- [ ] **P6.4 — External links & optional in-app playback**
+- [x] **P6.4 — External links & optional in-app playback** (backend: links stored per ADR-0007; in-app playback deferred by ADR-0007; the "Listen on Apple Music" badge and Open/Search buttons are drawn in P8.4–P8.6)
   - *Do:* Each `SongProvider` carries the official `externalUrl`. In-app playback only if ADR-0007 confirms
     an official, free path; otherwise "Open in …" buttons with the provider's branding rules.
   - *Docs:* `MUSIC_PROVIDERS.md` "How to add a provider" section.

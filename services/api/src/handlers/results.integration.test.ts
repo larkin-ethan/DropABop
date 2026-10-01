@@ -50,10 +50,19 @@ async function joinNew(party: Party) {
   return userId;
 }
 
+/** Test ids like 'a-mon' → a stable numeric iTunes-style id. */
+function songNumber(id: string): string {
+  return String([...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 1_000_000_000, 7));
+}
+
 async function share(userId: string, roundId: string, id: string) {
   const result = await runHandler(
     submitRecommendationFn,
-    apiEvent({ userId, pathParameters: { roundId }, body: { provider: 'spotify', providerSongId: id } }),
+    apiEvent({
+      userId,
+      pathParameters: { roundId },
+      body: { provider: 'appleMusic', providerSongId: songNumber(id) },
+    }),
     deps,
   );
   return (bodyOf(result) as { song: { recommendationId: string } }).song.recommendationId;

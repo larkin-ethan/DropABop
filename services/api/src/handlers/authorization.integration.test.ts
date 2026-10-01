@@ -16,6 +16,7 @@ import { listRecommendationsFn, submitRecommendationFn } from './recommendations
 import { getResultsFn } from './results';
 import { updateSettingsFn } from './settings';
 import { groupStatsFn, leaderboardFn, personalStatsFn } from './stats';
+import { resolveSongFn, searchSongsFn } from './songs';
 import { getMe, updateMe } from './users';
 import { castVoteFn, listMyVotesFn } from './votes';
 import { getCurrentWeekFn, listWeeksFn } from './weeks';
@@ -65,7 +66,7 @@ beforeAll(async () => {
       await call(submitRecommendationFn, {
         userId: ids.host,
         pathParameters: { roundId: round.roundId },
-        body: { provider: 'spotify', providerSongId: 'host-song' },
+        body: { provider: 'appleMusic', providerSongId: '1001' },
       }),
     ) as { song: { recommendationId: string } }
   ).song.recommendationId;
@@ -110,6 +111,18 @@ const routes: RouteCase[] = [
     expect: anyone(200),
   },
   { name: 'GET /parties', fn: listPartiesHandlerFn, request: () => ({}), expect: anyone(200) },
+  {
+    name: 'GET /songs/search',
+    fn: searchSongsFn,
+    request: () => ({ queryStringParameters: { q: 'midnight city' } }),
+    expect: anyone(200),
+  },
+  {
+    name: 'POST /songs/resolve',
+    fn: resolveSongFn,
+    request: () => ({ body: { url: 'https://music.apple.com/us/song/midnight-city/828259377' } }),
+    expect: anyone(200),
+  },
   {
     name: 'GET /invites/{code}',
     fn: previewInviteFn,
@@ -158,7 +171,7 @@ const routes: RouteCase[] = [
     fn: submitRecommendationFn,
     request: () => ({
       pathParameters: { roundId: round.roundId },
-      body: { provider: 'youtube', providerSongId: `song-${newId()}` },
+      body: { provider: 'appleMusic', providerSongId: String(Math.floor(Math.random() * 1e9)) },
     }),
     // The host already shared today, so the host gets the one-per-day answer, which proves they were let in.
     expect: { ...member(201), host: 'ALREADY_SUBMITTED_TODAY' },

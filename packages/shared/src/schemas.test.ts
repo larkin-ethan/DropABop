@@ -248,23 +248,54 @@ describe('updateProfileRequestSchema', () => {
   });
 });
 
-describe('submitRecommendationRequestSchema', () => {
-  it('accepts provider + song id', () => {
+describe('submitRecommendationRequestSchema (ADR-0007)', () => {
+  it('accepts an Apple Music / iTunes track id, with optional pasted links', () => {
     expect(
-      submitRecommendationRequestSchema.safeParse({ provider: 'youtube', providerSongId: 'dQw4w9WgXcQ' })
+      submitRecommendationRequestSchema.safeParse({ provider: 'appleMusic', providerSongId: '828259377' })
         .success,
     ).toBe(true);
+    const withLinks = {
+      provider: 'appleMusic',
+      providerSongId: '828259377',
+      links: {
+        spotify: 'https://open.spotify.com/track/1eyzqe2QqGZUmfcPZtrIyt',
+        youtube: 'https://youtu.be/dX3k_QDnzHE',
+      },
+    };
+    expect(submitRecommendationRequestSchema.safeParse(withLinks).success).toBe(true);
+  });
+
+  it('rejects other providers as the main song source (search is iTunes in v1)', () => {
+    expect(
+      submitRecommendationRequestSchema.safeParse({ provider: 'spotify', providerSongId: '123' }).success,
+    ).toBe(false);
   });
 
   it('rejects client-sent song metadata or dates (server looks these up itself)', () => {
-    const body = { provider: 'youtube', providerSongId: 'x', title: 'Fake title', submittedOn: '2026-10-05' };
+    const body = {
+      provider: 'appleMusic',
+      providerSongId: '1',
+      title: 'Fake title',
+      submittedOn: '2026-10-05',
+    };
     expect(submitRecommendationRequestSchema.safeParse(body).success).toBe(false);
   });
 
-  it('rejects an empty song id', () => {
+  it('rejects empty or non-numeric ids and bad pasted links', () => {
     expect(
-      submitRecommendationRequestSchema.safeParse({ provider: 'spotify', providerSongId: '  ' }).success,
+      submitRecommendationRequestSchema.safeParse({ provider: 'appleMusic', providerSongId: '  ' }).success,
     ).toBe(false);
+    expect(
+      submitRecommendationRequestSchema.safeParse({ provider: 'appleMusic', providerSongId: 'abc' }).success,
+    ).toBe(false);
+    const badLink = {
+      provider: 'appleMusic',
+      providerSongId: '1',
+      links: { spotify: 'https://evil.example.com/track/x' },
+    };
+    const result = submitRecommendationRequestSchema.safeParse(badLink);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('That doesn’t look like a Spotify song link.');
   });
 });
 
@@ -275,16 +306,22 @@ describe('songSearchQuerySchema', () => {
 
   it('rejects empty and over-long queries', () => {
     expect(songSearchQuerySchema.safeParse({ q: '' }).success).toBe(false);
+    expect(songSearchQuerySchema.safeParse({ q: 'a' }).success).toBe(false);
     expect(songSearchQuerySchema.safeParse({ q: 'x'.repeat(101) }).success).toBe(false);
   });
 });
 
 describe('resolveSongRequestSchema (D21)', () => {
-  it('accepts an https link and rejects others', () => {
+  it('accepts Apple Music song links and rejects everything else', () => {
+    expect(
+      resolveSongRequestSchema.safeParse({
+        url: 'https://music.apple.com/us/album/midnight-city/828259375?i=828259377',
+      }).success,
+    ).toBe(true);
     expect(resolveSongRequestSchema.safeParse({ url: 'https://music.example.com/song/1' }).success).toBe(
-      true,
+      false,
     );
-    expect(resolveSongRequestSchema.safeParse({ url: 'http://music.example.com/song/1' }).success).toBe(
+    expect(resolveSongRequestSchema.safeParse({ url: 'http://music.apple.com/us/song/x/1' }).success).toBe(
       false,
     );
   });

@@ -5,7 +5,8 @@ import { randomUUID } from 'node:crypto';
 import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { createDataContext, type DataContext } from '../data/context';
 import { DomainError } from '../data/errors';
-import { unavailableSongLookup, type SongLookup } from '../providers/song-lookup';
+import { createItunesCatalog } from '../providers/itunes';
+import type { SongLookup } from '../providers/song-lookup';
 import { GENERIC_ERROR_MESSAGE, STATUS_BY_CODE } from './errors';
 import { logger } from './logger';
 import type { ApiEvent } from './request';
@@ -17,7 +18,7 @@ export interface Deps {
   now: () => Date;
   /** Random ids (UUIDs) for new records. */
   newId: () => string;
-  /** Looks up song details from a music service (P6.3). */
+  /** Song search and lookup (iTunes Search API, ADR-0007). */
   music: SongLookup;
 }
 
@@ -32,7 +33,7 @@ function getProductionDeps(): Deps {
     data: createDataContext(),
     now: () => new Date(),
     newId: () => randomUUID(),
-    music: unavailableSongLookup, // replaced by the real provider registry in P6.3
+    music: createItunesCatalog(), // ADR-0007
   };
   return productionDeps;
 }

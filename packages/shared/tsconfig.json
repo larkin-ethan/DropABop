@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // Runs in both the browser and Lambda, so no Node or DOM types here.
+    // Runs in both the browser and Lambda, so no Node types. "DOM" is included only for URL / URLSearchParams,
+    // which both environments provide; don't use browser-only APIs here.
+    "lib": ["ES2023", "DOM"],
     "types": []
   },
   "include": ["src"]

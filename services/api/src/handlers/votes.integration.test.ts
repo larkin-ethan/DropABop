@@ -56,7 +56,7 @@ async function setup() {
       apiEvent({
         userId: hostId,
         pathParameters: { roundId: round.roundId },
-        body: { provider: 'spotify', providerSongId: 'abc' },
+        body: { provider: 'appleMusic', providerSongId: '100' },
       }),
       deps,
     ),
@@ -109,7 +109,7 @@ describe('PUT /rounds/{roundId}/votes/{recommendationId}', () => {
       apiEvent({
         userId: memberId,
         pathParameters: { roundId: round.roundId },
-        body: { provider: 'spotify', providerSongId: 'm1' },
+        body: { provider: 'appleMusic', providerSongId: '101' },
       }),
       deps,
     );

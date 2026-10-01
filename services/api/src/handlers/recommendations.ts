@@ -1,7 +1,13 @@
 // POST and GET /rounds/{roundId}/recommendations (docs/API.md → Songs).
 
-import type { Recommendation } from '@sotd/shared';
-import { songSchema, submitRecommendationRequestSchema } from '@sotd/shared';
+import type { Recommendation, SongProvider, SubmitRecommendationRequest } from '@sotd/shared';
+import {
+  canonicalLinks,
+  parseSpotifyTrackUrl,
+  parseYouTubeUrl,
+  songSchema,
+  submitRecommendationRequestSchema,
+} from '@sotd/shared';
 import { parseRoundId } from '../data/keys';
 import { listMySubmissionDates, listWeekRecommendations, putRecommendation } from '../data/recommendations';
 import { listMyWeekVotes } from '../data/votes';
@@ -13,6 +19,28 @@ import { created, createHandler, ok, type HandlerFn } from '../http/handler';
 import { getAuthenticatedUser, parseBody, pathParam } from '../http/request';
 import { loadPartyForMember } from './parties';
 import { loadRoundForMember, resolveCurrentWeek } from './weeks';
+
+/** Turns pasted links into SongProvider entries. The schema already checked they're real Spotify/YouTube links. */
+function pastedLinks(links: SubmitRecommendationRequest['links']): SongProvider[] {
+  const result: SongProvider[] = [];
+  const spotifyId = links?.spotify === undefined ? null : parseSpotifyTrackUrl(links.spotify);
+  if (spotifyId !== null) {
+    result.push({
+      provider: 'spotify',
+      providerSongId: spotifyId,
+      externalUrl: canonicalLinks.spotify(spotifyId),
+    });
+  }
+  const youtubeId = links?.youtube === undefined ? null : parseYouTubeUrl(links.youtube);
+  if (youtubeId !== null) {
+    result.push({
+      provider: 'youtube',
+      providerSongId: youtubeId,
+      externalUrl: canonicalLinks.youtube(youtubeId),
+    });
+  }
+  return result;
+}
 
 /**
  * Share today's song (spec §14, D1). The server decides today's date, looks the song up with the music service
@@ -43,7 +71,12 @@ export const submitRecommendationFn: HandlerFn = async (event, { data, now, newI
   );
 
   const found = await music.getSong(request.provider, request.providerSongId);
-  const song = found === null ? null : songSchema.safeParse(found);
+  // Add the sharer's pasted Spotify/YouTube links (ADR-0007): stored as clean canonical URLs, nothing fetched.
+  const extraProviders = found === null ? [] : pastedLinks(request.links);
+  const song =
+    found === null
+      ? null
+      : songSchema.safeParse({ ...found, providers: [...found.providers, ...extraProviders] });
   if (song === null || !song.success) {
     fail('VALIDATION_FAILED', 'We couldn’t find that song. Try searching again.');
   }
