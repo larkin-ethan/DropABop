@@ -61,7 +61,8 @@ this deliberate change to spec §13–§15.
   highest first, plus a per-day view (Monday's songs, Tuesday's songs, …) and a "Song of the Day" winner for
   each day (that day's highest average). Ties share a rank (1, 1, 3). Songs with 0 ratings rank last and show
   "No ratings".
-- Averages shown to 1 decimal place.
+- Averages shown to 1 decimal place, and ranking uses that displayed value, so two songs that both show 8.3
+  share a rank instead of appearing as #1 and #2. Tied songs are listed earlier-day first.
 
 ## Parties & invites (§8, §26)
 

@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 2 — domain logic. Next: **P2.3 Results calculation**.
+Phase 2 — domain logic. Next: **P2.4 Statistics**.
 
 ## Blocked / Questions for Ethan
 
@@ -25,6 +25,12 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P2.3** — `domain/results.ts`: `toOpenWeekSongView` (D9/D10 privacy while open), `canViewResults`,
+  `calculateWeekResults` (weekly ranking, per-day groups, daily winners incl. ties, anonymous distribution, viewer
+  rating, `ratings` only when `showWhoRatedWhat`), `roundToOneDecimal`. Decision: rank by the displayed 1-decimal
+  average (added to D12). Self-ratings and unknown-song votes ignored defensively. Verified: 24 results tests; mutation
+  check (forcing both visibility settings on) fails 2 tests; `npm run verify` exit 0, 161 tests.
 
 - 2026-10-01 — **P2.2** — `domain/rules.ts` (`canSubmitRecommendation` returns the server-decided day;
   `canCastVote`; `isValidRating`) and `domain/messages.ts` (all friendly messages + `RuleResult`). Covered: non-member,

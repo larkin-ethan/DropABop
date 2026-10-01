@@ -84,7 +84,7 @@ This is where correctness lives; handlers later just call these.
     so ratings are locked."), rating not an integer 1–10. Changing an existing rating while open is allowed.
   - *Done when:* each rule has a passing and a failing test.
 
-- [ ] **P2.3 — Results calculation**
+- [x] **P2.3 — Results calculation**
   - *Spec:* §16 · *Decisions:* D9–D12
   - *Do:* `calculateWeekResults(round, recommendations, votes, viewerId, settings)` → the whole week ranked, plus
     per-day groups and each day's "Song of the Day" winner. Each song has average, count, distribution (1–10
