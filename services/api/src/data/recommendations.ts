@@ -124,3 +124,23 @@ export async function listPartyRecommendations(ctx: DataContext, partyId: string
   const items = await queryByPrefix(ctx, partitionKeys.party(partyId), prefixes.allRecommendations());
   return items.map((item) => withoutKeys<Recommendation>(item));
 }
+
+/**
+ * Who has shared on which day this week (from the one-per-day markers). Used for "who's shared today" on the home
+ * screen. It reveals *that* someone shared, never *which* song is theirs (D10).
+ */
+export async function listWeekSubmissions(
+  ctx: DataContext,
+  roundId: string,
+): Promise<{ userId: string; date: string }[]> {
+  const parts = parseRoundId(roundId);
+  if (parts === null) {
+    return [];
+  }
+  const prefix = prefixes.weekSubmissions(parts.weekStart);
+  const items = await queryByPrefix(ctx, partitionKeys.party(parts.partyId), prefix);
+  return items.flatMap((item) => {
+    const [userId, day] = String(item.SK).slice(prefix.length).split('#');
+    return userId !== undefined && day !== undefined ? [{ userId, date: day }] : [];
+  });
+}

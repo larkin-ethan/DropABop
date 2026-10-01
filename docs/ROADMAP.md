@@ -160,7 +160,7 @@ Routes are added to the SAM template in P4.2; real-AWS smoke tests happen in P4.
   `DELETE /parties/{partyId}/members/{memberId}` (host removes / user leaves).
 - [x] **P5.5 — Party settings:** `PATCH /parties/{partyId}/settings` (host only; validated values, including
   timezone and pause/resume).
-- [ ] **P5.6 — Weeks:** `GET /parties/{partyId}/rounds/current` (creates this week's round on first request with a
+- [x] **P5.6 — Weeks:** `GET /parties/{partyId}/rounds/current` (creates this week's round on first request with a
   conditional put; returns status, today's weekday or "weekend", week end time, and "paused" if applicable),
   `GET /parties/{partyId}/rounds` (past weeks, paginated). Integration test: two simultaneous first requests create
   exactly one round. The server decides the date; the client never sends it.

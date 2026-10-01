@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.6 Weeks (current week & history)**.
+Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Next: **P5.7 Recommendations (share a song)**.
 In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
 
 ## Blocked / Questions for Ethan
@@ -28,6 +28,13 @@ _None._
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-01 — **P5.6** — `handlers/weeks.ts`: `resolveCurrentWeek` (shared: records the previous week's close,
+  then `planCurrentWeek` → use/create/none), current-week endpoint (today, sharedToday, who shared today without
+  revealing songs, rating progress excluding own songs), paged history with validated query. Added
+  `listWeekSubmissions` (data) and `roundHistoryQuerySchema` (shared). Verified: integration 80 (8 new: first-visit
+  creation, progress per person, weekend, Monday rollover + NOT_ENOUGH_SONGS recorded, pause, 4 simultaneous first
+  visits → 1 round, non-member 403, paging + bad cursor 400); `npm run verify` exit 0.
 
 - 2026-10-01 — **P5.5** — `handlers/settings.ts`: host-only rename + settings; size limit checked in code and DB;
   unknown fields (host, invite code) rejected by the strict schema. Verified: integration 72 (4 new); verify exit 0.

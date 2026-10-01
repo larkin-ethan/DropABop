@@ -132,3 +132,42 @@ field): `name`, `maxMembers` (2–50, not below the current member count), `time
 `paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`. The invite code and host can't be changed here.
 `200`: `{ "party", "members", "isHost": true }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `400 VALIDATION_FAILED`.
 
+### Weeks
+
+Code: `services/api/src/handlers/weeks.ts`. Weeks are created and closed lazily (ADR-0003): the first request of a
+week creates it, and the first request after a week ends records its close.
+
+#### `GET /parties/{partyId}/rounds/current`
+
+Members only. The home screen's main call; poll it every 30–60 s while the app is open.
+
+`200` while a week is running:
+
+```json
+{
+  "round": { "roundId": "…​.2026-10-05", "weekStart": "2026-10-05", "timezone": "America/Chicago",
+             "startsAt": "…", "endsAt": "2026-10-12T05:00:00.000Z", "status": "OPEN" },
+  "status": "OPEN",
+  "reason": null,
+  "today": { "weekday": "WED", "date": "2026-10-07", "dayNumber": 3 },
+  "sharedToday": false,
+  "mySubmissionDates": ["2026-10-05"],
+  "sharedTodayUserIds": ["…"],
+  "progress": { "songCount": 7, "ratableCount": 5, "ratedCount": 3 }
+}
+```
+
+- `today` is `null` on Saturday and Sunday (rating still open, sharing closed).
+- `endsAt` is the exclusive end (next Monday 00:00 in the week's timezone); show it as "Sunday 11:59 pm".
+- `sharedTodayUserIds` says *who* has shared today, never *which* song is theirs (D10).
+- `ratableCount` excludes your own songs; `ratedCount` is how many of those you've rated.
+
+`200` when there's no current week: `{ "round": null, "reason": "paused" | "between-weeks", "nextWeekStartsAt": "…" | null, "lastRoundId": "…" | null }`.
+Errors: `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+
+#### `GET /parties/{partyId}/rounds?limit=20&cursor=2026-09-14`
+
+Members only. Week history, newest first. `limit` 1–50 (default 20); pass `nextCursor` back as `cursor`.
+`200`: `{ "rounds": Round[], "nextCursor": "2026-09-14" | null }`. Status is `OPEN`, `CLOSED`, or
+`NOT_ENOUGH_SONGS` (fewer than 2 songs; no results). Errors: `400 VALIDATION_FAILED` (bad cursor/limit).
+

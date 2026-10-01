@@ -166,6 +166,15 @@ export const songSearchQuerySchema = z.strictObject({
   provider: musicProviderSchema.optional(),
 });
 
+/** GET /parties/{partyId}/rounds?limit=&cursor= (week history). Query strings arrive as text. */
+export const roundHistoryQuerySchema = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  cursor: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'That page link isn’t valid.' })
+    .optional(),
+});
+
 /** POST /songs/resolve — paste-a-link fallback (D21). */
 export const resolveSongRequestSchema = z.strictObject({
   url: httpsUrlSchema,
@@ -179,3 +188,4 @@ export type SubmitRecommendationRequest = z.infer<typeof submitRecommendationReq
 export type CastVoteRequest = z.infer<typeof castVoteRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
+export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

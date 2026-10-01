@@ -80,6 +80,7 @@ export const prefixes = {
   rounds: () => 'ROUND#',
   allRecommendations: () => 'REC#',
   weekRecommendations: (weekStart: string) => `REC#${date(weekStart, 'weekStart')}#`,
+  weekSubmissions: (weekStart: string) => `SUBMITTED#${date(weekStart, 'weekStart')}#`,
   mySubmissions: (weekStart: string, userId: string) =>
     `SUBMITTED#${date(weekStart, 'weekStart')}#${id(userId, 'userId')}#`,
   allVotes: () => 'VOTE#',
