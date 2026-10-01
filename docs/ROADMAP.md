@@ -75,7 +75,7 @@ This is where correctness lives; handlers later just call these.
     00:00, Sun 23:59:59 vs Mon 00:00), a daylight-saving change week, a non-US timezone, a paused party, and that
     consecutive weeks never overlap.
 
-- [ ] **P2.2 — Recommendation & voting rules**
+- [x] **P2.2 — Recommendation & voting rules**
   - *Spec:* §14, §15, §24 · *Decisions:* D6–D8
   - *Do:* `canSubmitRecommendation(...)`, `canVote(...)` returning `{ ok: true } | { ok: false, code, message }`
     with friendly messages (spec §30). Submission covers: not a member, weekend ("Song submissions open again
