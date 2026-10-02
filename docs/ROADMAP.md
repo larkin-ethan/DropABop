@@ -199,7 +199,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     Run `aws configure sso` with profile name `sotd-dev`.
   - Done when: `aws sts get-caller-identity --profile sotd-dev` works and the budget exists.
 
-- [ ] **P4.2 — SAM template: core stack**
+- [ ] **P4.2 — SAM template: core stack** (template, build, and tests done 2026-10-02; only `sam validate --lint` + `sam build` remain, run once P4.0 installs SAM)
   - *Spec:* §3, §6, §9, §36, §41 · *ADR:* 0002
   - *Do:* `infra/template.yaml` + `infra/samconfig.toml` with `dev` and `prod` config-envs (separate stack
     names `sotd-dev` / `sotd-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1 / ADR-0005: on-demand,
@@ -216,7 +216,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
 - [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command]
-  - *Do:* AI runs `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then calls
+  - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then calls
     `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
     Cognito tokens: create party → join → share a song → rate → (results/stats return the "not ready" error while

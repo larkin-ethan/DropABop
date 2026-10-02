@@ -1,0 +1,700 @@
+# Song of the Day — application stack (ADR-0002). One copy per stage: sotd-dev and sotd-prod (infra/samconfig.toml).
+#
+# What's here: the DynamoDB table, the Cognito user pool + web app client, the HTTP API with a JWT authorizer, and one
+# Lambda function per API route. Everything is pay-per-use; nothing bills while idle (spec §2, docs/ARCHITECTURE.md).
+#
+# Build and deploy (docs/DEPLOYMENT.md), from the infra/ folder:
+#   sam build --config-env dev && sam deploy --config-env dev --profile sotd-dev
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Song of the Day (API, auth, database)
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [dev, prod]
+    Description: Which copy of the app this stack is. Prod turns on backups and deletion protection.
+  FrontendOrigin:
+    Type: String
+    # One origin, no path or trailing slash, e.g. http://localhost:5173 or https://d111111abcdef8.cloudfront.net
+    AllowedPattern: '^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$'
+    Description: The website's origin. The only origin browsers may call the API from (CORS).
+
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+
+Rules:
+  # The real app is only ever served over HTTPS, so an http:// origin for prod is a mistake: stop the deploy.
+  ProdOriginIsHttps:
+    RuleCondition: !Equals [!Ref Stage, prod]
+    Assertions:
+      - Assert: !Equals [!Select [0, !Split ['://', !Ref FrontendOrigin]], https]
+        AssertDescription: In prod, FrontendOrigin must start with https://
+
+Globals:
+  Function:
+    Runtime: nodejs24.x # newest GA Node.js runtime (checked 2026-10-01); local Node is 24 too
+    Architectures: [arm64] # cheaper per millisecond than x86 for the same work
+    MemorySize: 256
+    Timeout: 10 # iTunes calls give up after 5 s (providers/itunes.ts); DynamoDB calls take milliseconds
+    # Every function ships the same bundle (services/api/src/lambda.ts, built by services/api/Makefile).
+    CodeUri: ../services/api
+    LoggingConfig:
+      LogGroup: !Ref ApiLogGroup # one log group for the whole API, with a retention limit
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref Table
+        NODE_OPTIONS: --enable-source-maps # stack traces point at the TypeScript source
+
+Resources:
+  # ---------------------------------------------------------------------------------------------------------------
+  # Database (docs/DATABASE.md, ADR-0005). Single table, no secondary indexes, on-demand with throughput caps.
+  # ---------------------------------------------------------------------------------------------------------------
+  Table:
+    Type: AWS::DynamoDB::Table
+    # Keep the data even if the stack is deleted or the table would be replaced. Deleting data is a human decision.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      # Must match TABLE_KEY_SCHEMA in services/api/src/data/table-definition.ts (a unit test checks this).
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      # Per-second ceilings far above real use, so a runaway bug is throttled instead of billed (ADR-0005).
+      OnDemandThroughput:
+        MaxReadRequestUnits: !If [IsProd, 100, 50]
+        MaxWriteRequestUnits: !If [IsProd, 50, 25]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - Key: app
+          Value: sotd
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Sign-in (spec §9, ADR-0008). Email + password only (D23). The website signs in with SRP through Amplify.
+  # ---------------------------------------------------------------------------------------------------------------
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain # accounts survive a deleted stack; removing them is a human decision
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub sotd-${Stage}
+      # Essentials is the default plan: 10,000 monthly active users free (aws.amazon.com/cognito/pricing, 2026-10-02).
+      UserPoolTier: ESSENTIALS
+      UsernameAttributes: [email]
+      UsernameConfiguration:
+        CaseSensitive: false # Sam@Example.com and sam@example.com are the same person
+      AutoVerifiedAttributes: [email]
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: [email]
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false # people sign themselves up; parties are invite-only (spec §26)
+      MfaConfiguration: 'OFF'
+      # Same rules the sign-up form shows (apps/web/src/screens/AuthScreens.tsx).
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: Your Song of the Day code
+        EmailMessage: 'Your Song of the Day verification code is {####}'
+      # Uses Cognito's built-in email sender (no extra service). Its daily sending limit is plenty for one group.
+      DeletionProtection: !If [IsProd, ACTIVE, INACTIVE]
+
+  WebClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub sotd-${Stage}-web
+      GenerateSecret: false # a website can't keep a secret (spec §9)
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH # the password itself is never sent
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED # don't reveal whether an email has an account
+      EnableTokenRevocation: true # signing out revokes the refresh token
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # HTTP API (spec §3). Every route needs a valid Cognito *access* token.
+  # ---------------------------------------------------------------------------------------------------------------
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: CognitoAccessToken
+        Authorizers:
+          CognitoAccessToken:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              # Access tokens carry no `aud`, so API Gateway checks their `client_id` against this list.
+              audience:
+                - !Ref WebClient
+            # Only access tokens from sign-in carry this scope; ID tokens have no scope, so they're refused here.
+            # Handlers also require token_use = access (services/api/src/http/request.ts).
+            # Docs checked 2026-10-02: docs.aws.amazon.com/apigateway/latest/developerguide/http-api-jwt-authorizer.html
+            # and docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-access-token.html
+            AuthorizationScopes:
+              - aws.cognito.signin.user.admin
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendOrigin
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+        AllowHeaders: [authorization, content-type]
+        MaxAge: 600
+      # Stage-wide limits per route (requests per second). Tighter per-route limits come in P9.1.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 25
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /sotd/${Stage}/api
+      RetentionInDays: 14 # logs are for debugging recent problems; old ones only cost storage
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # One function per route (docs/API.md). Each may use only the table actions its handler needs: never Scan
+  # (spec §25), and Delete only where something is actually deleted. Transactions are authorized through the
+  # actions of the items inside them (Put/Update/Delete), so there's no separate permission for them.
+  # ---------------------------------------------------------------------------------------------------------------
+  # Proves the API and authorizer work.
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.healthHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /health
+
+  # Creates the profile on first call.
+  GetMeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getMeHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /users/me
+
+  UpdateMeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.updateMeHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PATCH
+            Path: /users/me
+
+  CreatePartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.createPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties
+
+  ListPartiesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listPartiesHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties
+
+  GetPartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}
+
+  PreviewInviteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.previewInviteHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /invites/{code}
+
+  JoinPartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.joinPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/join
+
+  RegenerateInviteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.regenerateInviteHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/invite-code
+
+  RemoveMemberFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.removeMemberHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: DELETE
+            Path: /parties/{partyId}/members/{memberId}
+
+  UpdateSettingsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.updateSettingsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PATCH
+            Path: /parties/{partyId}/settings
+
+  # Creates and closes weeks lazily (ADR-0003).
+  GetCurrentWeekFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getCurrentWeekHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/rounds/current
+
+  # Creates and closes weeks lazily (ADR-0003).
+  ListWeeksFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listWeeksHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/rounds
+
+  SubmitRecommendationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.submitRecommendationHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /rounds/{roundId}/recommendations
+
+  ListRecommendationsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listRecommendationsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/recommendations
+
+  CastVoteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.castVoteHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PUT
+            Path: /rounds/{roundId}/votes/{recommendationId}
+
+  ListMyVotesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listMyVotesHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/votes/me
+
+  # Closes the week lazily (ADR-0003).
+  GetResultsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getResultsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/results
+
+  # Brings the current week up to date first (ADR-0003).
+  PersonalStatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.personalStatsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /users/me/stats
+
+  # Brings the current week up to date first (ADR-0003).
+  GroupStatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.groupStatsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/stats
+
+  # Brings the current week up to date first (ADR-0003).
+  LeaderboardFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.leaderboardHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/leaderboard
+
+  # iTunes only; no database access.
+  SearchSongsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.searchSongsHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /songs/search
+
+  # iTunes only; no database access.
+  ResolveSongFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.resolveSongHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /songs/resolve
+
+Outputs:
+  # Public values for the website's environment file (apps/web/.env.example). None of these are secrets.
+  ApiUrl:
+    Description: VITE_API_URL
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  UserPoolId:
+    Description: VITE_COGNITO_USER_POOL_ID
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: VITE_COGNITO_CLIENT_ID
+    Value: !Ref WebClient
+  Region:
+    Description: VITE_AWS_REGION
+    Value: !Ref AWS::Region
+  TableName:
+    Description: The DynamoDB table (for the AWS console; the API reads it from TABLE_NAME)
+    Value: !Ref Table

@@ -2,8 +2,9 @@
 
 ## Current focus
 
-Phase 5 — API endpoints (moved ahead of Phase 4; built and tested locally). Phase 5 complete and reviewed. Next roadmap task: **P4.0 Install AWS CLI + SAM [HUMAN]**, then **P4.1 account safety [HUMAN]** (guide: `docs/DEPLOYMENT.md`). P6.1 (music provider research, doc only) can proceed meanwhile.
-In parallel, Ethan: **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety) — step-by-step in `docs/DEPLOYMENT.md`.
+Waiting on Ethan for **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety); step-by-step in
+`docs/DEPLOYMENT.md` §1–2. Meanwhile **P4.2** (SAM template) is written and tested; its last two checks
+(`sam validate --lint`, `sam build` from `infra/`) run as soon as SAM is installed, then P4.3 deploys dev.
 
 ## Blocked / Questions for Ethan
 
@@ -27,6 +28,25 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-02 — **P4.2 (code done, SAM checks pending)** — `infra/template.yaml`: on-demand table with caps, PITR
+  and deletion protection in prod, Retain policies (table + user pool); Cognito pool (email sign-in, code verification,
+  password rules matching the sign-up form, Essentials plan) + public SRP web client; HTTP API with a Cognito JWT
+  authorizer on every route (audience = client id, scope `aws.cognito.signin.user.admin` so ID tokens are refused),
+  CORS for one `FrontendOrigin`, default throttle 25/50; 23 functions (22 Phase 5 routes + new `GET /health`), Node 24
+  arm64 256 MB, one shared 14-day log group, per-function IAM with only the DynamoDB actions each handler uses (traced
+  by hand and confirmed by the spec reviewer; never Scan). Prod `FrontendOrigin` must be https (template Rule) and
+  isn't set yet (P9.2). `infra/samconfig.toml` (dev/prod, `build_in_source`), `services/api/Makefile` +
+  `scripts/bundle.mjs` (esbuild → one 1.1 MB ESM bundle; the AWS SDK is bundled because the runtime's copy is an
+  unpinned older minor version), `src/lambda.ts` (bundle entry). `infra-template.test.ts`: key schema =
+  `TABLE_KEY_SCHEMA`, handlers = lambda exports, Makefile targets, routes = docs/API.md, IAM actions, authorizer,
+  CORS. Docs: new ARCHITECTURE.md, API.md (/health), DEPLOYMENT.md (costs, build-then-deploy). Verified:
+  `npm run verify` exit 0 (358 tests + 1 skipped); cfn-lint 1.57.1 (the linter `sam validate --lint` uses) passes and catches a
+  planted type error; bundle imports and runs a handler in Node 24 up to the network call. Spec review: 1 MUST FIX
+  (plain `sam build` wouldn't build in place) fixed; SHOULD FIXes applied. **Not verified:** `sam validate --lint` and
+  `sam build` (SAM not installed: P4.0), and a real DynamoDB call from the bundle (Docker was off; P4.3 covers it).
+  Known limit: ADR-0005's read cap (prod 100/s) may throttle the stats page once history grows; P4.4's throttle
+  alarm will show it. Dev deps: esbuild (bundles the Lambdas), yaml (test parses the template).
 
 - 2026-10-01 — **P6.3 + P6.4** — iTunes catalog (`providers/itunes.ts`: search + lookup, 5 s timeout, 10-min
   in-memory cache, 403/429 → friendly busy message, results validated with `songSchema`, 300×300 artwork via the

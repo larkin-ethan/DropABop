@@ -47,6 +47,16 @@ token, headers, body, or email (`services/api/src/http/logger.ts` redacts these 
 
 ## Endpoints
 
+Every endpoint below is one Lambda function and one route in `infra/template.yaml`; a unit test
+(`services/api/src/infra-template.test.ts`) fails if the two lists differ.
+
+### Health
+
+#### `GET /health`
+
+`200 { "status": "ok" }`. Signed-in only, like every route: without a valid access token API Gateway answers `401`
+before Lambda runs. Used to prove a deploy and its authorizer work (P4.3). Touches no database or provider.
+
 ### Profile
 
 #### `GET /users/me`

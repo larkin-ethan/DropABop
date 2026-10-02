@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Lambda handlers, domain rules, data access, and music providers.",
   "scripts": {
+    "build": "node scripts/bundle.mjs dist",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

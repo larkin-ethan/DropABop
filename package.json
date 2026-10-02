@@ -2,7 +2,7 @@
   "name": "song-of-the-day",
   "private": true,
   "type": "module",
-  "description": "Private social music app: one song per member per weekday, rated 1\u201310 by the group.",
+  "description": "Private social music app: one song per member per weekday, rated 1–10 by the group.",
   "engines": {
     "node": ">=24 <25"
   },
@@ -28,11 +28,13 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.0",
+    "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
     "globals": "^17.13.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.0",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "yaml": "^2.9.1"
   }
 }

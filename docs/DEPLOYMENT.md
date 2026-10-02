@@ -152,7 +152,30 @@ Filled in as resources are added (P4.2, P4.4, P9.2). Expected total at 10–20 u
 | Service | What we use it for | Free allowance | Expected cost at our scale |
 |---|---|---|---|
 | DynamoDB | The database (on-demand, capped) | 25 GB storage always free; requests are not | ~$0.05–$0.25/month (ADR-0005) |
-| _more rows added in P4.2+_ | | | |
+| API Gateway (HTTP API) | Every app request | 1M requests/month, **first 12 months only** | $1.00 per million → ~$0.10–$0.30/month after year one |
+| Lambda (arm64) | Runs each request | 1M requests + 400,000 GB-s/month, always | $0 (we use a small fraction) |
+| Cognito (Essentials) | Accounts and sign-in | 10,000 monthly active users | $0 |
+| CloudWatch Logs | One log group per stage, kept 14 days | 5 GB/month | $0 |
+| _more rows added in P4.4, P9.2_ | | | |
+
+Prices checked 2026-10-02 on aws.amazon.com/{api-gateway,lambda,cognito,cloudwatch}/pricing (US East).
+Full resource list: `docs/ARCHITECTURE.md`.
+
+## 4a. Build and deploy the API (from P4.3)
+
+From the `infra/` folder, **always build before deploying** (deploy uploads whatever the last build produced):
+
+```bash
+sam build --config-env dev
+```
+
+```bash
+sam deploy --config-env dev --profile sotd-dev
+```
+
+`sam build` bundles the API with esbuild through `services/api/Makefile` (in place, so it can use the workspace's
+packages). `sam deploy` shows the planned changes and asks before applying them. Run `npm install` at the repo root
+first on a fresh checkout.
 
 ## 5. Shutting things down
 

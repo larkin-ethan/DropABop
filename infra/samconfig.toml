@@ -1,0 +1,41 @@
+# SAM CLI settings for each stage (ADR-0002). Run sam commands from this folder (infra/), always building first:
+#   sam build --config-env dev
+#   sam deploy --config-env dev --profile sotd-dev
+# The region comes from the AWS profile (chosen in P4.1), so it isn't repeated here.
+version = 0.1
+
+# ---- every build, including a plain `sam build` ----
+[default.build.parameters]
+# Build in services/api itself, so the Makefile can reach the workspace's node_modules and packages/shared.
+# (Without this SAM copies services/api to a temporary folder first, where those can't be found.)
+build_in_source = true
+
+# ---- dev: the test copy. Safe to break; the website runs locally against it. ----
+[dev.global.parameters]
+stack_name = "sotd-dev"
+
+[dev.build.parameters]
+build_in_source = true # same reason as above
+
+[dev.deploy.parameters]
+resolve_s3 = true # SAM's own small bucket for uploads
+s3_prefix = "sotd-dev"
+capabilities = "CAPABILITY_IAM" # the stack creates one IAM role per function
+confirm_changeset = true # always show what will change and ask first
+parameter_overrides = "Stage=dev FrontendOrigin=http://localhost:5173"
+
+# ---- prod: the real app. Only Ethan deploys it (CLAUDE.md). ----
+[prod.global.parameters]
+stack_name = "sotd-prod"
+
+[prod.build.parameters]
+build_in_source = true
+
+[prod.deploy.parameters]
+resolve_s3 = true
+s3_prefix = "sotd-prod"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+# FrontendOrigin is set once the website's CloudFront address exists (P9.2). Until then a prod deploy stops and
+# asks for it, which is what we want.
+parameter_overrides = "Stage=prod"
