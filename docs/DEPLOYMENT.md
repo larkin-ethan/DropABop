@@ -55,6 +55,14 @@ budget in step 2.4 is what keeps the Paid plan from surprising you.
 
 Use an email address you'll keep long-term; it's the account's recovery address.
 
+> **Which kind of account do you have?** AWS now signs most people up through its *new experience*: the console
+> talks about **projects**, and settings live at https://settings.aws.com. In that kind of account **IAM Identity
+> Center shows "Access to this service is not supported"** (on Free and Paid plans alike), so skip 2.2â€“2.3 and 2.7
+> and use **2.8** instead. Everything this app needs (Lambda, API Gateway, DynamoDB, Cognito, CloudFormation, S3,
+> CloudFront, CloudWatch, SNS, Budgets) is available. Don't choose "Explore advanced features": it can't be undone
+> and isn't needed. Source: https://docs.aws.amazon.com/accounts/latest/reference/supported-services-sign-up-new.html
+> (checked 2026-10-03). Ethan's account is this kind.
+
 ### 2.2 Protect the root user with MFA
 
 The root user (the email you signed up with) can do anything, including closing the account. Lock it down and then
@@ -133,7 +141,28 @@ You should see your account number and an `AWSReservedSSO_AdministratorAccess_â€
 aws sso login --profile sotd-dev
 ```
 
-**Done when:** `aws sts get-caller-identity --profile sotd-dev` works and the `sotd-monthly` budget exists. Tell
+### 2.8 New-experience accounts: sign in the CLI with `aws login`
+
+Use this instead of 2.3 and 2.7 if your account uses projects (see the note in 2.1). It gives the CLI short-lived
+credentials (12 hours, renewable for 90 days) without any access keys. Needs AWS CLI 2.32 or newer.
+
+```bash
+aws login --profile sotd-dev
+```
+
+If asked for a region, enter `us-east-1`. A browser opens: choose your project. Check it, then repeat the login
+whenever the credentials expire:
+
+```bash
+aws sts get-caller-identity --profile sotd-dev
+```
+
+The role shown is `AccountFullAccessRole`. For cost safety, also set a monthly **spend limit** (about $5) on the
+project in https://settings.aws.com, as well as or instead of the 2.4 budget.
+Source: https://docs.aws.amazon.com/accounts/latest/reference/connect-ai-coding-tool.html (checked 2026-10-03).
+
+**Done when:** `aws sts get-caller-identity --profile sotd-dev` works and the `sotd-monthly` budget (or a project
+spend limit) exists. Tell
 the AI the account is ready; it will never ask for passwords, keys, or codes.
 
 ---

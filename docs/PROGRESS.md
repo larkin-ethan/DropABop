@@ -2,8 +2,9 @@
 
 ## Current focus
 
-Next: **P4.1** (AWS account safety) — Ethan's step-by-step is in `docs/DEPLOYMENT.md` §2. Then **P4.3**: first dev
-deploy (`sam build --config-env dev` then `sam deploy --config-env dev --profile sotd-dev`, Ethan approves).
+**P4.1** is almost done: the CLI is signed in (`sotd-dev`), but no budget or spend limit exists yet. Ethan sets a
+~$5 spend limit (settings.aws.com) or the `sotd-monthly` budget. Then **P4.3**: first dev deploy
+(`sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev`, Ethan approves).
 
 ## Blocked / Questions for Ethan
 
@@ -15,8 +16,10 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 <!-- Record verified facts future sessions need: region, stack names, profile names, Node version, etc.
      Never record secrets, tokens, or passwords here. -->
 
-- AWS region: _not chosen yet_ (P4.1)
-- AWS CLI profile: `sotd-dev` (planned)
+- AWS region: `us-east-1`
+- AWS account: AWS's *new experience* (projects, settings.aws.com); IAM Identity Center is unavailable there.
+  CLI profile `sotd-dev` signs in with `aws login --profile sotd-dev` (role `AccountFullAccessRole`, 12 h credentials;
+  verified 2026-10-03). See DEPLOYMENT.md §2.8.
 - Stacks: `sotd-dev`, `sotd-prod` (planned)
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
