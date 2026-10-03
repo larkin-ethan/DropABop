@@ -2,9 +2,8 @@
 
 ## Current focus
 
-**P4.1** is almost done: the CLI is signed in (`sotd-dev`), but no budget or spend limit exists yet. Ethan sets a
-~$5 spend limit (settings.aws.com) or the `sotd-monthly` budget. Then **P4.3**: first dev deploy
-(`sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev`, Ethan approves).
+**P4.3**: first dev deploy (`sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev`,
+Ethan approves), then smoke tests. After that P4.4 (alarms + $5 budget in the stack).
 
 ## Blocked / Questions for Ethan
 
@@ -31,6 +30,11 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **P4.1** — Ethan's account uses AWS's new experience (projects); IAM Identity Center is unavailable
+  there, so the CLI signs in with `aws login --profile sotd-dev` (DEPLOYMENT.md §2.8). Region us-east-1. Project
+  spend limit $20/month (the lowest AWS offered); no Budgets yet, P4.4 adds a $5 budget alert. Verified:
+  `aws sts get-caller-identity --profile sotd-dev` → `AccountFullAccessRole`; `aws budgets describe-budgets` → none.
 
 - 2026-10-03 — **P4.0 + P4.2 done** — Ethan installed the tools (`aws --version` 2.37.9, `sam --version` 1.166.2).
   Verified: `sam validate --lint` → "valid SAM Template"; `sam build` and `sam build --config-env dev` → Build

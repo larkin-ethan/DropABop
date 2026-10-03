@@ -192,7 +192,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - Official installers: AWS CLI v2 and AWS SAM CLI (macOS packages or Homebrew).
   - Done when: `aws --version` and `sam --version` succeed.
 
-- [ ] **P4.1 — AWS account safety setup** [HUMAN]
+- [x] **P4.1 — AWS account safety setup** [HUMAN]
   - Follow `docs/DEPLOYMENT.md` → "Account safety" (the AI writes that section first if missing):
     enable MFA on root, create an IAM Identity Center user for daily work, set a **$5/month budget** with
     email alerts at 50%/80%/100% actual and 100% forecasted, enable Free Tier usage alerts, pick a region.

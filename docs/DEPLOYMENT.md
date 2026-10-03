@@ -158,7 +158,8 @@ aws sts get-caller-identity --profile sotd-dev
 ```
 
 The role shown is `AccountFullAccessRole`. For cost safety, also set a monthly **spend limit** (about $5) on the
-project in https://settings.aws.com, as well as or instead of the 2.4 budget.
+project in https://settings.aws.com, as well as or instead of the 2.4 budget. (The lowest limit AWS offered Ethan was $20/month;
+that's set. P4.4 adds a $5 budget alert in the stack so a cost shows up long before the limit.)
 Source: https://docs.aws.amazon.com/accounts/latest/reference/connect-ai-coding-tool.html (checked 2026-10-03).
 
 **Done when:** `aws sts get-caller-identity --profile sotd-dev` works and the `sotd-monthly` budget (or a project
