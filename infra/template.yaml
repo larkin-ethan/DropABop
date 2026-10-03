@@ -20,17 +20,11 @@ Parameters:
     # One origin, no path or trailing slash, e.g. http://localhost:5173 or https://d111111abcdef8.cloudfront.net
     AllowedPattern: '^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$'
     Description: The website's origin. The only origin browsers may call the API from (CORS).
+    # Prod must use the https CloudFront origin (P9.2). CloudFormation Rules can't check a prefix, so this is a
+    # review item rather than an automatic check.
 
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
-
-Rules:
-  # The real app is only ever served over HTTPS, so an http:// origin for prod is a mistake: stop the deploy.
-  ProdOriginIsHttps:
-    RuleCondition: !Equals [!Ref Stage, prod]
-    Assertions:
-      - Assert: !Equals [!Select [0, !Split ['://', !Ref FrontendOrigin]], https]
-        AssertDescription: In prod, FrontendOrigin must start with https://
 
 Globals:
   Function:

@@ -157,7 +157,12 @@ whenever the credentials expire:
 aws sts get-caller-identity --profile sotd-dev
 ```
 
-The role shown is `AccountFullAccessRole`. For cost safety, also set a monthly **spend limit** (about $5) on the
+The role shown is `AccountFullAccessRole`.
+
+**Region:** a project has one home region (Ethan's: **us-east-2**). Regional services (Lambda, DynamoDB, CloudFormation,
+Cognito, …) are denied everywhere else, and us-east-1 allows only global ones (IAM, billing, CloudFront, ACM). To find
+yours, run `aws cloudformation list-stacks --region <region> --profile sotd-dev` per region: only the home region
+answers. `infra/samconfig.toml` sets it for deploys. For cost safety, also set a monthly **spend limit** (about $5) on the
 project in https://settings.aws.com, as well as or instead of the 2.4 budget. (The lowest limit AWS offered Ethan was $20/month;
 that's set. P4.4 adds a $5 budget alert in the stack so a cost shows up long before the limit.)
 Source: https://docs.aws.amazon.com/accounts/latest/reference/connect-ai-coding-tool.html (checked 2026-10-03).

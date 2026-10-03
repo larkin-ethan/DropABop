@@ -1,7 +1,8 @@
 # SAM CLI settings for each stage (ADR-0002). Run sam commands from this folder (infra/), always building first:
 #   sam build --config-env dev
 #   sam deploy --config-env dev --profile sotd-dev
-# The region comes from the AWS profile (chosen in P4.1), so it isn't repeated here.
+# Region: us-east-2. Ethan's AWS account (new experience, projects) only allows regional services in the project's
+# home region; us-east-1 allows only global ones (DEPLOYMENT.md §2.8).
 version = 0.1
 
 # ---- every build, including a plain `sam build` ----
@@ -13,6 +14,7 @@ build_in_source = true
 # ---- dev: the test copy. Safe to break; the website runs locally against it. ----
 [dev.global.parameters]
 stack_name = "sotd-dev"
+region = "us-east-2"
 
 [dev.build.parameters]
 build_in_source = true # same reason as above
@@ -27,6 +29,7 @@ parameter_overrides = "Stage=dev FrontendOrigin=http://localhost:5173"
 # ---- prod: the real app. Only Ethan deploys it (CLAUDE.md). ----
 [prod.global.parameters]
 stack_name = "sotd-prod"
+region = "us-east-2" # check the prod project's home region before the first prod deploy (P11.3)
 
 [prod.build.parameters]
 build_in_source = true

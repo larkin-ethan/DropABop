@@ -15,7 +15,10 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 <!-- Record verified facts future sessions need: region, stack names, profile names, Node version, etc.
      Never record secrets, tokens, or passwords here. -->
 
-- AWS region: `us-east-1`
+- AWS region: **`us-east-2`** (the project's home region; regional services are denied everywhere else, and
+  us-east-1 allows only global ones like IAM, billing, CloudFront, ACM). Set in `infra/samconfig.toml`; pass
+  `--region us-east-2` to other CLI calls (the `sotd-dev` profile's default region is us-east-1).
+- The GitHub repo is **public**: never commit account ids, emails, stack addresses, or test-user details.
 - AWS account: AWS's *new experience* (projects, settings.aws.com); IAM Identity Center is unavailable there.
   CLI profile `sotd-dev` signs in with `aws login --profile sotd-dev` (role `AccountFullAccessRole`, 12 h credentials;
   verified 2026-10-03). See DEPLOYMENT.md §2.8.

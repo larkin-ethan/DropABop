@@ -224,7 +224,8 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - *Also:* fill `apps/web/.env.development.local` from the stack outputs and do a real sign-up → email code → sign-in →
     sign-out → forgot-password run through the website (closes P7.3).
   - *Done when:* unauthenticated call → 401; every endpoint behaves as in `docs/API.md` on dev; outputs (API URL,
-    pool id, client id) recorded in `apps/web/.env.development.example` (no secrets exist in these values).
+    pool id, client id) in the git-ignored `apps/web/.env.development.local` only: not secrets, but the repo is public,
+    so real dev addresses aren't committed.
 
 - [ ] **P4.4 — Cost & failure alarms**
   - *Spec:* §7, §33
