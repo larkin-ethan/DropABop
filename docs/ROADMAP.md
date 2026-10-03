@@ -215,7 +215,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
-- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command]
+- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`, and the website sign-up run)
   - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then calls
     `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real

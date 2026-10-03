@@ -2,8 +2,11 @@
 
 ## Current focus
 
-**P4.3**: first dev deploy (`sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev`,
-Ethan approves), then smoke tests. After that P4.4 (alarms + $5 budget in the stack).
+**P4.3** nearly done: `sotd-dev` is deployed (us-east-2) and all 34 smoke checks pass. Left:
+1. Ethan creates `apps/web/.env.development.local` (the AI's permissions block writing `.env` files) and does a real
+   sign-up → email code → sign-in → sign-out → forgot-password run on the website (closes P7.3).
+2. On a weekday, re-run `node scripts/smoke-dev.mjs` so a song is actually shared and rated (weekend → 409 WEEKEND).
+Then P4.4 (alarms + $5 budget).
 
 ## Blocked / Questions for Ethan
 
@@ -33,6 +36,19 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **P4.3 (deployed, 2 checks left)** — Ethan approved; `sotd-dev` created in us-east-2 (75 resources,
+  CREATE_COMPLETE). First run: every function failed at startup ("Dynamic require of node:https": the bundled AWS
+  SDK is CommonJS and an ES-module bundle has no `require`; the earlier local check used `node -e`, which has one).
+  Fixed with an esbuild `createRequire` banner; new `bundle.test.ts` loads the bundle in a plain ES-module Node
+  process (fails without the fix, passes with it). Redeployed (code-only change set). `scripts/smoke-dev.mjs` (two
+  throwaway users, passwords in git-ignored `.test-users.json`; SRP sign-in via Amplify; stack outputs read live):
+  34/34 pass, including no token/garbage token → 401, ID token → 403 (scope), access token → 200, NOT_A_MEMBER,
+  NOT_HOST, ALREADY_MEMBER, INVALID_INVITE, RESULTS_NOT_READY, iTunes search (10 songs), sharing → 409 WEEKEND
+  (Saturday). CloudWatch logs checked: no tokens, Authorization headers, passwords, or emails. Verified also:
+  `npm run verify` exit 0 (359 tests + 1 skipped). Left: weekday share → rate, website sign-up run (needs Ethan's
+  email and the `.env.development.local` file). `apps/web/.env.example` still says `VITE_AWS_REGION=us-east-1`
+  (the AI can't edit `.env*` files): change it to us-east-2.
 
 - 2026-10-03 — **P4.1** — Ethan's account uses AWS's new experience (projects); IAM Identity Center is unavailable
   there, so the CLI signs in with `aws login --profile sotd-dev` (DEPLOYMENT.md §2.8). Region us-east-1. Project

@@ -22,6 +22,11 @@ await build({
   // docs.aws.amazon.com/lambda/latest/dg/lambda-nodejs.html#nodejs-sdk-included (checked 2026-10-02)
   // Smaller upload and faster cold starts (roughly half the size); the source map keeps errors readable.
   minify: true,
+  // Some bundled packages (the AWS SDK) are CommonJS and call require("node:https") etc. An ES module has no
+  // `require`, so give the bundle one; without this every function fails at startup ("Dynamic require … not supported").
+  banner: {
+    js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
+  },
   // Readable stack traces in CloudWatch (the template sets NODE_OPTIONS=--enable-source-maps).
   sourcemap: true,
   logLevel: 'warning',

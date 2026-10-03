@@ -212,6 +212,13 @@ sam deploy --config-env dev --profile sotd-dev
 packages). `sam deploy` shows the planned changes and asks before applying them. Run `npm install` at the repo root
 first on a fresh checkout.
 
+After a deploy, check every endpoint on dev (creates two throwaway test users the first time; their passwords
+stay in the git-ignored `.test-users.json`):
+
+```bash
+node scripts/smoke-dev.mjs
+```
+
 ## 5. Shutting things down
 
 Deleting is a **human-only** action in this project (the AI is blocked from it).
