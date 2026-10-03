@@ -188,7 +188,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
 
 ## Phase 4 — Dev infrastructure (AWS SAM)
 
-- [ ] **P4.0 — Install AWS CLI v2 and AWS SAM CLI** [HUMAN]
+- [x] **P4.0 — Install AWS CLI v2 and AWS SAM CLI** [HUMAN]
   - Official installers: AWS CLI v2 and AWS SAM CLI (macOS packages or Homebrew).
   - Done when: `aws --version` and `sam --version` succeed.
 
@@ -199,7 +199,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     Run `aws configure sso` with profile name `sotd-dev`.
   - Done when: `aws sts get-caller-identity --profile sotd-dev` works and the budget exists.
 
-- [ ] **P4.2 — SAM template: core stack** (template, build, and tests done 2026-10-02; only `sam validate --lint` + `sam build` remain, run once P4.0 installs SAM)
+- [x] **P4.2 — SAM template: core stack**
   - *Spec:* §3, §6, §9, §36, §41 · *ADR:* 0002
   - *Do:* `infra/template.yaml` + `infra/samconfig.toml` with `dev` and `prod` config-envs (separate stack
     names `sotd-dev` / `sotd-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1 / ADR-0005: on-demand,

@@ -2,9 +2,8 @@
 
 ## Current focus
 
-Waiting on Ethan for **P4.0** (install AWS CLI + SAM) and **P4.1** (account safety); step-by-step in
-`docs/DEPLOYMENT.md` §1–2. Meanwhile **P4.2** (SAM template) is written and tested; its last two checks
-(`sam validate --lint`, `sam build` from `infra/`) run as soon as SAM is installed, then P4.3 deploys dev.
+Next: **P4.1** (AWS account safety) — Ethan's step-by-step is in `docs/DEPLOYMENT.md` §2. Then **P4.3**: first dev
+deploy (`sam build --config-env dev` then `sam deploy --config-env dev --profile sotd-dev`, Ethan approves).
 
 ## Blocked / Questions for Ethan
 
@@ -21,6 +20,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 - Stacks: `sotd-dev`, `sotd-prod` (planned)
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
+- AWS CLI 2.37.9, SAM CLI 1.166.2 (verified 2026-10-03). Set `SAM_CLI_TELEMETRY=0` to skip SAM's telemetry.
 - Docker Desktop installed (engine 25.0.3). Its CLI is not on PATH by default: prefix commands with
   `export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"`.
 - Toolchain: TypeScript ~6.0.3 (TS 7 unsupported by typescript-eslint), ESLint 10, Vitest 5, Prettier 3.
@@ -28,6 +28,11 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **P4.0 + P4.2 done** — Ethan installed the tools (`aws --version` 2.37.9, `sam --version` 1.166.2).
+  Verified: `sam validate --lint` → "valid SAM Template"; `sam build` and `sam build --config-env dev` → Build
+  Succeeded, 23 functions, each with the 1.1 MB `index.mjs`; guardrails pass. Leftovers: a real DynamoDB call from
+  the bundle is still unverified (P4.3 smoke test).
 
 - 2026-10-02 — **P4.2 (code done, SAM checks pending)** — `infra/template.yaml`: on-demand table with caps, PITR
   and deletion protection in prod, Retain policies (table + user pool); Cognito pool (email sign-in, code verification,
