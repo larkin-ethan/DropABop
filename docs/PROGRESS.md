@@ -2,10 +2,9 @@
 
 ## Current focus
 
-Phase 9: **P9.1** done (deployed to dev). **P9.2** written but blocked on AWS (CloudFront account verification);
-next: **P9.3** security review, **P9.4** observability. Open from earlier: **P4.3**'s weekday check
-(`node scripts/smoke-dev.mjs` on a weekday), Ethan's walkthrough of the Phase 8 screens, **P8.12**'s Playwright
-screenshots (after P10.1).
+Phase 9 done except **P9.2**'s deploy (waiting for AWS to verify the account for CloudFront; Ethan's support case).
+Next: **Phase 10** (Playwright end-to-end tests; P10.1 needs Ethan's OK to download Playwright's browsers). Still open:
+**P4.3**'s weekday check, Ethan's walkthrough of the Phase 8 screens, **P8.12**'s Playwright screenshots.
 
 ## Blocked / Questions for Ethan
 
@@ -43,6 +42,23 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P9.4 done** — API Gateway access log (`/dropabop/<stage>/api-access`, same retention) so requests
+  rejected before our code (missing/bad token, throttling) are logged with the reason; no IP or headers. Verified live:
+  401s show "missing: token not provided" / "invalid_token…", a 429 shows the route and user id; app log lines carry
+  requestId, route, userId (sub), status, durationMs; past hour of both log groups grepped: no tokens, Authorization,
+  passwords, or emails. Alarm test: `set-alarm-state` forced `dropabop-dev-lambda-errors` to ALARM → alarm history
+  "Successfully executed action … dropabop-dev-alerts", SNS NumberOfNotificationsDelivered = 1 (email to the alert
+  address; Ethan to confirm it arrived).
+- 2026-10-04 — **P9.3 done** — Independent security review (read-only agent): no HIGH. Fixed MEDIUM: invite codes
+  were guessable (any account, ~173k tries/day at the route limit) → at most 10 wrong codes per person per hour
+  (`data/invite-attempts.ts`, hourly counter with TTL; preview and join answer 429 after that; correct codes never
+  count). Fixed LOW: CSP `connect-src` allowed any API Gateway → production `index.html` now carries a CSP naming the
+  exact API and Cognito hosts (Vite plugin; build fails without them); prod can't be deployed with `DevOrigin` or
+  without the website (template Rules). Documented (accepted): party-limit race, access token valid ≤1 h after
+  sign-out (ADR-0008), musical-twin 0-gap. New `docs/SECURITY.md` (threat model, data stored, tokens, reporting,
+  release checklist). `npm audit --omit=dev`: 0 vulnerabilities. Deployed (table TTL on, preview role gains
+  UpdateItem, access log). Verified live: smoke 34/34; 10 wrong codes then 429; integration tests 185/185 (2 new);
+  `npm run verify` exit 0 (410 tests + 1 skipped).
 - 2026-10-04 — **P9.2 (written; deploy blocked by AWS)** — Template: private S3 bucket (public access blocked,
   owner-enforced, SSE, HTTPS-only deny), Origin Access Control, bucket policy letting only this distribution read,
   response-headers policy (HSTS 2 y, nosniff, DENY framing, strict-origin-when-cross-origin, CSP: self + Apple art +

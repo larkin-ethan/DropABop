@@ -341,7 +341,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
   referrer-policy), HTTPS only. CORS on the API set to the CloudFront origin.
 - [x] **P9.3 — Security review** (§31) — run `/security-review`; check SECURITY.md checklist; fix findings.
   *Docs:* `docs/SECURITY.md` (threat model in plain language, what's stored, token handling, how to report issues).
-- [ ] **P9.4 — Observability** (§33) — confirm structured logs have request id, route, user sub (not email), outcome;
+- [x] **P9.4 — Observability** (§33) — confirm structured logs have request id, route, user sub (not email), outcome;
   confirm redaction; alarm test (force an error in dev and see the email).
 
 ---
