@@ -158,7 +158,7 @@ describe('Share today’s song (P8.4)', () => {
     const { state } = renderApp('/share', notSharedYet);
     await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'abba');
     await userEvent.click(await screen.findByRole('button', { name: 'Choose Dancing Queen' }));
-    await userEvent.click(screen.getByText('Add your Spotify or YouTube link (optional)'));
+    await userEvent.click(screen.getByText('Add your Spotify or YouTube Music link (optional)'));
     await userEvent.type(screen.getByLabelText('Spotify link'), 'https://example.com/nope');
     await userEvent.click(screen.getByRole('button', { name: 'Share song' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Spotify');

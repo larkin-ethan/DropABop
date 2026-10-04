@@ -100,6 +100,8 @@ this deliberate change to spec §13–§15.
 - **D22 — Preferred music app.** Each user can pick a preferred app (e.g. Spotify, Apple Music, YouTube) in their
   profile. That app's "Open in …" link is shown first on every song. This replaces the mockup's "Connect" buttons
   for v1 (see `docs/design/README.md`).
+  Listen links offer Apple Music, Spotify, and **YouTube Music** (not plain YouTube; Ethan, 2026-10-04); people who
+  chose YouTube get YouTube Music first.
 - **D23 — Sign-in methods.** v1 uses email + password via Cognito only. "Continue with Google" from the mockup is
   deferred (needs a Google OAuth app and Cognito federation setup).
 - **D24 — Name (2026-10-03).** The app is called **Drop a Bop**; `dropabop` in package, stack, and AWS resource

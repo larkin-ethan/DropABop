@@ -53,6 +53,8 @@ export function parseAppleMusicSongUrl(url: string): string | null {
 export const canonicalLinks = {
   spotify: (id: string) => `https://open.spotify.com/track/${id}`,
   youtube: (id: string) => `https://www.youtube.com/watch?v=${id}`,
+  /** The same video id opens in YouTube Music (what the app links to, 2026-10-04). */
+  youtubeMusic: (id: string) => `https://music.youtube.com/watch?v=${id}`,
 };
 
 /** Plain search links shown when nobody pasted a link for that service (ADR-0007). */
@@ -61,4 +63,6 @@ export const searchLinks = {
     `https://open.spotify.com/search/${encodeURIComponent(`${artist} ${title}`)}`,
   youtube: (artist: string, title: string) =>
     `https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${title}`)}`,
+  youtubeMusic: (artist: string, title: string) =>
+    `https://music.youtube.com/search?q=${encodeURIComponent(`${artist} ${title}`)}`,
 };

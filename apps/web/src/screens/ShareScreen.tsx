@@ -1,5 +1,5 @@
 // Share today's song (roadmap P8.4; spec §19 screen 4; mockup screens 10 and 13).
-// Search the iTunes catalog (ADR-0007), or paste an Apple Music link (D21). Optionally add your own Spotify/YouTube
+// Search the iTunes catalog (ADR-0007), or paste an Apple Music link (D21). Optionally add your own Spotify/YouTube Music
 // links to the same song. A confirm step makes clear the pick is final for today.
 
 import {
@@ -300,7 +300,7 @@ function PasteLink({ onFound }: { onFound: (song: Song) => void }) {
         placeholder="https://music.apple.com/us/album/…?i=…"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        hint="In Apple Music: Share → Copy Link. Spotify and YouTube links can be added on the next step."
+        hint="In Apple Music: Share → Copy Link. Spotify and YouTube Music links can be added on the next step."
         error={resolve.error ? errorMessage(resolve.error) : undefined}
       />
       <Button type="submit" disabled={resolve.isPending || url.trim() === ''}>
@@ -342,7 +342,8 @@ function ConfirmShare({
     }
     if (youtube.trim() !== '') {
       const parsed = youtubeLinkSchema.safeParse(youtube.trim());
-      if (!parsed.success) return setLinkError(parsed.error.issues[0]?.message ?? 'Check the YouTube link.');
+      if (!parsed.success)
+        return setLinkError(parsed.error.issues[0]?.message ?? 'Check the YouTube Music link.');
       links.youtube = parsed.data;
     }
     setLinkError(null);
@@ -370,7 +371,7 @@ function ConfirmShare({
           </div>
           <details className="rounded-xl border border-line px-3 py-2">
             <summary className="cursor-pointer text-sm font-medium text-blue">
-              Add your Spotify or YouTube link (optional)
+              Add your Spotify or YouTube Music link (optional)
             </summary>
             <div className="mt-3 flex flex-col gap-3">
               <TextField
@@ -381,9 +382,9 @@ function ConfirmShare({
                 onChange={(e) => setSpotify(e.target.value)}
               />
               <TextField
-                label="YouTube link"
+                label="YouTube Music link"
                 type="url"
-                placeholder="https://youtu.be/…"
+                placeholder="https://music.youtube.com/watch?v=…"
                 value={youtube}
                 onChange={(e) => setYoutube(e.target.value)}
               />

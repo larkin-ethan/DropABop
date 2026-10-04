@@ -33,6 +33,9 @@ end). Provider rules change often: re-check before relying on anything here, and
    Spotify and/or YouTube link to the same song. The server checks it's a real `open.spotify.com/track/…` or
    YouTube watch link and stores only the URL. Songs with a pasted link show "Open in Spotify" / "Watch on YouTube";
    otherwise the app shows a plain "Search on Spotify / YouTube" link built from artist + title.
+   **YouTube Music, not YouTube (Ethan, 2026-10-04):** the app's third link opens YouTube Music: a pasted
+   YouTube / YouTube Music link opens as `music.youtube.com/watch?v=<id>` (same video id), otherwise a
+   `music.youtube.com/search` link. The server still stores pasted links in the canonical `youtube.com` form.
 5. **Deferred:** the Spotify API (Premium plus terms that forbid our snapshot and mixing services), the YouTube API
    (100 searches/day, 30-day refresh rule), the Apple Music API ($99/yr; terms tie it to playback), in-app playback,
    and per-user account connections.

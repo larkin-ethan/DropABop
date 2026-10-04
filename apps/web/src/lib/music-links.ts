@@ -1,8 +1,14 @@
 // "Open in …" links for a song (ADR-0007, D22). Every song has an Apple Music link from the iTunes catalog; Spotify and
-// YouTube links are the sharer's own pasted links when they gave one, otherwise a plain search on that service.
+// YouTube Music links are the sharer's own pasted links when they gave one, otherwise a plain search on that service.
 // The viewer's preferred app comes first.
 
-import { searchLinks, type MusicProviderId, type Song } from '@dropabop/shared';
+import {
+  canonicalLinks,
+  parseYouTubeUrl,
+  searchLinks,
+  type MusicProviderId,
+  type Song,
+} from '@dropabop/shared';
 
 export interface MusicLink {
   provider: MusicProviderId;
@@ -35,15 +41,21 @@ export function musicLinks(song: Song, preferred: MusicProviderId | null): Music
     url: spotify ?? searchLinks.spotify(song.artist, song.title),
     exact: spotify !== undefined,
   });
-  const youtube = exact('youtube') ?? exact('youtubeMusic');
+  // YouTube Music rather than YouTube (Ethan, 2026-10-04). A pasted YouTube link is the same video id, so it opens
+  // straight in YouTube Music.
+  const pasted = exact('youtubeMusic') ?? exact('youtube');
+  const videoId = pasted === undefined ? null : parseYouTubeUrl(pasted);
   links.push({
-    provider: 'youtube',
-    label: PROVIDER_NAMES.youtube,
-    url: youtube ?? searchLinks.youtube(song.artist, song.title),
-    exact: youtube !== undefined,
+    provider: 'youtubeMusic',
+    label: PROVIDER_NAMES.youtubeMusic,
+    url:
+      videoId !== null
+        ? canonicalLinks.youtubeMusic(videoId)
+        : searchLinks.youtubeMusic(song.artist, song.title),
+    exact: videoId !== null,
   });
 
-  // Preferred app first; YouTube Music counts as YouTube here (same links).
-  const wanted = preferred === 'youtubeMusic' ? 'youtube' : preferred;
+  // Preferred app first; someone who picked plain YouTube gets YouTube Music (the same music, the app we link to).
+  const wanted = preferred === 'youtube' ? 'youtubeMusic' : preferred;
   return [...links.filter((l) => l.provider === wanted), ...links.filter((l) => l.provider !== wanted)];
 }

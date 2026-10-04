@@ -550,7 +550,8 @@ export function ProfileForm({
                 className="rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 text-ink focus:border-blue focus:outline-none"
               >
                 <option value="">No preference</option>
-                {MUSIC_PROVIDERS.map((p) => (
+                {/* Plain YouTube is offered as YouTube Music (the app the links open), unless already chosen. */}
+                {MUSIC_PROVIDERS.filter((p) => p !== 'youtube' || preferred === 'youtube').map((p) => (
                   <option key={p} value={p}>
                     {PROVIDER_NAMES[p]}
                   </option>

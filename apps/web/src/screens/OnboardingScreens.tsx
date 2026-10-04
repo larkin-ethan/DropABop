@@ -31,7 +31,7 @@ export function OnboardingSteps() {
   const steps = [
     ['Join or start a party', 'Parties are private and invite-only.'],
     ['Drop a bop every weekday', 'Monday to Friday, share one song you love.'],
-    ['Listen to everyone’s picks', 'Open them in Apple Music, Spotify, or YouTube.'],
+    ['Listen to everyone’s picks', 'Open them in Apple Music, Spotify, or YouTube Music.'],
     ['Rate them 1–10', 'Any time before Sunday 11:59 pm. You can change a rating until then.'],
     ['See the results', 'The week’s ranking, each day’s Bop of the Day, and your stats.'],
   ];

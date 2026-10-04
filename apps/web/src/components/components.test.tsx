@@ -216,15 +216,33 @@ describe('SongRow and ListenLinks', () => {
     expect(screen.getByLabelText('Your rating: 8 out of 10')).toBeInTheDocument();
   });
 
+  it('opens a pasted YouTube link in YouTube Music', () => {
+    const withVideo: Song = {
+      ...song,
+      providers: [
+        ...song.providers,
+        {
+          provider: 'youtube',
+          providerSongId: 'dQw4w9WgXcQ',
+          externalUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        },
+      ],
+    };
+    render(<ListenLinks song={withVideo} preferred="youtube" />);
+    const first = screen.getAllByRole('link')[0];
+    expect(first).toHaveAccessibleName('Open Midnight City on YouTube Music');
+    expect(first).toHaveAttribute('href', 'https://music.youtube.com/watch?v=dQw4w9WgXcQ');
+  });
+
   it('puts the preferred app first, links out safely, and searches where there is no exact link (D22)', () => {
     render(<ListenLinks song={song} preferred="spotify" />);
     const links = screen.getAllByRole('link');
     expect(links[0]).toHaveAccessibleName('Open Midnight City on Spotify');
     expect(links[0]).toHaveAttribute('href', 'https://open.spotify.com/track/abc');
     expect(links[0]).toHaveAttribute('rel', 'noreferrer');
-    expect(screen.getByRole('link', { name: 'Search for Midnight City on YouTube' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Search for Midnight City on YouTube Music' })).toHaveAttribute(
       'href',
-      'https://www.youtube.com/results?search_query=M83%20Midnight%20City',
+      'https://music.youtube.com/search?q=M83%20Midnight%20City',
     );
   });
 });
