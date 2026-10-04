@@ -2,11 +2,8 @@
 
 ## Current focus
 
-**P4.3** nearly done: `sotd-dev` is deployed (us-east-2) and all 34 smoke checks pass. Left:
-1. `apps/web/.env.development.local` exists (git-ignored; the AI created it with Ethan's OK). Ethan does a real
-   sign-up → email code → sign-in → sign-out → forgot-password run on the website (closes P7.3).
-2. On a weekday, re-run `node scripts/smoke-dev.mjs` so a song is actually shared and rated (weekend → 409 WEEKEND).
-Then P4.4 (alarms + $5 budget).
+**P4.4** (alarms + $5 budget). **P4.3** has one check left: on a weekday, run `node scripts/smoke-dev.mjs` so a song
+is actually shared and rated (weekends → 409 WEEKEND), then tick it.
 
 ## Blocked / Questions for Ethan
 
@@ -36,6 +33,12 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **P7.3 done** — Ethan ran the real flow on the website against `sotd-dev`: sign-up → emailed code →
+  sign-in → sign-out → forgot password → sign-in with the new password, all working (his account is CONFIRMED in the
+  dev pool). Added during the run: a Sign out button in the app frame (none existed; P8.11 adds it to Profile too) and
+  a sample-data banner on Home that also shows when really signed in (was preview-only). Verified: `npm run verify`
+  exit 0 (360 tests + 1 skipped), sign-out covered by a new test.
 
 - 2026-10-03 — **P4.3 (deployed, 2 checks left)** — Ethan approved; `sotd-dev` created in us-east-2 (75 resources,
   CREATE_COMPLETE). First run: every function failed at startup ("Dynamic require of node:https": the bundled AWS

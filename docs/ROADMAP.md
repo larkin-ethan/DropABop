@@ -215,7 +215,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
-- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`, and the website sign-up run)
+- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`; website sign-up run done)
   - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then calls
     `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
@@ -287,7 +287,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     LoadingState/Skeleton, EmptyState, ErrorState. Component tests with Testing Library.
   - *Done when:* tests pass; a `/dev/components` route (dev builds only) shows every component at 320px and 1440px.
 
-- [ ] **P7.3 — Authentication** (code + tests done 2026-10-01; only the live check against the dev user pool remains, done in P4.3)
+- [x] **P7.3 — Authentication**
   - *Spec:* §9 · *ADR:* 0007 (choose the Cognito client library after checking current docs; prefer the smallest
     official option; tokens kept in memory/library storage, never in URLs)
   - *Do:* Sign up, email verification code, sign in, sign out, forgot/reset password, session refresh, protected
