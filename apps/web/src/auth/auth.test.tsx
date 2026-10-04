@@ -1,37 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, createApiClient } from '../api/client';
-import { App } from '../App';
 import { SignInScreen, SignUpScreen, VerifyEmailScreen } from '../screens/AuthScreens';
 import { AuthProvider } from './AuthContext';
 import { friendlyAuthError } from './auth-errors';
 import type { AuthService } from './auth-service';
-
-function fakeAuth(overrides: Partial<AuthService> = {}): AuthService {
-  return {
-    getCurrentUserId: vi.fn(() => Promise.resolve(null)),
-    getAccessToken: vi.fn(() => Promise.resolve('token-1')),
-    signUp: vi.fn(() => Promise.resolve()),
-    confirmSignUp: vi.fn(() => Promise.resolve()),
-    resendSignUpCode: vi.fn(() => Promise.resolve()),
-    signIn: vi.fn(() => Promise.resolve({ status: 'signedIn' as const })),
-    signOut: vi.fn(() => Promise.resolve()),
-    resetPassword: vi.fn(() => Promise.resolve()),
-    confirmResetPassword: vi.fn(() => Promise.resolve()),
-    ...overrides,
-  };
-}
+import { WhereAmI, fakeAuth, renderApp } from '../test/render-app';
 
 function named(name: string) {
   return Object.assign(new Error('raw cognito text'), { name });
-}
-
-/** Shows the current path so tests can check where navigation went. */
-function WhereAmI() {
-  const location = useLocation();
-  return <p data-testid="path">{location.pathname}</p>;
 }
 
 function renderAt(path: string, service: AuthService, element: React.ReactNode) {
@@ -198,25 +177,12 @@ describe('sign-in screens', () => {
 
 describe('protected routes', () => {
   it('send signed-out visitors to sign in', async () => {
-    render(
-      <AuthProvider service={fakeAuth()}>
-        <MemoryRouter initialEntries={['/stats']}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>,
-    );
+    renderApp('/stats', { auth: fakeAuth() });
     expect(await screen.findByRole('heading', { name: 'Welcome back!' })).toBeInTheDocument();
   });
 
   it('show signed-out visitors the welcome page at the front door', async () => {
-    render(
-      <AuthProvider service={fakeAuth()}>
-        <MemoryRouter initialEntries={['/']}>
-          <App />
-          <WhereAmI />
-        </MemoryRouter>
-      </AuthProvider>,
-    );
+    renderApp('/', { auth: fakeAuth() });
     expect(await screen.findByRole('heading', { name: 'Drop a Bop', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('path')).toHaveTextContent('/welcome');
     expect(screen.getByRole('link', { name: 'Get started' })).toHaveAttribute('href', '/sign-up');
@@ -224,45 +190,20 @@ describe('protected routes', () => {
   });
 
   it('take signed-in people from the welcome page straight home', async () => {
-    render(
-      <AuthProvider service={fakeAuth({ getCurrentUserId: () => Promise.resolve('user-1') })}>
-        <MemoryRouter initialEntries={['/welcome']}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>,
-    );
+    renderApp('/welcome');
     expect(await screen.findByRole('heading', { name: 'This week’s songs' })).toBeInTheDocument();
-  });
-
-  it('show the app to signed-in people', async () => {
-    render(
-      <AuthProvider service={fakeAuth({ getCurrentUserId: () => Promise.resolve('user-1') })}>
-        <MemoryRouter initialEntries={['/']}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>,
-    );
-    expect(await screen.findByRole('heading', { name: 'This week’s songs' })).toBeInTheDocument();
-    // Home still shows sample songs (until P8.3), so it must say so even when really signed in.
-    expect(screen.getByText(/sample data until this screen is connected/)).toBeInTheDocument();
   });
 
   it('let signed-in people sign out, back to the welcome page', async () => {
     let signedIn = true;
     const service = fakeAuth({
-      getCurrentUserId: () => Promise.resolve(signedIn ? 'user-1' : null),
+      getCurrentUserId: () => Promise.resolve(signedIn ? 'me' : null),
       signOut: vi.fn(() => {
         signedIn = false;
         return Promise.resolve();
       }),
     });
-    render(
-      <AuthProvider service={service}>
-        <MemoryRouter initialEntries={['/']}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>,
-    );
+    renderApp('/', { auth: service });
     // The sidebar has a labelled button; the mobile header has an icon-only one. Both sign out.
     const buttons = await screen.findAllByRole('button', { name: 'Sign out' });
     await userEvent.click(buttons[0] as HTMLElement);

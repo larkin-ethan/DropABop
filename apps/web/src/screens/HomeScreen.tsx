@@ -1,96 +1,181 @@
 // Home / Today (roadmap P8.3; mockup screens 8–9 adapted for the weekly model, docs/design/README.md).
-// Currently rendered with sample data; P8.3 connects it to GET /parties/{id}/rounds/current and the songs list.
+// The current week from GET /parties/{id}/rounds/current (polled) and its songs from GET /rounds/{id}/recommendations.
 
-import type { Weekday } from '@dropabop/shared';
+import {
+  DEFAULT_DISPLAY_NAME,
+  type CurrentWeekResponse,
+  type OpenWeekSongView,
+  type PartyMember,
+  type Weekday,
+} from '@dropabop/shared';
+import { Link } from 'react-router';
+import { useCurrentWeek, useMe, useParty, useWeekSongs } from '../api/hooks';
 import { Icon } from '../components/Icon';
-import { SongCard } from '../components/SongCard';
-import { AlbumArt, Avatar, Button, Card, ProgressBar } from '../components/ui';
-import type { MemberView, SongView } from '../preview/sample-data';
+import { PageHeader, QueryBoundary } from '../components/Page';
+import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
+import { EmptyState } from '../components/States';
+import { Avatar, Card, ProgressBar, buttonClassName } from '../components/ui';
+import { DAY_NAMES, WEEKDAYS, formatLockTime, formatTimeLeft } from '../lib/format';
+import { useNow } from '../lib/useNow';
+import { useCurrentParty } from '../party/CurrentParty';
+import { OnboardingSteps } from './OnboardingScreens';
+import { ProfileForm } from './SettingsScreens';
 
-const DAY_NAMES: Record<Weekday, string> = {
-  MON: 'Monday',
-  TUE: 'Tuesday',
-  WED: 'Wednesday',
-  THU: 'Thursday',
-  FRI: 'Friday',
-};
+type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
+type NoWeek = Exclude<CurrentWeekResponse, { reason: null }>;
 
-export interface HomeScreenProps {
-  partyName: string;
-  today: { weekday: Weekday; dayNumber: number } | null;
-  sharedToday: boolean;
-  sharedTodayCount: number;
-  memberCount: number;
-  progress: { ratableCount: number; ratedCount: number };
-  /** Shown as "Ratings lock Sunday 11:59 pm". */
-  lockLabel: string;
-  songs: SongView[];
-  members: MemberView[];
+export function HomeScreen() {
+  const { partyId, status, retry } = useCurrentParty();
+
+  return (
+    <QueryBoundary isPending={status === 'loading'} error={status === 'error' ? true : null} onRetry={retry}>
+      {() => (
+        <>
+          <NamePrompt />
+          {partyId === null ? <NoPartyYet /> : <PartyHome partyId={partyId} />}
+        </>
+      )}
+    </QueryBoundary>
+  );
 }
 
-export function HomeScreen(props: HomeScreenProps) {
-  const { today, songs, progress } = props;
-  const todaysPick = today === null ? undefined : songs.find((s) => s.isMine && s.weekday === today.weekday);
-  const days = (['MON', 'TUE', 'WED', 'THU', 'FRI'] as Weekday[]).filter((d) =>
-    songs.some((s) => s.weekday === d),
+/** New accounts start as "New member" (D18): ask for a real name first, so the party knows who's who. */
+function NamePrompt() {
+  const me = useMe();
+  const user = me.data?.user;
+  if (user === undefined || user.displayName !== DEFAULT_DISPLAY_NAME) return null;
+  return (
+    <section className="mb-6" aria-labelledby="name-prompt">
+      <h2 id="name-prompt" className="mb-2 text-lg font-bold">
+        Welcome! What should your party call you?
+      </h2>
+      <ProfileForm user={user} compact />
+    </section>
   );
+}
+
+/** First visit: not in any party yet (spec §27 onboarding). */
+function NoPartyYet() {
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Welcome"
+        title="Let’s get you into a party"
+        description="Drop a Bop happens inside a private party: a small group sharing and rating songs together."
+      />
+      <Card>
+        <EmptyState
+          title="You’re not in a party yet"
+          message="Got an invite link or code from a friend? Join their party. Or start your own and invite people."
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link to="/join" className={buttonClassName('primary')}>
+                <Icon name="link" className="size-4" /> Join with a code
+              </Link>
+              <Link to="/parties/new" className={buttonClassName('secondary')}>
+                <Icon name="plus" className="size-4" /> Create a party
+              </Link>
+            </div>
+          }
+        />
+      </Card>
+      <OnboardingSteps />
+    </div>
+  );
+}
+
+function PartyHome({ partyId }: { partyId: string }) {
+  const week = useCurrentWeek(partyId);
+  return (
+    <QueryBoundary
+      isPending={week.isPending}
+      error={week.error}
+      onRetry={() => void week.refetch()}
+      loadingLabel="Loading this week…"
+    >
+      {() => {
+        const data = week.data;
+        if (data === undefined) return null;
+        return data.reason === null ? (
+          <OpenWeekHome partyId={partyId} week={data} />
+        ) : (
+          <NoWeekHome week={data} />
+        );
+      }}
+    </QueryBoundary>
+  );
+}
+
+/** Paused party, or the gap between weeks. */
+function NoWeekHome({ week }: { week: NoWeek }) {
+  const paused = week.reason === 'paused';
+  return (
+    <div>
+      <PageHeader
+        eyebrow={paused ? 'Paused' : 'Between weeks'}
+        title={paused ? 'This party is paused' : 'A new week starts soon'}
+      />
+      <Card>
+        <EmptyState
+          title={paused ? 'No new weeks while the party is paused' : 'The next week starts Monday'}
+          message={
+            paused
+              ? 'The host can resume it any time in Party settings. Past results and stats are still here.'
+              : week.nextWeekStartsAt
+                ? `Sharing opens ${new Date(week.nextWeekStartsAt).toLocaleString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit' })}.`
+                : undefined
+          }
+          action={
+            week.lastRoundId ? (
+              <Link
+                to={`/results/${encodeURIComponent(week.lastRoundId)}`}
+                className={buttonClassName('secondary')}
+              >
+                <Icon name="trophy" className="size-4" /> See last week’s results
+              </Link>
+            ) : undefined
+          }
+        />
+      </Card>
+    </div>
+  );
+}
+
+function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
+  const now = useNow();
+  const songs = useWeekSongs(week.round.roundId, { poll: true });
+  const party = useParty(partyId);
+  const me = useMe();
+  const preferred = me.data?.user.preferredProvider ?? null;
+  const { today, progress } = week;
   const unrated = progress.ratableCount - progress.ratedCount;
+  const members = party.data?.members ?? [];
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Heading */}
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-blue">
-            {today ? `${DAY_NAMES[today.weekday]} · Day ${today.dayNumber} of 5` : 'Weekend · catch-up time'}
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">This week’s songs</h1>
-        </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-muted">
-          <Icon name="clock" className="size-4 text-gold" />
-          {props.lockLabel}
-        </span>
-      </header>
+      <PageHeader
+        eyebrow={
+          today ? `${DAY_NAMES[today.weekday]} · Day ${today.dayNumber} of 5` : 'Weekend · catch-up time'
+        }
+        title="This week’s songs"
+        actions={
+          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-muted">
+            <Icon name="clock" className="size-4 text-gold" />
+            <span>
+              Ratings lock {formatLockTime(week.round.endsAt)}
+              <span className="text-ink"> · {formatTimeLeft(week.round.endsAt, now)}</span>
+            </span>
+          </span>
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-5">
-        {/* Today's song */}
         <Card className="lg:col-span-3">
           <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Today’s song</h2>
-          {todaysPick ? (
-            <div className="mt-4 flex items-center gap-4">
-              <AlbumArt url={todaysPick.song.albumArtUrl} hue={todaysPick.hue} size="lg" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xl font-bold">{todaysPick.song.title}</p>
-                <p className="truncate text-muted">{todaysPick.song.artist}</p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-success">
-                  <Icon name="check" className="size-4" /> You’ve shared today’s song
-                </p>
-              </div>
-            </div>
-          ) : today ? (
-            <div className="mt-4 flex flex-col items-start gap-3">
-              <p className="text-lg">You haven’t shared a song today.</p>
-              <Button>
-                <Icon name="plus" className="size-4" /> Share today’s song
-              </Button>
-            </div>
-          ) : (
-            <p className="mt-4 text-lg">Sharing opens again Monday. Catch up on this week’s songs.</p>
-          )}
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
-            <div className="flex -space-x-2">
-              {props.members.slice(0, 6).map((m) => (
-                <Avatar key={m.userId} name={m.displayName} color={m.avatarColor} size="sm" />
-              ))}
-            </div>
-            <p className="text-sm text-muted">
-              <span className="font-semibold text-ink">{props.sharedTodayCount}</span> of {props.memberCount}{' '}
-              shared today
-            </p>
-          </div>
+          <TodayStatus week={week} songs={songs.data?.songs ?? []} />
+          <MembersToday week={week} members={members} />
         </Card>
 
-        {/* Rating progress */}
         <Card className="flex flex-col lg:col-span-2">
           <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Your ratings</h2>
           <p className="mt-4 text-4xl font-bold">
@@ -106,41 +191,186 @@ export function HomeScreen(props: HomeScreenProps) {
             />
           </div>
           <div className="mt-auto pt-5">
-            <Button className="w-full" variant={unrated > 0 ? 'primary' : 'secondary'}>
+            <Link
+              to={unrated > 0 ? '/rate?show=unrated' : '/rate'}
+              className={buttonClassName(unrated > 0 ? 'primary' : 'secondary', 'w-full')}
+            >
               <Icon name="star" className="size-4" />
-              {unrated > 0 ? `Rate ${unrated} more` : 'All caught up'}
-            </Button>
+              {unrated > 0
+                ? `Rate ${unrated} more`
+                : progress.ratableCount === 0
+                  ? 'Nothing to rate yet'
+                  : 'All caught up'}
+            </Link>
           </div>
         </Card>
       </div>
 
-      {/* Songs by day */}
       <Card>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold">Songs so far</h2>
           <p className="text-sm text-muted">Who shared what is revealed with the results</p>
         </div>
-        {songs.length === 0 ? (
-          <p className="py-8 text-center text-muted">No songs yet. Be the first to share one today.</p>
-        ) : (
-          <div className="mt-4 flex flex-col gap-5">
-            {days.map((day) => (
-              <div key={day}>
-                <h3 className="mb-1 text-xs font-semibold tracking-wider text-blue uppercase">
-                  {DAY_NAMES[day]}
-                </h3>
-                <ul className="flex flex-col">
-                  {songs
-                    .filter((s) => s.weekday === day)
-                    .map((s) => (
-                      <SongCard key={s.recommendationId} item={s} />
-                    ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
+        <QueryBoundary
+          isPending={songs.isPending}
+          error={songs.error}
+          onRetry={() => void songs.refetch()}
+          loadingLabel="Loading this week’s songs…"
+        >
+          {() => (
+            <SongsByDay
+              songs={songs.data?.songs ?? []}
+              today={today?.weekday ?? null}
+              preferred={preferred}
+            />
+          )}
+        </QueryBoundary>
       </Card>
+    </div>
+  );
+}
+
+function TodayStatus({ week, songs }: { week: OpenWeek; songs: OpenWeekSongView[] }) {
+  const { today } = week;
+  if (today === null) {
+    return (
+      <div className="mt-4 flex flex-col items-start gap-3">
+        <p className="text-lg">
+          Sharing opens again Monday. Catch up on this week’s songs before Sunday night.
+        </p>
+        <Link to="/rate" className={buttonClassName('secondary')}>
+          <Icon name="star" className="size-4" /> Catch up on this week’s songs
+        </Link>
+      </div>
+    );
+  }
+  const myToday = songs.find((s) => s.isMine && s.submittedOn === today.date);
+  if (week.sharedToday) {
+    return (
+      <div className="mt-4 flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          {myToday && (
+            <>
+              <p className="truncate text-xl font-bold">{myToday.song.title}</p>
+              <p className="truncate text-muted">{myToday.song.artist}</p>
+            </>
+          )}
+          <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-success">
+            <Icon name="check" className="size-4" /> You’ve shared today’s song
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 flex flex-col items-start gap-3">
+      <p className="text-lg">You haven’t shared a song today.</p>
+      <Link to="/share" className={buttonClassName('primary')}>
+        <Icon name="plus" className="size-4" /> Share today’s song
+      </Link>
+    </div>
+  );
+}
+
+/**
+ * Who's in the party and how many have shared today. Per-person ✓ marks appear only when the party reveals
+ * recommenders (D10): otherwise names next to a song list would give away whose song is whose.
+ */
+function MembersToday({ week, members }: { week: OpenWeek; members: PartyMember[] }) {
+  const sharedIds = week.sharedTodayUserIds;
+  return (
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+      <ul className="flex flex-wrap gap-2" aria-label="Party members">
+        {members.map((m) => {
+          const shared = sharedIds?.includes(m.userId);
+          return (
+            <li key={m.userId} className="relative" title={m.displayName}>
+              <Avatar name={m.displayName} color={m.avatarColor} size="sm" />
+              {shared && (
+                <span
+                  className="absolute -right-1 -bottom-1 inline-flex size-4 items-center justify-center rounded-full bg-success text-bg"
+                  aria-label={`${m.displayName} has shared today`}
+                >
+                  <Icon name="check" className="size-3" />
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {week.today && (
+        <p className="text-sm text-muted">
+          <span className="font-semibold text-ink">{week.sharedTodayCount}</span> of {members.length || '…'}{' '}
+          shared today
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Today's songs first, then the rest of the week, Monday to Friday (roadmap P8.3). */
+function SongsByDay({
+  songs,
+  today,
+  preferred,
+}: {
+  songs: OpenWeekSongView[];
+  today: Weekday | null;
+  preferred: Parameters<typeof SongRow>[0]['preferred'];
+}) {
+  if (songs.length === 0) {
+    return (
+      <EmptyState
+        title="No songs yet"
+        message="Be the first person to share one today."
+        action={
+          today ? (
+            <Link to="/share" className={buttonClassName('primary')}>
+              Share today’s song
+            </Link>
+          ) : undefined
+        }
+      />
+    );
+  }
+  const order = today === null ? WEEKDAYS : [today, ...WEEKDAYS.filter((d) => d !== today)];
+  const days = order.filter((d) => songs.some((s) => s.weekday === d));
+  return (
+    <div className="mt-4 flex flex-col gap-5">
+      {days.map((day) => (
+        <section key={day} aria-label={`${DAY_NAMES[day]}’s songs`}>
+          <h3 className="mb-1 text-xs font-semibold tracking-wider text-blue uppercase">
+            {day === today ? `Today · ${DAY_NAMES[day]}` : DAY_NAMES[day]}
+          </h3>
+          <ul className="flex flex-col">
+            {songs
+              .filter((s) => s.weekday === day)
+              .map((s) => (
+                <SongRow
+                  key={s.recommendationId}
+                  id={s.recommendationId}
+                  song={s.song}
+                  preferred={preferred}
+                  right={
+                    s.isMine ? (
+                      <MyPickBadge />
+                    ) : s.myRating !== null ? (
+                      <RatingBadge rating={s.myRating} />
+                    ) : (
+                      <Link
+                        to={`/rate#${encodeURIComponent(s.recommendationId)}`}
+                        className="rounded-full border border-blue/60 px-3.5 py-1 text-sm font-semibold text-blue hover:bg-blue/10"
+                        aria-label={`Rate ${s.song.title}`}
+                      >
+                        Rate
+                      </Link>
+                    )
+                  }
+                />
+              ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

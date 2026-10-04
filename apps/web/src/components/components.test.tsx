@@ -2,10 +2,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import type { SongView } from '../preview/sample-data';
+import type { Song } from '@dropabop/shared';
 import { Modal } from './Modal';
 import { RatingControl } from './RatingControl';
-import { SongCard } from './SongCard';
+import { ListenLinks, RatingBadge, SongRow } from './SongRow';
 import { EmptyState, ErrorState, LoadingState } from './States';
 import { Leaderboard, RatingDistribution, StatCard } from './Stats';
 import { AlbumArt, Avatar, ProgressBar } from './ui';
@@ -191,61 +191,40 @@ describe('basic pieces', () => {
   });
 });
 
-describe('SongCard', () => {
-  const base: SongView = {
-    recommendationId: 'r1',
-    weekday: 'MON',
-    submittedOn: '2026-10-05',
-    song: {
-      songId: 's1',
-      title: 'Midnight City',
-      artist: 'M83',
-      album: null,
-      albumArtUrl: null,
-      durationMs: null,
-      releaseDate: null,
-      providers: [{ provider: 'spotify', providerSongId: 'x', externalUrl: 'https://open.spotify.com/' }],
-    },
-    isMine: false,
-    myRating: null,
-    hue: 200,
+describe('SongRow and ListenLinks', () => {
+  const song: Song = {
+    songId: 's1',
+    title: 'Midnight City',
+    artist: 'M83',
+    album: null,
+    albumArtUrl: null,
+    durationMs: null,
+    releaseDate: null,
+    providers: [
+      { provider: 'appleMusic', providerSongId: '1', externalUrl: 'https://music.apple.com/us/song/1' },
+      { provider: 'spotify', providerSongId: 'abc', externalUrl: 'https://open.spotify.com/track/abc' },
+    ],
   };
 
-  it('offers Rate for an unrated song and calls back with its id', async () => {
-    const onRate = vi.fn();
+  it('shows the title, artist, and whatever the screen puts on the right', () => {
     render(
       <ul>
-        <SongCard item={base} onRate={onRate} />
+        <SongRow id="r1" song={song} preferred={null} right={<RatingBadge rating={8} />} />
       </ul>,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Rate' }));
-    expect(onRate).toHaveBeenCalledWith('r1');
-  });
-
-  it('shows your rating, or "Your pick" for your own song (no Rate button)', () => {
-    const { rerender } = render(
-      <ul>
-        <SongCard item={{ ...base, myRating: 8 }} />
-      </ul>,
-    );
+    expect(screen.getByText('Midnight City')).toBeInTheDocument();
     expect(screen.getByLabelText('Your rating: 8 out of 10')).toBeInTheDocument();
-    rerender(
-      <ul>
-        <SongCard item={{ ...base, isMine: true }} />
-      </ul>,
-    );
-    expect(screen.getByText('Your pick')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Rate' })).not.toBeInTheDocument();
   });
 
-  it('links out to the music service safely', () => {
-    render(
-      <ul>
-        <SongCard item={base} />
-      </ul>,
+  it('puts the preferred app first, links out safely, and searches where there is no exact link (D22)', () => {
+    render(<ListenLinks song={song} preferred="spotify" />);
+    const links = screen.getAllByRole('link');
+    expect(links[0]).toHaveAccessibleName('Open Midnight City on Spotify');
+    expect(links[0]).toHaveAttribute('href', 'https://open.spotify.com/track/abc');
+    expect(links[0]).toHaveAttribute('rel', 'noreferrer');
+    expect(screen.getByRole('link', { name: 'Search for Midnight City on YouTube' })).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/results?search_query=M83%20Midnight%20City',
     );
-    const link = screen.getByRole('link', { name: /Open Midnight City/ });
-    expect(link).toHaveAttribute('href', 'https://open.spotify.com/');
-    expect(link).toHaveAttribute('rel', 'noreferrer');
   });
 });

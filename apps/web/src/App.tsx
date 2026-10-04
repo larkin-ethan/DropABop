@@ -1,44 +1,47 @@
-// Routes. Sign-in screens are public; everything else needs a signed-in user (RequireAuth).
-// Until the screens are wired to the API (P8), they render sample data, and a banner says so clearly.
+// Routes. The welcome, sign-in, and invite pages are public; everything else needs a signed-in user (RequireAuth).
+// The screens get their data from the API (or, in the dev-only preview, from the in-memory sample API).
 
-import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
+import { useEffect } from 'react';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { useAuth } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/States';
-import { Card } from './components/ui';
-import { sampleCurrentWeek, sampleMembers, sampleParty, sampleSongs } from './preview/sample-data';
+import { takePendingInvite } from './lib/pending-invite';
+import { CurrentPartyProvider } from './party/CurrentParty';
 import { ForgotPasswordScreen, SignInScreen, SignUpScreen, VerifyEmailScreen } from './screens/AuthScreens';
 import { ComponentGallery } from './screens/ComponentGallery';
 import { HomeScreen } from './screens/HomeScreen';
 import { LandingScreen } from './screens/LandingScreen';
+import { CreatePartyScreen, JoinByLinkScreen, JoinWithCodeScreen } from './screens/OnboardingScreens';
+import { RateScreen } from './screens/RateScreen';
+import { HistoryScreen, LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
+import { PartySettingsScreen, ProfileScreen } from './screens/SettingsScreens';
+import { ShareScreen } from './screens/ShareScreen';
+import { GroupStatsScreen, LeaderboardScreen, PersonalStatsScreen } from './screens/StatsScreens';
 
-function ComingSoon({ title, task }: { title: string; task: string }) {
-  return (
-    <Card className="mx-auto mt-10 max-w-md text-center">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="mt-2 text-muted">This screen is built in roadmap task {task}.</p>
-    </Card>
-  );
-}
-
-/**
- * Shown on screens that still render sample data, signed in or not, so nobody mistakes it for their party.
- * Removed screen by screen as Phase 8 connects them to the API (Home: P8.3).
- */
-function SampleDataBanner({ preview }: { preview: boolean }) {
+function PreviewBanner() {
   return (
     <div className="mb-5 rounded-xl border border-gold/40 bg-gold/10 px-4 py-2.5 text-sm text-gold">
-      {preview
-        ? 'Preview with sample data. Not connected to the real app yet.'
-        : 'You’re signed in. The songs below are sample data until this screen is connected to your party.'}
+      Preview with sample data. Not connected to the real app yet.
     </div>
   );
 }
 
 /** Sends signed-out visitors to the welcome page or to sign in (then back to where they were going). */
-function RequireAuth() {
+function RequireAuth({ preview }: { preview: boolean }) {
   const { status } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Someone who opened an invite link while signed out comes back to it after signing up or logging in.
+  useEffect(() => {
+    if (status !== 'signedIn') return;
+    const code = takePendingInvite();
+    if (code !== null) {
+      void navigate(`/join/${encodeURIComponent(code)}`, { replace: true });
+    }
+  }, [status, navigate]);
+
   if (status === 'loading') {
     return (
       <div className="mx-auto max-w-md px-4 py-20">
@@ -51,10 +54,10 @@ function RequireAuth() {
     if (location.pathname === '/') {
       return <Navigate to="/welcome" replace />;
     }
-    return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/sign-in" replace state={{ from: location.pathname + location.search }} />;
   }
   return (
-    <AppShell partyName={sampleParty.name}>
+    <AppShell banner={preview ? <PreviewBanner /> : undefined}>
       <Outlet />
     </AppShell>
   );
@@ -71,44 +74,35 @@ function WelcomeRoute() {
 
 export function App({ preview = false }: { preview?: boolean }) {
   return (
-    <Routes>
-      <Route path="/welcome" element={<WelcomeRoute />} />
-      <Route path="/sign-in" element={<SignInScreen />} />
-      <Route path="/sign-up" element={<SignUpScreen />} />
-      <Route path="/verify" element={<VerifyEmailScreen />} />
-      <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+    <CurrentPartyProvider>
+      <Routes>
+        <Route path="/welcome" element={<WelcomeRoute />} />
+        <Route path="/sign-in" element={<SignInScreen />} />
+        <Route path="/sign-up" element={<SignUpScreen />} />
+        <Route path="/verify" element={<VerifyEmailScreen />} />
+        <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+        {/* Works signed out too: sign up or log in, then come back and join (P8.2). */}
+        <Route path="/join/:code" element={<JoinByLinkScreen />} />
 
-      <Route element={<RequireAuth />}>
-        <Route
-          path="/"
-          element={
-            <>
-              <SampleDataBanner preview={preview} />
-              <HomeScreen
-                partyName={sampleParty.name}
-                today={sampleCurrentWeek.today}
-                sharedToday={sampleCurrentWeek.sharedToday}
-                sharedTodayCount={sampleCurrentWeek.sharedTodayCount}
-                memberCount={sampleMembers.length}
-                progress={sampleCurrentWeek.progress}
-                lockLabel="Ratings lock Sunday 11:59 pm"
-                songs={sampleSongs}
-                members={sampleMembers}
-              />
-            </>
-          }
-        />
-        <Route path="/share" element={<ComingSoon title="Share today’s song" task="P8.4" />} />
-        <Route path="/rate" element={<ComingSoon title="Rate this week’s songs" task="P8.5" />} />
-        <Route path="/results" element={<ComingSoon title="Weekly results" task="P8.6" />} />
-        <Route path="/stats" element={<ComingSoon title="Your stats" task="P8.8" />} />
-        <Route path="/leaderboard" element={<ComingSoon title="Leaderboard" task="P8.9" />} />
-        <Route path="/history" element={<ComingSoon title="History" task="P8.7" />} />
-        <Route path="/settings" element={<ComingSoon title="Party settings" task="P8.10" />} />
-        {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
-      </Route>
+        <Route element={<RequireAuth preview={preview} />}>
+          <Route path="/" element={<HomeScreen />} />
+          <Route path="/join" element={<JoinWithCodeScreen />} />
+          <Route path="/parties/new" element={<CreatePartyScreen />} />
+          <Route path="/share" element={<ShareScreen />} />
+          <Route path="/rate" element={<RateScreen />} />
+          <Route path="/results" element={<LatestResultsScreen />} />
+          <Route path="/results/:roundId" element={<ResultsScreen />} />
+          <Route path="/history" element={<HistoryScreen />} />
+          <Route path="/stats" element={<PersonalStatsScreen />} />
+          <Route path="/stats/group" element={<GroupStatsScreen />} />
+          <Route path="/leaderboard" element={<LeaderboardScreen />} />
+          <Route path="/settings" element={<PartySettingsScreen />} />
+          <Route path="/profile" element={<ProfileScreen />} />
+          {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </CurrentPartyProvider>
   );
 }

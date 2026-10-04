@@ -45,3 +45,18 @@ export const MEMBER_ROLES = ['host', 'member'] as const;
  */
 export const INVITE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const INVITE_CODE_PATTERN = /^SONG-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/;
+
+/** Shown until the person picks a name during onboarding (P8.2). */
+export const DEFAULT_DISPLAY_NAME = 'New member';
+
+/** Avatar background colors from the design palette (docs/design), D18. Also the choices on the Profile screen. */
+export const AVATAR_COLORS = [
+  '#3B82F6',
+  '#14B8A6',
+  '#8B5CF6',
+  '#06B6D4',
+  '#6366F1',
+  '#22C55E',
+  '#EC4899',
+  '#F59E0B',
+] as const;

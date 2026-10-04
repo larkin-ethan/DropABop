@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
+import { ConnectedApi } from './api/ConnectedApi';
 import { AuthProvider } from './auth/AuthContext';
 import { createAmplifyAuthService } from './auth/amplify-auth-service';
 import { previewAuthService, type AuthService } from './auth/auth-service';
@@ -25,7 +26,12 @@ function chooseAuthService(): { service: AuthService; preview: boolean } {
 }
 
 const { service, preview } = chooseAuthService();
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    // One quick retry smooths over a dropped connection; friendly errors show after that (spec §30).
+    queries: { retry: 1 },
+  },
+});
 
 const root = document.getElementById('root');
 if (root === null) {
@@ -36,9 +42,11 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider service={service}>
-        <BrowserRouter>
-          <App preview={preview} />
-        </BrowserRouter>
+        <ConnectedApi preview={preview}>
+          <BrowserRouter>
+            <App preview={preview} />
+          </BrowserRouter>
+        </ConnectedApi>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

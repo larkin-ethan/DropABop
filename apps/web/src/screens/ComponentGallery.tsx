@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { RatingControl } from '../components/RatingControl';
-import { SongCard } from '../components/SongCard';
+import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { Leaderboard, RatingDistribution, StatCard } from '../components/Stats';
 import { AlbumArt, Avatar, Button, Card, ProgressBar } from '../components/ui';
@@ -56,12 +56,23 @@ export function ComponentGallery() {
         </div>
       </Section>
 
-      <Section title="Song cards">
+      <Section title="Song rows">
         <ul className="flex flex-col">
           {sampleSongs.slice(0, 3).map((s) => (
-            <SongCard key={s.recommendationId} item={s} />
+            <SongRow
+              key={s.recommendationId}
+              id={s.recommendationId}
+              song={s.song}
+              preferred={null}
+              right={
+                s.isMine ? (
+                  <MyPickBadge />
+                ) : s.myRating !== null ? (
+                  <RatingBadge rating={s.myRating} />
+                ) : undefined
+              }
+            />
           ))}
-          <SongCard item={{ ...sampleSongs[9]!, myRating: null }} />
         </ul>
       </Section>
 
