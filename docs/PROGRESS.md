@@ -2,10 +2,11 @@
 
 ## Current focus
 
-**Renamed to Drop a Bop** (D24): code and AWS names are now `dropabop`. Next: deploy the new `dropabop-dev` stack
-(includes P4.4's alarms + $5 budget; alert email passed at deploy time, not in the repo), re-run the smoke test, point
-the website at it, Ethan re-signs up there and confirms the SNS email, then Ethan deletes the old `sotd-dev` stack
-plus its retained table and user pool (steps in the chat / DEPLOYMENT.md). P4.3 still needs a weekday share → rate run.
+`dropabop-dev` is live (us-east-2) with P4.4's alarms and the $5 `dropabop-monthly` budget; the website points at it.
+Waiting on Ethan: (1) click the SNS confirmation link sent to the alert email (then tick P4.4), (2) sign up again on
+the new pool, (3) run the CLI login once with profile `dropabop-dev` (until then the smoke test uses
+`SMOKE_PROFILE=sotd-dev`), (4) delete the old `sotd-dev` stack plus its retained table and user pool.
+P4.3 still needs a weekday share → rate run.
 
 ## Blocked / Questions for Ethan
 
@@ -24,7 +25,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 - AWS account: AWS's *new experience* (projects, settings.aws.com); IAM Identity Center is unavailable there.
   CLI profile `dropabop-dev` signs in with `aws login --profile dropabop-dev` (role `AccountFullAccessRole`, 12 h credentials;
   verified 2026-10-03). See DEPLOYMENT.md §2.8.
-- Stacks: `dropabop-dev` (to deploy), `dropabop-prod` (planned). Old `sotd-dev` (us-east-2) is retired: Ethan deletes it.
+- Stacks: `dropabop-dev` (live since 2026-10-03), `dropabop-prod` (planned). Old `sotd-dev` (us-east-2) is retired: Ethan deletes it.
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
 - AWS CLI 2.37.9, SAM CLI 1.166.2 (verified 2026-10-03). Set `SAM_CLI_TELEMETRY=0` to skip SAM's telemetry.
@@ -35,6 +36,12 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **dropabop-dev deployed (+ P4.4 resources)** — 82 resources, CREATE_COMPLETE. Alert email passed as a
+  NoEcho parameter at deploy time (not in the repo). Verified: smoke test 34/34 on the new stack; 4 alarms in state OK;
+  budget `dropabop-monthly` $5 exists; SNS subscription `PendingConfirmation` (Ethan must click the link). Website
+  local config points at `dropabop-dev`. Left for P4.4: the subscription confirmation. Note: the prod-guard hook
+  also fires on doc-editing shell commands that mention a CLI login and the prod stack name; use the file tools.
 
 - 2026-10-03 — **Rename: Song of the Day → Drop a Bop** (Ethan's request; D24, SPEC.md header note) — app name in
   the UI, verification email, docs, skills and hooks; `@sotd/*` → `@dropabop/*` packages; stacks, user pool, log
