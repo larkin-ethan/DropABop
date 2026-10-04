@@ -1,8 +1,10 @@
 // Test data builders shared by integration tests. Every builder uses fresh random ids so tests never collide.
 
 import { randomUUID } from 'node:crypto';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import type { Party, PartyMember, Recommendation, Round, User, Vote } from '@dropabop/shared';
 import { createDataContext, type DataContext } from '../src/data/context';
+import { keys } from '../src/data/keys';
 import { generateInviteCode } from '../src/domain/party';
 
 export const newId = () => randomUUID();
@@ -122,4 +124,26 @@ export async function settle<T>(promises: Promise<T>[]): Promise<{ ok: number; e
     ok: results.filter((r) => r.status === 'fulfilled').length,
     errors: results.flatMap((r) => (r.status === 'rejected' ? [r.reason as unknown] : [])),
   };
+}
+
+/**
+ * Stands in for "this week started while the host had these privacy switches on" (D10, D11). In the app a week records
+ * the switches only when it's created, so a test that needs a week run with a switch on sets it directly.
+ */
+export async function setWeekPrivacy(
+  data: DataContext,
+  round: Pick<Round, 'partyId' | 'weekStart'>,
+  privacy: Pick<Round, 'revealRecommenderDuringVoting' | 'showWhoRatedWhat'>,
+): Promise<void> {
+  await data.db.send(
+    new UpdateCommand({
+      TableName: data.tableName,
+      Key: keys.round(round.partyId, round.weekStart),
+      UpdateExpression: 'SET revealRecommenderDuringVoting = :reveal, showWhoRatedWhat = :who',
+      ExpressionAttributeValues: {
+        ':reveal': privacy.revealRecommenderDuringVoting ?? false,
+        ':who': privacy.showWhoRatedWhat ?? false,
+      },
+    }),
+  );
 }

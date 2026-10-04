@@ -310,14 +310,14 @@ function SettingsForm({
         <div className="divide-y divide-line border-y border-line">
           <Toggle
             label="Show who shared each song during the week"
-            description="Off: songs stay anonymous until the results (recommended)."
+            description="Off: songs stay anonymous until the results (recommended). A change applies from next week."
             checked={party.settings.revealRecommenderDuringVoting}
             disabled={readOnly || update.isPending}
             onChange={(value) => save({ revealRecommenderDuringVoting: value })}
           />
           <Toggle
             label="Show who rated what in the results"
-            description="Off: results show only anonymous rating spreads."
+            description="Off: results show only anonymous rating spreads. A change applies from next week’s results."
             checked={party.settings.showWhoRatedWhat}
             disabled={readOnly || update.isPending}
             onChange={(value) => save({ showWhoRatedWhat: value })}

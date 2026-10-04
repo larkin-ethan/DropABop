@@ -26,6 +26,8 @@ function chicagoRound(overrides: Partial<Round> = {}): Round {
     startsAt: '2026-10-05T05:00:00.000Z',
     endsAt: '2026-10-12T05:00:00.000Z',
     shareDays: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+    revealRecommenderDuringVoting: false,
+    showWhoRatedWhat: false,
     status: 'OPEN',
     ...overrides,
   };
@@ -42,6 +44,8 @@ function party(settings: Partial<TestSettings> = {}) {
       shareDays: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
       ratingCloseDay: 'SUN',
       ratingCloseTime: '23:59',
+      revealRecommenderDuringVoting: false,
+      showWhoRatedWhat: false,
       ...settings,
     } satisfies TestSettings,
   };
@@ -379,5 +383,26 @@ describe('host-chosen schedule (D1, D2)', () => {
       dayCount: 3,
     });
     expect(getSubmissionDay(roundIn(CHICAGO, ['MON', 'WED', 'FRI']), utc('2026-10-06T17:00:00Z'))).toBeNull();
+  });
+});
+
+describe('privacy switches are fixed per week (D10, D11)', () => {
+  it('a new week records the party’s switches; turning them on later doesn’t change running or past weeks', () => {
+    const created = planCurrentWeek(
+      party({ revealRecommenderDuringVoting: true, showWhoRatedWhat: false }),
+      null,
+      utc('2026-10-07T17:00:00Z'),
+    );
+    expect(created.action === 'create' && created.round).toMatchObject({
+      revealRecommenderDuringVoting: true,
+      showWhoRatedWhat: false,
+    });
+
+    // The host turns "who rated what" on mid-week: the open week is used as it is.
+    const round = chicagoRound();
+    expect(planCurrentWeek(party({ showWhoRatedWhat: true }), round, utc('2026-10-08T17:00:00Z'))).toEqual({
+      action: 'use',
+      round,
+    });
   });
 });

@@ -108,6 +108,7 @@ describe('Home (P8.3)', () => {
     renderApp('/', {
       setup: (s) => {
         s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+        s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
     expect(await screen.findByLabelText('Ethan Larkin has shared today')).toBeInTheDocument();
@@ -124,6 +125,7 @@ describe('Home (P8.3)', () => {
     renderApp('/', {
       setup: (s) => {
         s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+        s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
     expect((await screen.findAllByText(/^Shared by /)).length).toBeGreaterThan(0);
@@ -193,6 +195,7 @@ describe('Share today’s song (P8.4)', () => {
       setup: (s) => {
         s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
         s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+        s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
     await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'abba');
@@ -551,6 +554,18 @@ describe('Joining and creating parties (P8.2)', () => {
     renderApp('/parties/new');
     await userEvent.click(await screen.findByRole('button', { name: 'Create party' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+});
+
+describe('Privacy switches are fixed per week (D10, 2026-10-04)', () => {
+  it('turning on “show who shared” mid-week keeps this week’s songs anonymous', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.parties[0]!.settings.revealRecommenderDuringVoting = true; // changed after the week started
+      },
+    });
+    expect(await screen.findByText('Who shared what is revealed with the results')).toBeInTheDocument();
+    expect(screen.queryByText(/^Shared by /)).not.toBeInTheDocument();
   });
 });
 

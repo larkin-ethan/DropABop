@@ -1,6 +1,7 @@
 // GET /rounds/{roundId}/results (docs/API.md → Results).
 
 import type { ResultsResponse } from '@dropabop/shared';
+import { weekPrivacyOf } from '@dropabop/shared';
 import { listMembers } from '../data/parties';
 import { listWeekRecommendations } from '../data/recommendations';
 import { recordRoundStatus } from '../data/rounds';
@@ -39,7 +40,7 @@ export const getResultsFn: HandlerFn = async (event, { data, now }) => {
     recommendations: songs,
     votes, // late ratings are dropped inside (countableVotes)
     viewerId: userId,
-    settings: party.settings,
+    settings: weekPrivacyOf(round), // the week's own switch, never the party's current one (D11)
   });
 
   return ok({

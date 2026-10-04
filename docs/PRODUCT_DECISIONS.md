@@ -55,10 +55,13 @@ this deliberate change to spec §13–§15.
 - **D10 — Recommender anonymity** (confirmed by Ethan, 2026-10-01). Default: while the week is open, songs are
   shown **without** who recommended them; revealed with the results. Party setting
   `revealRecommenderDuringVoting` (default `false`). While it's off, the app also doesn't show *who* has shared today
-  (only how many), because that list next to the songs would give away whose song is whose.
+  (only how many), because that list next to the songs would give away whose song is whose. Each week records the
+  setting it started with, so a change applies from the next week and never un-hides songs already shared
+  (pre-launch security review, 2026-10-04).
 - **D11 — Individual ratings visibility.** Default: results show averages, counts, and an anonymous
   distribution, plus *your own* rating. Party setting `showWhoRatedWhat` (default `false`) reveals each
-  member's rating per song.
+  member's rating per song. Also recorded per week: turning it on shows names only for weeks that start afterwards, so
+  ratings given anonymously stay anonymous (2026-10-04).
 - Rating every song isn't required. With 20 members a week can have up to 100 songs, so the UI groups songs
   by day and shows progress ("12 of 31 rated").
 

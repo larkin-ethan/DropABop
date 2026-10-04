@@ -29,19 +29,32 @@ z.config({ jitless: true });
 
 // ---------- Building blocks ----------
 
+/**
+ * Invisible characters that could make one name look like another in lists: control characters, unassigned or
+ * private-use code points, and text-direction overrides (e.g. U+202E reverses what follows). Emoji joiners stay
+ * allowed, so names like "DJ 👩‍🎤" still work. (Pre-launch security review, 2026-10-04.)
+ */
+const DECEPTIVE_CHARACTERS = /[\p{Cc}\p{Co}\p{Cn}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
+
 export const displayNameSchema = z
   .string()
   .trim()
   .min(1, { error: 'Please enter a display name.' })
   .max(DISPLAY_NAME_MAX_LENGTH, {
     error: `Display names can be up to ${DISPLAY_NAME_MAX_LENGTH} characters.`,
+  })
+  .refine((name) => !DECEPTIVE_CHARACTERS.test(name), {
+    error: 'Display names can’t contain hidden or text-direction characters.',
   });
 
 export const partyNameSchema = z
   .string()
   .trim()
   .min(1, { error: 'Please enter a party name.' })
-  .max(PARTY_NAME_MAX_LENGTH, { error: `Party names can be up to ${PARTY_NAME_MAX_LENGTH} characters.` });
+  .max(PARTY_NAME_MAX_LENGTH, { error: `Party names can be up to ${PARTY_NAME_MAX_LENGTH} characters.` })
+  .refine((name) => !DECEPTIVE_CHARACTERS.test(name), {
+    error: 'Party names can’t contain hidden or text-direction characters.',
+  });
 
 export const ratingSchema = z
   .int({ error: 'Ratings are whole numbers from 1 to 10.' })

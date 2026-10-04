@@ -1,7 +1,7 @@
 import type { Party, Round } from '@dropabop/shared';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
-import { newId } from '../../test/fixtures';
+import { newId, setWeekPrivacy } from '../../test/fixtures';
 import { testDeps } from '../../test/handler-deps';
 import { runHandler } from '../http/handler';
 import { joinPartyFn } from './membership';
@@ -221,10 +221,11 @@ describe('GET /rounds/{roundId}/recommendations', () => {
     expect(mySong?.recommendedBy).toBe(memberId);
   });
 
-  it('shows recommenders when the party setting allows it, and after the week ends', async () => {
+  it('shows recommenders in a week that started with reveal on, and in every week once it ends', async () => {
     const { party, round, hostId, memberId } = await setup();
     await share(hostId, round.roundId);
 
+    // Turning reveal on mid-week doesn't un-hide songs already shared this week (D10).
     await runHandler(
       updateSettingsFn,
       apiEvent({
@@ -234,17 +235,14 @@ describe('GET /rounds/{roundId}/recommendations', () => {
       }),
       deps,
     );
+    expect((await list(memberId, round.roundId)).body.songs[0]).not.toHaveProperty('recommendedBy');
+
+    // A week that started with it on shows who shared each song.
+    await setWeekPrivacy(deps.data, round, { revealRecommenderDuringVoting: true });
     expect((await list(memberId, round.roundId)).body.songs[0]?.recommendedBy).toBe(hostId);
 
-    await runHandler(
-      updateSettingsFn,
-      apiEvent({
-        userId: hostId,
-        pathParameters: { partyId: party.partyId },
-        body: { revealRecommenderDuringVoting: false },
-      }),
-      deps,
-    );
+    // Once the week is over, everyone's revealed whatever the switch was.
+    await setWeekPrivacy(deps.data, round, { revealRecommenderDuringVoting: false });
     deps.setNow(NEXT_MONDAY);
     expect((await list(memberId, round.roundId)).body.songs[0]?.recommendedBy).toBe(hostId);
   });

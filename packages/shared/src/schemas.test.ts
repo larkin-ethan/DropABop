@@ -38,6 +38,17 @@ describe('ratingSchema (spec §15, D7)', () => {
   });
 });
 
+describe('names reject hidden and text-direction characters', () => {
+  it('blocks direction overrides and control characters, but keeps emoji', () => {
+    expect(displayNameSchema.safeParse('Sarah\u202Ehcae').success).toBe(false);
+    expect(displayNameSchema.safeParse('Sa\u0000rah').success).toBe(false);
+    expect(displayNameSchema.safeParse('Ethan\u2066').success).toBe(false);
+    expect(displayNameSchema.safeParse('DJ 👩‍🎤').success).toBe(true);
+    expect(displayNameSchema.safeParse('José Núñez').success).toBe(true);
+    expect(partyNameSchema.safeParse('Road\u202ETrip').success).toBe(false);
+  });
+});
+
 describe('displayNameSchema', () => {
   it('trims surrounding whitespace', () => {
     expect(displayNameSchema.parse('  Ethan  ')).toBe('Ethan');
