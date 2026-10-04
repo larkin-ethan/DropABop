@@ -43,6 +43,12 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **First prod deploy attempt (Ethan)** — Rolled back: CloudFront still unverified ("Your account must
+  be verified before you can add new CloudFront resources"), as expected. Ethan deleted the leftovers in the console:
+  the ROLLBACK_COMPLETE `dropabop-prod` and `dropabop-github-deploy` stacks and the retained empty prod table (prod
+  user pool checked). A pending SNS confirmation email for the deleted prod topic can be ignored. Retry P11.3 only
+  after AWS Support confirms CloudFront verification (still no reply on the case).
+
 - 2026-10-04 — **Moved to DropABop; manual deploys (ADR-0009)** — Repo moved with full history to
   `~/Documents/GitHub/DropABop` and published by Ethan (main + build). Bootstrap deploy failed: an AWS-managed SCP on
   this new-experience account denies `iam:CreateOpenIDConnectProvider`. Ethan chose manual deploys: added
