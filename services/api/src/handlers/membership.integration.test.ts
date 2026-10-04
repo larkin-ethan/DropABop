@@ -95,6 +95,39 @@ describe('POST /parties/{partyId}/join', () => {
   });
 });
 
+describe('guessing invite codes (P9.3)', () => {
+  const preview = (userId: string, code: string) =>
+    runHandler(previewInviteFn, apiEvent({ userId, pathParameters: { code } }), deps);
+
+  it('pauses lookups and joins for someone who tries too many wrong codes, but not for others', async () => {
+    const party = await newParty();
+    const guesser = newId();
+    for (let i = 0; i < 10; i++) {
+      expect(errorCode(await preview(guesser, 'SONG-ZZZZ'))).toBe('INVALID_INVITE');
+    }
+    // Even the right code is refused now, so guessing can't continue...
+    const blocked = await preview(guesser, party.inviteCode);
+    expect(blocked.statusCode).toBe(429);
+    expect(errorCode(blocked)).toBe('RATE_LIMITED');
+    expect((await join(guesser, party)).statusCode).toBe(429);
+    // ...while everyone else is unaffected, and correct codes never count against anyone.
+    const friend = newId();
+    for (let i = 0; i < 12; i++) {
+      expect((await preview(friend, party.inviteCode)).statusCode).toBe(200);
+    }
+    expect((await join(friend, party)).statusCode).toBe(200);
+  });
+
+  it('counts a wrong code sent straight to join, too', async () => {
+    const party = await newParty();
+    const guesser = newId();
+    for (let i = 0; i < 10; i++) {
+      expect(errorCode(await join(guesser, party, 'SONG-ZZZZ'))).toBe('INVALID_INVITE');
+    }
+    expect((await join(guesser, party)).statusCode).toBe(429);
+  });
+});
+
 describe('POST /parties/{partyId}/invite-code', () => {
   it('lets the host replace the code; the old one stops working', async () => {
     const hostId = newId();

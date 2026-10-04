@@ -37,6 +37,11 @@ preview can run with a fake.
   default 1 hour) with refresh tokens; the API also requires `token_use = access`. Revisit (`sessionStorage` or
   cookies) if the threat model changes.
 - **Tokens never go in URLs** (spec §9): the API client sends `Authorization: Bearer <access token>`.
+- **After signing out** (P9.3 review, 2026-10-04): sign-out revokes the refresh token, but an access token already
+  issued stays valid until it expires (up to 1 hour), because API Gateway's JWT check doesn't look up revocation.
+  Accepted: membership is checked on every request, so a removed member loses access immediately anyway.
+- **CSP** (P9.2/P9.3): CloudFront's header allows scripts only from the site; the built `index.html` adds a policy
+  limiting connections to this API and Cognito exactly, so a stolen token couldn't be sent elsewhere by script.
 
 ## Cost
 

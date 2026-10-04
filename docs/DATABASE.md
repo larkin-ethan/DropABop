@@ -31,6 +31,7 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 | "Already shared today" marker | `PARTY#<partyId>` | `SUBMITTED#<week>#<userId>#<date>` | recommendationId |
 | Rating (vote) | `PARTY#<partyId>` | `VOTE#<week>#<userId>#<recommendationId>` | rating, updatedAt |
 | Invite code lookup | `INVITE#<code>` | `INVITE` | partyId |
+| Wrong invite codes (one hour) | `USER#<userId>` | `INVITEFAIL#<UTC hour, e.g. 2026-10-04T15>` | failures, expiresAt (TTL) |
 
 Notes:
 
@@ -44,6 +45,9 @@ Notes:
 - **Not stored in v1:** provider connections (no account linking, D20), and precomputed stats (computed when
   requested; see ADR-0006 in P5.10). Email lives in Cognito only (D19).
 - Timestamps are UTC ISO strings set by the server.
+- **Invite failures** (P9.3): each wrong invite code a person tries adds 1 to that hour's counter; at 10, invite
+  lookups and joins answer 429 until the next hour, so codes can't be guessed. The table's TTL deletes these items
+  about two hours later (`expiresAt`, seconds since 1970; TTL deletion is free).
 
 ## Access patterns
 

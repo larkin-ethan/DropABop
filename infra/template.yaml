@@ -51,6 +51,19 @@ Conditions:
   HasDevOrigin: !Not [!Equals [!Ref DevOrigin, '']]
   ShouldHostWebsite: !Equals [!Ref HostWebsite, 'true']
 
+Rules:
+  # Prod must accept browser calls only from its own website (P9.3 security review): refuse to deploy otherwise.
+  ProdHasNoDevOrigin:
+    RuleCondition: !Equals [!Ref Stage, prod]
+    Assertions:
+      - Assert: !Equals [!Ref DevOrigin, '']
+        AssertDescription: DevOrigin must be empty for prod.
+  ProdHostsWebsite:
+    RuleCondition: !Equals [!Ref Stage, prod]
+    Assertions:
+      - Assert: !Equals [!Ref HostWebsite, 'true']
+        AssertDescription: Prod always hosts the website.
+
 Globals:
   Function:
     Runtime: nodejs24.x # newest GA Node.js runtime (checked 2026-10-01); local Node is 24 too
@@ -92,6 +105,11 @@ Resources:
       OnDemandThroughput:
         MaxReadRequestUnits: !If [IsProd, 100, 50]
         MaxWriteRequestUnits: !If [IsProd, 50, 25]
+      # Items with an `expiresAt` (seconds) are deleted automatically, at no cost: used for the hourly
+      # wrong-invite-code counters (docs/DATABASE.md → Invite failures).
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: !If [IsProd, true, false]
       DeletionProtectionEnabled: !If [IsProd, true, false]
@@ -397,6 +415,7 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:Query
+                - dynamodb:UpdateItem # counts wrong invite codes (P9.3)
               Resource: !GetAtt Table.Arn
       Events:
         Api:

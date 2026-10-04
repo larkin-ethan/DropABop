@@ -65,6 +65,13 @@ export const keys = {
     PK: partyPk(partyId),
     SK: `VOTE#${date(weekStart, 'weekStart')}#${id(userId, 'userId')}#${id(recommendationId, 'recommendationId')}`,
   }),
+  /** Wrong invite codes one person tried in one UTC hour ("2026-10-04T15"); expires on its own (TTL). */
+  inviteFailures: (userId: string, hour: string): ItemKey => {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(hour)) {
+      throw new Error('Invalid hour');
+    }
+    return { PK: userPk(userId), SK: `INVITEFAIL#${hour}` };
+  },
   invite: (code: string): ItemKey => {
     if (!INVITE_CODE.test(code)) {
       throw new Error('Invalid invite code');

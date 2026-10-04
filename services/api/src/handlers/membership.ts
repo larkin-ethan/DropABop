@@ -13,6 +13,13 @@ import {
   regenerateInviteCode,
   removeMember,
 } from '../data/parties';
+import {
+  MAX_INVITE_FAILURES_PER_HOUR,
+  countInviteFailures,
+  recordInviteFailure,
+} from '../data/invite-attempts';
+import type { DataContext } from '../data/context';
+import { DomainError } from '../data/errors';
 import { getOrCreateUserProfile } from '../data/users';
 import { MESSAGES } from '../domain/messages';
 import { canJoinParty, canManageParty, canRemoveMember, generateInviteCode } from '../domain/party';
@@ -23,11 +30,38 @@ import { getAuthenticatedUser, parseBody, pathId, pathParam } from '../http/requ
 import { assertCanJoinAnotherParty, loadPartyForMember } from './parties';
 
 /**
+ * Stops people guessing invite codes (P9.3 security review): after too many wrong codes in an hour, lookups pause.
+ * Wrong codes are counted per person; a correct code never counts.
+ */
+async function guardInviteGuessing<T>(
+  data: DataContext,
+  userId: string,
+  now: Date,
+  attempt: () => Promise<T>,
+) {
+  if ((await countInviteFailures(data, userId, now)) >= MAX_INVITE_FAILURES_PER_HOUR) {
+    fail('RATE_LIMITED', MESSAGES.TOO_MANY_INVITE_TRIES);
+  }
+  try {
+    return await attempt();
+  } catch (error) {
+    if (error instanceof DomainError && error.code === 'INVALID_INVITE') {
+      await recordInviteFailure(data, userId, now);
+    }
+    throw error;
+  }
+}
+
+/**
  * Preview a party from its invite code, before joining (spec §26). Shows only the party's name and whether there's
  * room; members, songs, and ratings stay private until you join.
  */
-export const previewInviteFn: HandlerFn = async (event, { data }) => {
+export const previewInviteFn: HandlerFn = async (event, { data, now }) => {
   const { userId } = getAuthenticatedUser(event);
+  return guardInviteGuessing(data, userId, now(), () => previewInvite(event, data, userId));
+};
+
+async function previewInvite(event: Parameters<HandlerFn>[0], data: DataContext, userId: string) {
   const parsed = inviteCodeSchema.safeParse(pathParam(event, 'code'));
   const partyId = parsed.success ? await getPartyIdByInviteCode(data, parsed.data) : null;
   const party = partyId === null ? null : await getParty(data, partyId);
@@ -43,14 +77,23 @@ export const previewInviteFn: HandlerFn = async (event, { data }) => {
     isFull: party.memberCount >= party.settings.maxMembers,
     alreadyMember,
   } satisfies InvitePreviewResponse);
-};
+}
 
 /** Join a party with its current invite code (spec §8, §26). */
 export const joinPartyFn: HandlerFn = async (event, { data, now }) => {
   const { userId } = getAuthenticatedUser(event);
   const partyId = pathId(event, 'partyId');
   const { inviteCode } = parseBody(event, joinPartyRequestSchema);
+  return guardInviteGuessing(data, userId, now(), () => joinWithCode(data, userId, partyId, inviteCode, now));
+};
 
+async function joinWithCode(
+  data: DataContext,
+  userId: string,
+  partyId: string,
+  inviteCode: string,
+  now: () => Date,
+) {
   const [party, existing] = await Promise.all([
     getParty(data, partyId),
     getMembership(data, partyId, userId),
@@ -76,7 +119,7 @@ export const joinPartyFn: HandlerFn = async (event, { data, now }) => {
   const [updated, members] = await Promise.all([getParty(data, partyId), listMembers(data, partyId)]);
   // Re-read for the new member count; parties are never deleted, but fall back to what we loaded just in case.
   return ok({ party: updated ?? party, members, isHost: false } satisfies PartyResponse);
-};
+}
 
 /** Host only: replace the invite code; the old one stops working immediately (D16). */
 export const regenerateInviteFn: HandlerFn = async (event, { data }) => {

@@ -339,7 +339,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [ ] **P9.2 — Frontend hosting stack** (§3) (template + deploy script done 2026-10-04; blocked: AWS must verify the account for CloudFront, see DEPLOYMENT.md §4c) — private S3 bucket + CloudFront with Origin Access Control, SPA
   fallback to `index.html`, CloudFront Response Headers Policy (HSTS, CSP, X-Content-Type-Options, frame-ancestors,
   referrer-policy), HTTPS only. CORS on the API set to the CloudFront origin.
-- [ ] **P9.3 — Security review** (§31) — run `/security-review`; check SECURITY.md checklist; fix findings.
+- [x] **P9.3 — Security review** (§31) — run `/security-review`; check SECURITY.md checklist; fix findings.
   *Docs:* `docs/SECURITY.md` (threat model in plain language, what's stored, token handling, how to report issues).
 - [ ] **P9.4 — Observability** (§33) — confirm structured logs have request id, route, user sub (not email), outcome;
   confirm redaction; alarm test (force an error in dev and see the email).
