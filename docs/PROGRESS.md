@@ -3,7 +3,7 @@
 ## Current focus
 
 **P4.3** nearly done: `sotd-dev` is deployed (us-east-2) and all 34 smoke checks pass. Left:
-1. Ethan creates `apps/web/.env.development.local` (the AI's permissions block writing `.env` files) and does a real
+1. `apps/web/.env.development.local` exists (git-ignored; the AI created it with Ethan's OK). Ethan does a real
    sign-up → email code → sign-in → sign-out → forgot-password run on the website (closes P7.3).
 2. On a weekday, re-run `node scripts/smoke-dev.mjs` so a song is actually shared and rated (weekend → 409 WEEKEND).
 Then P4.4 (alarms + $5 budget).
@@ -47,8 +47,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
   NOT_HOST, ALREADY_MEMBER, INVALID_INVITE, RESULTS_NOT_READY, iTunes search (10 songs), sharing → 409 WEEKEND
   (Saturday). CloudWatch logs checked: no tokens, Authorization headers, passwords, or emails. Verified also:
   `npm run verify` exit 0 (359 tests + 1 skipped). Left: weekday share → rate, website sign-up run (needs Ethan's
-  email and the `.env.development.local` file). `apps/web/.env.example` still says `VITE_AWS_REGION=us-east-1`
-  (the AI can't edit `.env*` files): change it to us-east-2.
+  email). The website's local config file was created (git-ignored); `apps/web/.env.example` region → us-east-2.
 
 - 2026-10-03 — **P4.1** — Ethan's account uses AWS's new experience (projects); IAM Identity Center is unavailable
   there, so the CLI signs in with `aws login --profile sotd-dev` (DEPLOYMENT.md §2.8). Region us-east-1. Project
