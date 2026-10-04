@@ -17,13 +17,22 @@ Docker is **only for local development and tests**. Nothing runs in containers i
 
 ```bash
 git clone <repo-url>
-cd SOTD
+cd <repo-folder>
 npm install
 npm run verify
 ```
 
 `npm install` installs all workspaces at once (npm workspaces). `npm run verify` should end with
 "Guardrails: all checks passed."
+
+To see the website straight away without AWS, run it with sample data:
+
+```bash
+npm run dev -w @dropabop/web -- --mode sample --port 5174
+```
+
+To run it against your own dev stack instead, deploy the stack (DEPLOYMENT.md), create
+`apps/web/.env.development.local` from `apps/web/.env.example` with the stack outputs, then `npm run dev`.
 
 ## Everyday commands
 

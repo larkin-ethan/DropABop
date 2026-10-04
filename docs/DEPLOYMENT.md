@@ -267,12 +267,35 @@ website retries once). Normal accounts get 1,000.
 
 ## 5. Shutting things down
 
-Deleting is a **human-only** action in this project (the AI is blocked from it).
+Deleting is a **human-only** action in this project (the AI is blocked from it). The table and user pool are kept
+on purpose when a stack is deleted (so a mistake can't wipe everyone's accounts and songs), so they're separate steps.
 
-- **Dev environment:** `sam delete --stack-name dropabop-dev --profile dropabop-dev` removes the dev stack's resources.
-- **Prod:** the prod table has deletion protection on. Turn it off deliberately before deleting the stack, and only
-  if you really mean to delete everyone's data.
-- **Everything:** delete both stacks, then check **Billing → Bills** the next day to confirm nothing is still running.
+1. **Empty the website bucket** (only if the stack hosts the website; a non-empty bucket stops the stack deletion).
+   Find its name in the stack outputs (`WebBucketName`), then:
+
+   ```bash
+   aws s3 rm s3://BUCKET-NAME --recursive --region us-east-2 --profile dropabop-dev
+   ```
+
+2. **Delete the stack** (dev shown; for prod, first turn off deletion protection on the prod table and user pool in
+   the AWS console, and only if you really mean to delete everyone's data):
+
+   ```bash
+   sam delete --stack-name dropabop-dev --region us-east-2 --profile dropabop-dev
+   ```
+
+3. **Delete the kept table and user pool** (names in the AWS console, or the stack outputs before deleting):
+
+   ```bash
+   aws dynamodb delete-table --table-name TABLE-NAME --region us-east-2 --profile dropabop-dev
+   ```
+
+   ```bash
+   aws cognito-idp delete-user-pool --user-pool-id POOL-ID --region us-east-2 --profile dropabop-dev
+   ```
+
+4. **Optional:** the GitHub deploy roles stack (`dropabop-github-deploy`), and the project's budget / spend limit.
+5. Check **Billing → Bills** the next day to confirm nothing is still running.
 
 ## 6. Automatic deploys from GitHub (roadmap P11.1–P11.3)
 

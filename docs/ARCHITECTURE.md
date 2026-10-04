@@ -35,8 +35,13 @@ when someone makes a request (ADR-0003), and the website polls for new songs.
 | 4 × alarm | CloudWatch alarms | Lambda crashes ≥ 5 / 5 min, API 5xx ≥ 5 / 5 min, any DynamoDB read or write throttling; quiet when there's no traffic | $0.10/alarm metric/month beyond 10 free (we use 4 per stage) |
 | `MonthlyBudget` (dev stack only: `CreateBudget=true`) | AWS Budget | `dropabop-monthly`, $5/month, emails at 50/80/100% actual and 100% forecast; account-wide | Free (no budget actions) |
 
-Not yet in the template: website hosting with S3 + CloudFront (P9.2), and the GitHub
-deploy role (P11.1).
+| `ApiAccessLogGroup` | CloudWatch log group | `/dropabop/<stage>/api-access`: one line per API request, including those rejected before our code (bad token, throttled); no IPs | Log volume + storage |
+| `WebBucket`, `WebBucketPolicy` | S3 bucket + policy | The built website; private (all public access blocked), readable only by this CloudFront distribution, HTTPS only | Storage (a few MB) |
+| `WebDistribution`, `WebOriginAccessControl`, `WebSecurityHeaders` | CloudFront | HTTPS-only website, single-page-app fallback, security headers (HSTS, CSP, no framing, nosniff, referrer policy) | Always-free 1 TB + 10M requests/month |
+
+Website hosting is behind the `HostWebsite` switch (on by default; dev has it off until AWS verifies the account for
+CloudFront: DEPLOYMENT.md §4c). Separate one-time stack `infra/bootstrap.yaml` (`dropabop-github-deploy`): the GitHub
+OIDC provider and two IAM roles for automatic deploys (P11.1, DEPLOYMENT.md §6).
 
 Deploy-time only: SAM keeps uploaded code in a small S3 bucket it manages (`resolve_s3`), outside this stack.
 
