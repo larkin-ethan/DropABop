@@ -99,6 +99,9 @@ this deliberate change to spec §13–§15.
   - Per-user account connections and in-app playback come later, only where officially supported and free to build.
 - **D21 — Fallback.** If search for a provider is unavailable, users can paste a song link from a
   supported provider; the backend validates and resolves it.
+  Updated 2026-10-04: any of Apple Music, Spotify, or YouTube Music links can be pasted. Apple Music links resolve
+  directly; for the others the person picks the same song in search and their link is attached (no calls to
+  Spotify/YouTube; see MUSIC_PROVIDERS.md).
 - **D22 — Preferred music app.** Each user can pick a preferred app (e.g. Spotify, Apple Music, YouTube) in their
   profile. That app's "Open in …" link is shown first on every song. This replaces the mockup's "Connect" buttons
   for v1 (see `docs/design/README.md`).

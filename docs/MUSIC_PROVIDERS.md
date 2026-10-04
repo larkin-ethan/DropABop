@@ -36,6 +36,13 @@ end). Provider rules change often: re-check before relying on anything here, and
    **YouTube Music, not YouTube (Ethan, 2026-10-04):** the app's third link opens YouTube Music: a pasted
    YouTube / YouTube Music link opens as `music.youtube.com/watch?v=<id>` (same video id), otherwise a
    `music.youtube.com/search` link. The server still stores pasted links in the canonical `youtube.com` form.
+   **Paste a link from any app (Ethan, 2026-10-04):** the "Paste a link" tab accepts Apple Music, Spotify, and
+   YouTube Music links. Apple Music links are looked up in the iTunes catalog. For Spotify / YouTube Music links the
+   app keeps the link and asks the person to pick the same song in search; the link is attached when they share.
+   We deliberately don't read song titles from Spotify's or YouTube's oEmbed endpoints to match automatically:
+   Spotify's oEmbed is covered by its Developer Terms ("Do not create any product or service which is integrated
+   with streams or content from another service" [ST, SOE]), and Spotify's oEmbed returns only the song title anyway.
+   Ethan chose the no-call option over auto-matching.
 5. **Deferred:** the Spotify API (Premium plus terms that forbid our snapshot and mixing services), the YouTube API
    (100 searches/day, 30-day refresh rule), the Apple Music API ($99/yr; terms tie it to playback), in-app playback,
    and per-user account connections.

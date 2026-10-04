@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { ApiClient } from '../api/client';
 import { ApiError } from '../api/client';
+import { createPreviewApi, createPreviewState } from '../preview/preview-api';
 import { fakeAuth, renderApp } from '../test/render-app';
 
 describe('Home (P8.3)', () => {
@@ -177,6 +178,55 @@ describe('Share today’s song (P8.4)', () => {
     expect(await screen.findByText(/people will see it’s yours/)).toBeInTheDocument();
   });
 
+  it('accepts a pasted Spotify link: you pick the song, and the link is attached when sharing', async () => {
+    const state = createPreviewState();
+    state.songs = state.songs.filter((x) => x.recommendationId !== 'r9');
+    const preview = createPreviewApi(state);
+    const posts: { path: string; body: unknown }[] = [];
+    const api: ApiClient = {
+      ...preview,
+      post: (path, body) => {
+        posts.push({ path, body });
+        return preview.post(path, body);
+      },
+    };
+    renderApp('/share', { api });
+    await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
+    const spotify = 'https://open.spotify.com/track/1eyzqe2QqGZUmfcPZtrIyt';
+    await userEvent.type(screen.getByLabelText('Song link'), spotify);
+    await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
+
+    // Back on search, with a note that the link will be attached.
+    expect(await screen.findByText(/Got your Spotify link/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Search for a song, artist, or album'), 'midnight');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Midnight City' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    expect(within(dialog).getByLabelText('Spotify link')).toHaveValue(spotify);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+
+    await waitFor(() => expect(posts.some((p) => p.path.endsWith('/recommendations'))).toBe(true));
+    const shared = posts.find((p) => p.path.endsWith('/recommendations'));
+    expect(shared?.body).toMatchObject({ provider: 'appleMusic', links: { spotify } });
+  });
+
+  it('accepts a pasted YouTube Music link the same way', async () => {
+    renderApp('/share', notSharedYet);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
+    await userEvent.type(screen.getByLabelText('Song link'), 'https://music.youtube.com/watch?v=dQw4w9WgXcQ');
+    await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
+    expect(await screen.findByText(/Got your YouTube Music link/)).toBeInTheDocument();
+  });
+
+  it('explains when a pasted link isn’t from a supported music app', async () => {
+    renderApp('/share', notSharedYet);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
+    await userEvent.type(screen.getByLabelText('Song link'), 'https://example.com/song');
+    await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
+    expect(
+      await screen.findByText(/isn’t a song link from Apple Music, Spotify, or YouTube Music/),
+    ).toBeInTheDocument();
+  });
+
   it('says so when you’ve already shared today', async () => {
     renderApp('/share');
     expect(await screen.findByText('You’ve shared today’s song')).toBeInTheDocument();
@@ -194,10 +244,7 @@ describe('Share today’s song (P8.4)', () => {
   it('can find a song from a pasted Apple Music link', async () => {
     renderApp('/share', notSharedYet);
     await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
-    await userEvent.type(
-      screen.getByLabelText('Apple Music song link'),
-      'https://music.apple.com/us/song/x/1001',
-    );
+    await userEvent.type(screen.getByLabelText('Song link'), 'https://music.apple.com/us/song/x/1001');
     await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
     expect(await screen.findByRole('dialog', { name: 'Share this song?' })).toBeInTheDocument();
   });

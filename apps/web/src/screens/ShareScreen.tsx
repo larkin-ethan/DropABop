@@ -3,6 +3,9 @@
 // links to the same song. A confirm step makes clear the pick is final for today.
 
 import {
+  parseAppleMusicSongUrl,
+  parseSpotifyTrackUrl,
+  parseYouTubeUrl,
   spotifyLinkSchema,
   youtubeLinkSchema,
   type CurrentWeekResponse,
@@ -152,10 +155,17 @@ function useDebounced(value: string, delayMs = 400): string {
   return debounced;
 }
 
+/** A Spotify or YouTube Music link someone pasted, waiting to be attached to the song they pick. */
+interface PastedLink {
+  service: 'Spotify' | 'YouTube Music';
+  links: { spotify?: string; youtube?: string };
+}
+
 function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string; reveal: boolean }) {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<'search' | 'paste'>('search');
   const [chosen, setChosen] = useState<Song | null>(null);
+  const [pasted, setPasted] = useState<PastedLink | null>(null);
   const debounced = useDebounced(query);
   const search = useSongSearch(debounced);
   const today = week.today;
@@ -188,6 +198,20 @@ function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string
 
         {mode === 'search' ? (
           <div className="mt-4">
+            {pasted && (
+              <div
+                role="status"
+                className="mb-3 flex flex-wrap items-start justify-between gap-2 rounded-xl border border-blue/40 bg-blue/10 px-3 py-2 text-sm"
+              >
+                <p>
+                  Got your {pasted.service} link. Now find the same song below, and we’ll link it on the other
+                  apps too.
+                </p>
+                <button type="button" className="text-blue hover:underline" onClick={() => setPasted(null)}>
+                  Don’t use my link
+                </button>
+              </div>
+            )}
             <label htmlFor="song-search" className="sr-only">
               Search for a song, artist, or album
             </label>
@@ -206,7 +230,13 @@ function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string
             <SearchResults query={debounced} search={search} onChoose={setChosen} />
           </div>
         ) : (
-          <PasteLink onFound={setChosen} />
+          <PasteLink
+            onFound={setChosen}
+            onOtherServiceLink={(link) => {
+              setPasted(link);
+              setMode('search'); // pick the matching song from Apple's catalog
+            }}
+          />
         )}
       </Card>
 
@@ -215,6 +245,7 @@ function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string
         roundId={week.round.roundId}
         partyId={partyId}
         reveal={reveal}
+        pastedLinks={pasted?.links ?? null}
         onCancel={() => setChosen(null)}
       />
     </div>
@@ -282,26 +313,51 @@ function SearchResults({
   );
 }
 
-function PasteLink({ onFound }: { onFound: (song: Song) => void }) {
+/**
+ * Paste a song link from any of the apps (Ethan, 2026-10-04). Apple Music links are looked up directly. Spotify and
+ * YouTube Music links can't be read without breaking those services' developer terms (docs/MUSIC_PROVIDERS.md), so
+ * the app keeps the link and asks the person to find the same song in search; the link is attached when they share.
+ */
+function PasteLink({
+  onFound,
+  onOtherServiceLink,
+}: {
+  onFound: (song: Song) => void;
+  onOtherServiceLink: (link: PastedLink) => void;
+}) {
   const [url, setUrl] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const resolve = useResolveSong();
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (url.trim() === '') return;
-    resolve.mutate(url.trim(), { onSuccess: (data) => onFound(data.song) });
+    const link = url.trim();
+    if (link === '') return;
+    setError(null);
+    if (parseAppleMusicSongUrl(link) !== null) {
+      resolve.mutate(link, { onSuccess: (data) => onFound(data.song) });
+    } else if (parseSpotifyTrackUrl(link) !== null) {
+      onOtherServiceLink({ service: 'Spotify', links: { spotify: link } });
+    } else if (parseYouTubeUrl(link) !== null) {
+      onOtherServiceLink({ service: 'YouTube Music', links: { youtube: link } });
+    } else {
+      setError('That isn’t a song link from Apple Music, Spotify, or YouTube Music.');
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3" noValidate>
       <TextField
-        label="Apple Music song link"
+        label="Song link"
         type="url"
-        placeholder="https://music.apple.com/us/album/…?i=…"
+        placeholder="Apple Music, Spotify, or YouTube Music link"
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        hint="In Apple Music: Share → Copy Link. Spotify and YouTube Music links can be added on the next step."
-        error={resolve.error ? errorMessage(resolve.error) : undefined}
+        onChange={(e) => {
+          setUrl(e.target.value);
+          setError(null);
+        }}
+        hint="In the music app: Share → Copy link. Then paste it here."
+        error={error ?? (resolve.error ? errorMessage(resolve.error) : undefined)}
       />
       <Button type="submit" disabled={resolve.isPending || url.trim() === ''}>
         {resolve.isPending ? 'Looking it up…' : 'Find this song'}
@@ -315,6 +371,7 @@ function ConfirmShare({
   roundId,
   partyId,
   reveal,
+  pastedLinks,
   onCancel,
 }: {
   song: Song | null;
@@ -322,6 +379,8 @@ function ConfirmShare({
   partyId: string;
   /** D10: whether the party shows who shared each song during the week. */
   reveal: boolean;
+  /** A link pasted on the "Paste a link" tab, attached to whichever song is chosen. */
+  pastedLinks: PastedLink['links'] | null;
   onCancel: () => void;
 }) {
   const share = useShareSong(roundId, partyId);
@@ -329,6 +388,14 @@ function ConfirmShare({
   const [spotify, setSpotify] = useState('');
   const [youtube, setYoutube] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
+
+  // Each time a song is chosen, start from the pasted link (if any) so it's attached without retyping.
+  useEffect(() => {
+    if (song === null) return;
+    setSpotify(pastedLinks?.spotify ?? '');
+    setYoutube(pastedLinks?.youtube ?? '');
+    setLinkError(null);
+  }, [song, pastedLinks]);
 
   function handleShare() {
     if (song === null) return;
@@ -369,7 +436,7 @@ function ConfirmShare({
               {song.album && <p className="truncate text-sm text-muted">{song.album}</p>}
             </div>
           </div>
-          <details className="rounded-xl border border-line px-3 py-2">
+          <details className="rounded-xl border border-line px-3 py-2" open={pastedLinks !== null}>
             <summary className="cursor-pointer text-sm font-medium text-blue">
               Add your Spotify or YouTube Music link (optional)
             </summary>
