@@ -43,6 +43,17 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **Pre-launch review + friend guide (Ethan's request while waiting on AWS)** — Three independent reviews
+  (security, app rules, screens); no MUST FIX in security or rules. Fixed: privacy switches recorded per week (turning
+  "who shared"/"who rated what" on never reveals earlier weeks, D10/D11); names reject hidden/text-direction
+  characters; stats tie on the shown value; a rating that straddles the lock is refused instead of wiping the earlier
+  one; screens: invite-page dead end, ratings stay under "Unrated" + per-card Saved/error, sign-in confirmations, no
+  one-tap sign-out on phones, pause confirmation, settings don't wipe unsaved edits, members see plain text, stat
+  "?" works on tap, results explain skipped weeks, 2-line titles, dialog focus trap, copy fixes. Added `/how-it-works`
+  guide and "Copy invite message". Verified: verify, integration 188/188, e2e 20/20 (one worker: the Mac was
+  overloaded by iCloud syncing Documents, which timed out parallel runs). Not done (notes): 6-character invite codes,
+  Share tabs' arrow keys, history row details, forgot-password resend. API changes not deployed to dev yet.
+
 - 2026-10-04 — **First prod deploy attempt (Ethan)** — Rolled back: CloudFront still unverified ("Your account must
   be verified before you can add new CloudFront resources"), as expected. Ethan deleted the leftovers in the console:
   the ROLLBACK_COMPLETE `dropabop-prod` and `dropabop-github-deploy` stacks and the retained empty prod table (prod
