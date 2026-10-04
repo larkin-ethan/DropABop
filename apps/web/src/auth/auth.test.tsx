@@ -220,4 +220,27 @@ describe('protected routes', () => {
     // Home still shows sample songs (until P8.3), so it must say so even when really signed in.
     expect(screen.getByText(/sample data until this screen is connected/)).toBeInTheDocument();
   });
+
+  it('let signed-in people sign out, back to the sign-in page', async () => {
+    let signedIn = true;
+    const service = fakeAuth({
+      getCurrentUserId: () => Promise.resolve(signedIn ? 'user-1' : null),
+      signOut: vi.fn(() => {
+        signedIn = false;
+        return Promise.resolve();
+      }),
+    });
+    render(
+      <AuthProvider service={service}>
+        <MemoryRouter initialEntries={['/']}>
+          <App />
+        </MemoryRouter>
+      </AuthProvider>,
+    );
+    // The sidebar has a labelled button; the mobile header has an icon-only one. Both sign out.
+    const buttons = await screen.findAllByRole('button', { name: 'Sign out' });
+    await userEvent.click(buttons[0] as HTMLElement);
+    expect(service.signOut).toHaveBeenCalledOnce();
+    expect(await screen.findByRole('heading', { name: 'Welcome back!' })).toBeInTheDocument();
+  });
 });
