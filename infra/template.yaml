@@ -180,6 +180,11 @@ Resources:
             # and docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-access-token.html
             AuthorizationScopes:
               - aws.cognito.signin.user.admin
+      # One line per request, including the ones API Gateway rejects before our code runs (bad or missing token,
+      # rate limits), so auth failures are logged too (spec §33). Ids and outcomes only: no IP address, no headers.
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","route":"$context.routeKey","status":"$context.status","latencyMs":"$context.responseLatency","userId":"$context.authorizer.claims.sub","authError":"$context.authorizer.error","error":"$context.error.message","integrationError":"$context.integrationErrorMessage"}'
       CorsConfiguration:
         # Browsers may call the API only from the website (CloudFront), plus the local dev site in dev (spec §31).
         AllowOrigins: !If
@@ -237,6 +242,12 @@ Resources:
         'PUT /rounds/{roundId}/votes/{recommendationId}':
           ThrottlingBurstLimit: 20
           ThrottlingRateLimit: 10
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /dropabop/${Stage}/api-access
+      RetentionInDays: !If [IsProd, 30, 14]
 
   ApiLogGroup:
     Type: AWS::Logs::LogGroup

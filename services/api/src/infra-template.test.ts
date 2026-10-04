@@ -231,4 +231,19 @@ describe('infra/template.yaml', () => {
     const prod = samconfig.slice(samconfig.indexOf('[prod.'));
     expect(prod).not.toContain('HostWebsite=false');
   });
+
+  it('keeps logs for a limited time only, and logs every API request (P9.4)', () => {
+    const logGroups = Object.entries(template.Resources).filter(([, r]) => r.Type === 'AWS::Logs::LogGroup');
+    expect(logGroups.length).toBeGreaterThanOrEqual(2);
+    for (const [logicalId, group] of logGroups) {
+      expect(group.Properties.RetentionInDays, logicalId).toBeDefined();
+    }
+    const api = template.Resources.HttpApi?.Properties as { AccessLogSettings: { Format: string } };
+    const format = JSON.parse(api.AccessLogSettings.Format) as Record<string, string>;
+    expect(Object.keys(format)).toEqual(
+      expect.arrayContaining(['requestId', 'route', 'status', 'userId', 'authError']),
+    );
+    // No personal data beyond the user id: no IP address, no user agent, no headers.
+    expect(api.AccessLogSettings.Format).not.toMatch(/sourceIp|userAgent|header/i);
+  });
 });
