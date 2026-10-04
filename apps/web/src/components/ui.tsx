@@ -132,15 +132,27 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
   );
 }
 
+/**
+ * The brand mark (the note from the Drop a Bop app icon, public/logo-mark.png) with the name beside it. "Bop" uses
+ * the icon's cyan-to-magenta gradient. `compact` shows only the mark.
+ */
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="inline-flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-purple to-blue text-white shadow-lg shadow-purple/30">
-        <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden="true">
-          <path d="M9 18V6l11-2v12a3 3 0 1 1-2-2.8V7.3l-7 1.3V18a3 3 0 1 1-2-2.8" />
-        </svg>
-      </span>
-      {!compact && <span className="text-lg font-bold tracking-tight">Drop a Bop</span>}
+    <div className="flex items-center gap-2.5">
+      <img src="/logo-mark.png" alt={compact ? 'Drop a Bop' : ''} className="size-10 shrink-0 rounded-xl" />
+      {!compact && (
+        <span className="text-lg font-extrabold tracking-tight">
+          Drop a{' '}
+          <span className="bg-gradient-to-r from-cyan-400 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+            Bop
+          </span>
+        </span>
+      )}
     </div>
   );
+}
+
+/** The full app icon with the name, for big spots (welcome page, sign-in). */
+export function BigLogo({ className = 'w-44' }: { className?: string }) {
+  return <img src="/logo.webp" alt="Drop a Bop" className={`mx-auto drop-shadow-2xl ${className}`} />;
 }

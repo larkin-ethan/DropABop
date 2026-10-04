@@ -6,7 +6,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { friendlyAuthError, isUnconfirmedError } from '../auth/auth-errors';
 import { TextField } from '../components/TextField';
-import { Button, Card, Logo } from '../components/ui';
+import { BigLogo, Button, Card } from '../components/ui';
 
 /** Illustration panel + form, like the mockup's auth screens. The panel becomes a header on phones. */
 export function AuthLayout({
@@ -26,11 +26,8 @@ export function AuthLayout({
           aria-hidden="true"
         />
         <div className="relative text-center">
-          <div className="flex justify-center">
-            <Logo compact />
-          </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight">Drop a Bop</p>
-          <p className="mt-2 text-muted">One song a day. One group. Endless good vibes.</p>
+          <BigLogo className="w-28 md:w-44" />
+          <p className="mt-3 text-muted">One song a day. One group. Endless good vibes.</p>
         </div>
       </div>
       <div className="flex flex-1 items-center justify-center px-4 py-10">

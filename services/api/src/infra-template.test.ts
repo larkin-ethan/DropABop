@@ -246,4 +246,21 @@ describe('infra/template.yaml', () => {
     // No personal data beyond the user id: no IP address, no user agent, no headers.
     expect(api.AccessLogSettings.Format).not.toMatch(/sourceIp|userAgent|header/i);
   });
+
+  it('sends a branded code email that always contains the code placeholder', () => {
+    const pool = template.Resources.UserPool?.Properties as {
+      VerificationMessageTemplate: { EmailMessage: unknown; EmailSubject: string };
+    };
+    // `!If [ShouldHostWebsite, withLogo, withoutLogo]` reads as a list once the YAML tags are dropped.
+    const versions = (pool.VerificationMessageTemplate.EmailMessage as unknown[]).filter(
+      (v): v is string => typeof v === 'string' && v.includes('<div'),
+    );
+    expect(versions).toHaveLength(2);
+    for (const html of versions) {
+      expect(html).toContain('{####}');
+      expect(html.length).toBeLessThan(20_000);
+    }
+    expect(versions.some((html) => html.includes('/logo.png'))).toBe(true);
+    expect(pool.VerificationMessageTemplate.EmailSubject).toContain('Drop a Bop');
+  });
 });

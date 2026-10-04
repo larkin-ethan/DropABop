@@ -2,7 +2,7 @@
 // The first thing signed-out visitors see at "/". Static: no data to load, so no loading or error states.
 
 import { Link } from 'react-router';
-import { Logo, buttonClassName } from '../components/ui';
+import { BigLogo, Logo, buttonClassName } from '../components/ui';
 
 /** The weekly flow in plain words (spec §27: explain without overwhelming). */
 const STEPS: { title: string; text: string }[] = [
@@ -81,12 +81,10 @@ export function LandingScreen() {
         </header>
 
         <div className="relative flex flex-1 flex-col items-center justify-center px-4 pb-16 text-center">
-          <span className="inline-flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-purple to-blue text-white shadow-2xl shadow-purple/40">
-            <svg viewBox="0 0 24 24" className="size-9" fill="currentColor" aria-hidden="true">
-              <path d="M9 18V6l11-2v12a3 3 0 1 1-2-2.8V7.3l-7 1.3V18a3 3 0 1 1-2-2.8" />
-            </svg>
-          </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">Drop a Bop</h1>
+          {/* The heading is the logo itself; its alt text "Drop a Bop" is the heading's name for screen readers. */}
+          <h1>
+            <BigLogo className="w-48 sm:w-60" />
+          </h1>
           <p className="mt-3 text-lg text-ink/90">One song a day. One group. Endless good vibes.</p>
           <p className="mt-4 max-w-md text-muted">
             Every weekday, everyone in your party shares a song. Rate each other’s picks all week, then see

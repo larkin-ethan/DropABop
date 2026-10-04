@@ -48,6 +48,15 @@ Descriptions of the original look, kept for reference:
   illustration with the music-note logo in a gradient circle.
 - **Charts:** horizontal bar distributions (rating 1–10), simple donut/split bars (anonymous vs public), rank lists.
 
+## Logo (2026-10-04)
+
+Ethan's app icon (`apps/web/public/logo.png`, a dark rounded tile with a cyan→magenta music note and "Drop a Bop").
+Derived files in `apps/web/public/`: `logo.webp` (big logo on the welcome and sign-in screens), `logo-mark.png` (the
+note only, for the sidebar/header next to the name), `favicon-32/64.png`, `apple-touch-icon.png`, `icon-192/512.png`
+(installed-app icons, `manifest.webmanifest`). The wordmark's "Bop" uses the icon's gradient
+(`from-cyan-400 via-violet-500 to-fuchsia-500`). The sign-up / reset-code email is branded HTML and shows the logo
+once the website is hosted (CloudFront), since email needs a public image address.
+
 ## Layout
 
 - **Desktop/tablet:** left sidebar nav (logo at top, then Home, Recommend, Vote, Results, Stats, Leaderboard,
