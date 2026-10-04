@@ -3,8 +3,7 @@
 ## Current focus
 
 Phase 4 is done except **P4.3**'s weekday check: on a weekday run `node scripts/smoke-dev.mjs` so a song is shared
-and rated, then tick P4.3. Waiting on Ethan: delete the retired `sotd-dev` stack and its retained table
-(`sotd-dev-Table-…`) and user pool (steps given in chat 2026-10-03). Open question: keep "Song of the Day" as the name
+and rated, then tick P4.3. Open question: keep "Song of the Day" as the name
 of each day's winner, or rename it? Next roadmap work after Phase 4: P8 screens (P8.1 onward) and P9.
 
 ## Blocked / Questions for Ethan
@@ -25,7 +24,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 - AWS account: AWS's *new experience* (projects, settings.aws.com); IAM Identity Center is unavailable there.
   CLI profile `dropabop-dev` signs in with `aws login --profile dropabop-dev` (role `AccountFullAccessRole`, 12 h credentials;
   verified 2026-10-03). See DEPLOYMENT.md §2.8.
-- Stacks: `dropabop-dev` (live since 2026-10-03), `dropabop-prod` (planned). Old `sotd-dev` (us-east-2) is retired: Ethan deletes it.
+- Stacks: `dropabop-dev` (live since 2026-10-03), `dropabop-prod` (planned). Old `sotd-dev` and its table and user pool were deleted by Ethan (2026-10-03).
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
 - AWS CLI 2.37.9, SAM CLI 1.166.2 (verified 2026-10-03). Set `SAM_CLI_TELEMETRY=0` to skip SAM's telemetry.
@@ -36,6 +35,10 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **Old dev stack removed** — Ethan ran `sam delete` for `sotd-dev`, then deleted its retained table and
+  user pool. Verified (us-east-2): tables, user pools, stacks, and log groups now list only `dropabop-dev` resources
+  (plus SAM's `aws-sam-cli-managed-default` bucket stack).
 
 - 2026-10-03 — **P4.4 done** — Ethan confirmed the SNS subscription (list-subscriptions shows a real subscription
   ARN, no longer PendingConfirmation). CLI profile `dropabop-dev` works (`sts get-caller-identity` →
