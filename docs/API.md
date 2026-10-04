@@ -152,7 +152,7 @@ Host only. Code: `services/api/src/handlers/settings.ts`. Body (`updatePartySett
 field): `name`, `maxMembers` (2–50, not below the current member count), `timezone` (applies from next week),
 `paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`, `shareDays` (1–7 of `MON`…`SUN`, stored in week
 order), `ratingCloseDay` (`MON`…`SUN`), `ratingCloseTime` (`HH:MM`, 24-hour; ratings lock at the end of that
-minute). The lock day can't be before the last sharing day (checked against the stored settings, so partial updates
+minute). The lock can't be earlier than 23:59 on the last sharing day (checked against the stored settings, so partial updates
 are safe: `400 VALIDATION_FAILED`). Timezone and schedule changes apply from next week. Parties created before
 the schedule was editable read as Monday–Friday, Sunday 23:59. The invite code and host can't be changed here.
 `200`: `{ "party", "members", "isHost": true }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `400 VALIDATION_FAILED`.

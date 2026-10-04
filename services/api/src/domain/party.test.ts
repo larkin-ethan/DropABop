@@ -202,12 +202,26 @@ describe('canSetMaxMembers', () => {
 });
 
 describe('canSetSchedule (D1, D2)', () => {
-  it('allows ratings to lock on or after the last sharing day', () => {
-    expect(canSetSchedule({ shareDays: ['MON', 'TUE'], ratingCloseDay: 'TUE' })).toEqual({ ok: true });
+  it('allows ratings to lock at 11:59 pm on the last sharing day, or any time after', () => {
+    expect(
+      canSetSchedule({ shareDays: ['MON', 'TUE'], ratingCloseDay: 'TUE', ratingCloseTime: '23:59' }),
+    ).toEqual({
+      ok: true,
+    });
+    expect(
+      canSetSchedule({ shareDays: ['MON', 'TUE'], ratingCloseDay: 'WED', ratingCloseTime: '08:00' }),
+    ).toEqual({
+      ok: true,
+    });
   });
 
-  it('refuses a lock day before the last sharing day', () => {
-    expect(canSetSchedule({ shareDays: ['MON', 'SAT'], ratingCloseDay: 'FRI' })).toMatchObject({
+  it('refuses an earlier lock: a day before the last sharing day, or earlier on that day', () => {
+    expect(
+      canSetSchedule({ shareDays: ['MON', 'TUE'], ratingCloseDay: 'TUE', ratingCloseTime: '00:00' }),
+    ).toMatchObject({ ok: false, code: 'VALIDATION_FAILED' });
+    expect(
+      canSetSchedule({ shareDays: ['MON', 'SAT'], ratingCloseDay: 'FRI', ratingCloseTime: '23:59' }),
+    ).toMatchObject({
       ok: false,
       code: 'VALIDATION_FAILED',
     });

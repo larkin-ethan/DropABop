@@ -46,6 +46,6 @@ no duplicate ratings, friendly error messages, and votes can be changed only whi
 ## Amendment (2026-10-04)
 
 Ethan asked for the schedule to be the host's choice: the sharing days (any of Monday–Sunday, at least one;
-default Monday–Friday) and when ratings lock (any day and minute not before the last sharing day; default Sunday
+default Monday–Friday) and when ratings lock (any day and minute from 11:59 pm on the last sharing day onward; default Sunday
 23:59). Changes apply from the next week. Monday–Friday and Sunday 23:59 above are now the defaults rather than
 fixed rules. Details: PRODUCT_DECISIONS D1 and D2; ADR-0003 amendment.

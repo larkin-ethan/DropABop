@@ -30,17 +30,22 @@ export function shareDaysOf(round: Pick<Round, 'shareDays'>): Weekday[] {
 }
 
 /**
- * Ratings can't lock before the last sharing day, or songs shared that day could never be rated.
- * Locking partway through the last sharing day is allowed (sharing that day stops when ratings lock).
- * Returns a friendly problem, or null when the schedule is fine.
+ * The earliest ratings can lock is 11:59 pm on the last sharing day (Ethan, 2026-10-04), so everyone gets that
+ * whole day to share and the songs shared on it can be rated. Returns a friendly problem, or null when it's fine.
  */
-export function checkSchedule(schedule: Pick<PartySettings, 'shareDays' | 'ratingCloseDay'>): string | null {
+export function checkSchedule(
+  schedule: Pick<PartySettings, 'shareDays' | 'ratingCloseDay' | 'ratingCloseTime'>,
+): string | null {
   if (schedule.shareDays.length === 0) {
     return 'Pick at least one sharing day.';
   }
   const lastShareDay = Math.max(...schedule.shareDays.map((day) => WEEKDAYS.indexOf(day)));
-  if (WEEKDAYS.indexOf(schedule.ratingCloseDay) < lastShareDay) {
-    return 'Ratings can’t lock before the last sharing day. Pick a later day.';
+  const closeDay = WEEKDAYS.indexOf(schedule.ratingCloseDay);
+  if (closeDay < lastShareDay || (closeDay === lastShareDay && schedule.ratingCloseTime !== LAST_MINUTE)) {
+    return 'Ratings can lock at 11:59 pm on the last sharing day at the earliest. Pick a later day or time.';
   }
   return null;
 }
+
+/** The last minute of a day: on the last sharing day, the only allowed lock time. */
+const LAST_MINUTE = '23:59';

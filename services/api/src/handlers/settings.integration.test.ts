@@ -103,18 +103,23 @@ describe('PATCH /parties/{partyId}/settings', () => {
 
     const result = await update(hostId, party, {
       shareDays: ['SAT', 'TUE'],
-      ratingCloseDay: 'SAT',
+      ratingCloseDay: 'SUN',
       ratingCloseTime: '20:30',
     });
     expect(result.statusCode).toBe(200);
     expect((bodyOf(result) as { party: Party }).party.settings).toMatchObject({
       shareDays: ['TUE', 'SAT'], // stored in week order
-      ratingCloseDay: 'SAT',
+      ratingCloseDay: 'SUN',
       ratingCloseTime: '20:30',
     });
 
     // Each part is checked against the rest of the stored schedule.
     expect((await update(hostId, party, { ratingCloseDay: 'FRI' })).statusCode).toBe(400);
+    // On the last sharing day itself, only 11:59 pm: SAT at 20:30 (the stored time) is too early.
+    expect((await update(hostId, party, { ratingCloseDay: 'SAT' })).statusCode).toBe(400);
+    expect(
+      (await update(hostId, party, { ratingCloseDay: 'SAT', ratingCloseTime: '23:59' })).statusCode,
+    ).toBe(200);
     expect((await update(hostId, party, { shareDays: ['SUN'] })).statusCode).toBe(400);
     expect((await update(hostId, party, { shareDays: [] })).statusCode).toBe(400);
     expect((await update(hostId, party, { ratingCloseTime: '8pm' })).statusCode).toBe(400);

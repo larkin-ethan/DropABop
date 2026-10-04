@@ -388,7 +388,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
     const { state } = renderApp('/settings');
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Friday' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Saturday' }));
-    await userEvent.selectOptions(screen.getByLabelText('Ratings lock on'), 'Saturday');
+    await userEvent.selectOptions(screen.getByLabelText('Ratings lock on'), 'Sunday');
     const time = screen.getByLabelText('At');
     await userEvent.clear(time);
     await userEvent.type(time, '21:00');
@@ -396,16 +396,22 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
     await waitFor(() =>
       expect(state.parties[0]?.settings).toMatchObject({
         shareDays: ['MON', 'TUE', 'WED', 'THU', 'SAT'],
-        ratingCloseDay: 'SAT',
+        ratingCloseDay: 'SUN',
         ratingCloseTime: '21:00',
       }),
     );
   });
 
-  it('won’t let ratings lock before the last sharing day', async () => {
+  it('won’t let ratings lock before 11:59 pm on the last sharing day', async () => {
     const { state } = renderApp('/settings');
     await userEvent.selectOptions(await screen.findByLabelText('Ratings lock on'), 'Wednesday');
-    expect(screen.getByRole('alert')).toHaveTextContent('Ratings can’t lock before the last sharing day');
+    expect(screen.getByRole('alert')).toHaveTextContent('11:59 pm on the last sharing day at the earliest');
+    // Friday is the last sharing day: only 11:59 pm is allowed on it.
+    await userEvent.selectOptions(screen.getByLabelText('Ratings lock on'), 'Friday');
+    const time = screen.getByLabelText('At');
+    await userEvent.clear(time);
+    await userEvent.type(time, '00:00');
+    expect(screen.getByRole('alert')).toHaveTextContent('11:59 pm on the last sharing day at the earliest');
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(state.parties[0]?.settings.ratingCloseDay).toBe('SUN');
   });

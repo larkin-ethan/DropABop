@@ -184,8 +184,8 @@ function SettingsForm({
     setCloseTime(party.settings.ratingCloseTime);
   }, [party]);
 
-  // The same rule the API enforces, shown before saving: ratings can't lock before the last sharing day.
-  const scheduleProblem = checkSchedule({ shareDays, ratingCloseDay: closeDay });
+  // The same rule the API enforces, shown before saving: ratings lock at 11:59 pm on the last sharing day at the earliest.
+  const scheduleProblem = checkSchedule({ shareDays, ratingCloseDay: closeDay, ratingCloseTime: closeTime });
 
   function toggleShareDay(day: Weekday, on: boolean) {
     setShareDays(sortWeekdays(on ? [...shareDays, day] : shareDays.filter((d) => d !== day)));

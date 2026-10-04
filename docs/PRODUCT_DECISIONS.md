@@ -22,8 +22,8 @@ this deliberate change to spec §13–§15.
   - A submitted song can't be edited or swapped (spec §14). Pick carefully.
 - **D2 — Weekly round.** A round starts **Monday 00:00** (party timezone) and runs until **ratings lock**: by
   default the end of **Sunday 23:59**, but **the host can choose the day and minute** (Ethan, 2026-10-04), as long
-  as it isn't before the last sharing day (locking partway through the last sharing day is allowed; sharing that
-  day stops at the lock). The new lock time applies from the next week. It has two states:
+  as it's **no earlier than 11:59 pm on the last sharing day** (Ethan, 2026-10-04), so that whole day is open for
+  sharing. The new lock time applies from the next week. It has two states:
   - `OPEN` (Monday 00:00 → lock): songs can be submitted on sharing days, and **any song from this week can be
     rated at any time**, including songs submitted earlier in the week. Non-sharing days before the lock are
     catch-up days for listening and rating.

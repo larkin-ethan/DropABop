@@ -44,7 +44,7 @@ export interface PartySettings {
   /** D1: the days members share a song, in week order. Default Monday–Friday. */
   shareDays: Weekday[];
   /**
-   * D2: ratings lock at the end of this day + minute ("HH:MM", 24-hour, party timezone). Never before the last
+   * D2: ratings lock at the end of this day + minute ("HH:MM", 24-hour, party timezone). Earliest: 23:59 on the last
    * sharing day (checkSchedule). Default Sunday 23:59. Schedule changes apply from the next week.
    */
   ratingCloseDay: Weekday;

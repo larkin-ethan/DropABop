@@ -56,6 +56,8 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
   time, stale ADR-0003/0004 (amendments), API.md, SECURITY.md, type comments; added a spring-forward lock-time test.
   Re-verified: verify, integration 188/188, e2e 19/19. Allowed by D2 but worth knowing: a lock at 00:00 on the last
   sharing day leaves that day effectively closed.
+  Ethan then chose to block that: the earliest lock is now 11:59 pm on the last sharing day (shared checkSchedule,
+  so the form, API and sample mode agree; tests updated).
 - 2026-10-04 — **P8.12 done** — `e2e/screens.spec.ts` (part of `npm run e2e`): 17 screens × 320/375/390/430/768/
   1024/1440 px; fails on sideways scroll, an unnamed button/link/field, or an image without alt; checks the first Tab
   lands on a visible element; saves full-page screenshots to `e2e/screenshots/` (git-ignored). Verified: 17/17 pass;

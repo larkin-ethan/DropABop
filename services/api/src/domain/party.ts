@@ -116,10 +116,12 @@ export function canSetMaxMembers(newMax: number, currentMemberCount: number): Ru
 }
 
 /**
- * The party's schedule after a change (D1, D2): ratings may not lock before the last sharing day.
+ * The party's schedule after a change (D1, D2): ratings lock at 11:59 pm on the last sharing day at the earliest.
  * `schedule` is the current settings with the requested changes applied, since a request may change only one part.
  */
-export function canSetSchedule(schedule: Pick<PartySettings, 'shareDays' | 'ratingCloseDay'>): RuleResult {
+export function canSetSchedule(
+  schedule: Pick<PartySettings, 'shareDays' | 'ratingCloseDay' | 'ratingCloseTime'>,
+): RuleResult {
   const problem = checkSchedule(schedule);
   return problem === null ? { ok: true } : deny('VALIDATION_FAILED', problem);
 }
