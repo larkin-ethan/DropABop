@@ -30,9 +30,12 @@ when someone makes a request (ADR-0003), and the website polls for new songs.
 | `HttpApi` | API Gateway HTTP API | JWT authorizer on every route (Cognito issuer, audience = `WebClient`, scope `aws.cognito.signin.user.admin` so ID tokens are refused); CORS for one origin; default throttle 25 req/s, burst 50 per route | Per request |
 | 23 × `…Function` | Lambda | Node.js 24, arm64, 256 MB, 10 s timeout; one per route in `docs/API.md` | Per request + duration |
 | 23 × `…FunctionRole` | IAM role (created by SAM) | Each function may only use the table actions its handler needs (never Scan); the iTunes and health functions get no table access | Free |
-| `ApiLogGroup` | CloudWatch log group | `/sotd/<stage>/api`, shared by all functions, 14-day retention | Log volume + storage |
+| `ApiLogGroup` | CloudWatch log group | `/sotd/<stage>/api`, shared by all functions; kept 14 days (dev) / 30 days (prod) | Log volume + storage |
+| `AlertTopic` + `AlertEmailSubscription` | SNS topic + email subscription | `sotd-<stage>-alerts`; the email (parameter `AlertEmail`, not in the repo) must click AWS's confirmation link | Per message (a handful a month) |
+| 4 × alarm | CloudWatch alarms | Lambda crashes ≥ 5 / 5 min, API 5xx ≥ 5 / 5 min, any DynamoDB read or write throttling; quiet when there's no traffic | $0.10/alarm metric/month beyond 10 free (we use 4 per stage) |
+| `MonthlyBudget` (dev stack only: `CreateBudget=true`) | AWS Budget | `sotd-monthly`, $5/month, emails at 50/80/100% actual and 100% forecast; account-wide | Free (no budget actions) |
 
-Not yet in the template: cost and failure alarms (P4.4), website hosting with S3 + CloudFront (P9.2), and the GitHub
+Not yet in the template: website hosting with S3 + CloudFront (P9.2), and the GitHub
 deploy role (P11.1).
 
 Deploy-time only: SAM keeps uploaded code in a small S3 bucket it manages (`resolve_s3`), outside this stack.

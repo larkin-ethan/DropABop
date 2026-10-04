@@ -128,4 +128,22 @@ describe('infra/template.yaml', () => {
     expect(api.CorsConfiguration.AllowOrigins).toEqual(['FrontendOrigin']);
     expect(api.CorsConfiguration.AllowCredentials).toBeUndefined();
   });
+
+  it('sends every alarm to the alert topic, and keeps the alert email out of the repo', () => {
+    const alarms = Object.entries(template.Resources).filter(
+      ([, resource]) => resource.Type === 'AWS::CloudWatch::Alarm',
+    );
+    expect(alarms.length).toBeGreaterThanOrEqual(4);
+    for (const [logicalId, alarm] of alarms) {
+      expect(alarm.Properties.AlarmActions, logicalId).toEqual(['AlertTopic']);
+      expect(alarm.Properties.TreatMissingData, logicalId).toBe('notBreaching');
+    }
+
+    const parameters = (template as unknown as { Parameters: Record<string, Record<string, unknown>> })
+      .Parameters;
+    expect(parameters.AlertEmail?.NoEcho).toBe(true);
+    expect(parameters.AlertEmail?.Default).toBeUndefined();
+    // The repo is public: no email address may ever be committed in the deploy settings.
+    expect(readRepoFile('infra/samconfig.toml')).not.toMatch(/[^\s"'=]+@[^\s"']+\.[a-z]{2,}/i);
+  });
 });

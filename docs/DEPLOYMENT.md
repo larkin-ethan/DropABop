@@ -191,7 +191,10 @@ Filled in as resources are added (P4.2, P4.4, P9.2). Expected total at 10–20 u
 | Lambda (arm64) | Runs each request | 1M requests + 400,000 GB-s/month, always | $0 (we use a small fraction) |
 | Cognito (Essentials) | Accounts and sign-in | 10,000 monthly active users | $0 |
 | CloudWatch Logs | One log group per stage, kept 14 days | 5 GB/month | $0 |
-| _more rows added in P4.4, P9.2_ | | | |
+| CloudWatch alarms | Failure/throttle alerts (4 per stage) | 10 alarm metrics/month | $0 (8 across dev + prod) |
+| SNS | Delivers alarm emails | Pricing page doesn't list email (checked 2026-10-03) | A handful of emails a month: negligible |
+| AWS Budgets | `sotd-monthly` $5 alert | Budgets without actions are free | $0 |
+| _more rows added in P9.2_ | | | |
 
 Prices checked 2026-10-02 on aws.amazon.com/{api-gateway,lambda,cognito,cloudwatch}/pricing (US East).
 Full resource list: `docs/ARCHITECTURE.md`.
@@ -211,6 +214,17 @@ sam deploy --config-env dev --profile sotd-dev
 `sam build` bundles the API with esbuild through `services/api/Makefile` (in place, so it can use the workspace's
 packages). `sam deploy` shows the planned changes and asks before applying them. Run `npm install` at the repo root
 first on a fresh checkout.
+
+**The alert email (first deploy of a stage only).** The template's `AlertEmail` parameter is where alarm and budget
+emails go. It's deliberately not in `samconfig.toml` because the repo is public, so pass it once, repeating the
+stage's other settings (a command-line `--parameter-overrides` replaces the file's):
+
+```bash
+sam deploy --config-env dev --profile sotd-dev --parameter-overrides Stage=dev FrontendOrigin=http://localhost:5173 CreateBudget=true AlertEmail=you@example.com
+```
+
+Later deploys reuse the stack's stored value automatically. Then click the confirmation link in the email from
+"AWS Notifications": alarms aren't delivered until you do (the budget emails directly and works either way).
 
 After a deploy, check every endpoint on dev (creates two throwaway test users the first time; their passwords
 stay in the git-ignored `.test-users.json`):

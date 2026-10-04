@@ -23,8 +23,24 @@ Parameters:
     # Prod must use the https CloudFront origin (P9.2). CloudFormation Rules can't check a prefix, so this is a
     # review item rather than an automatic check.
 
+  AlertEmail:
+    Type: String
+    # Where alarm and budget emails go. Not stored in samconfig.toml (the repo is public): pass it once with
+    # --parameter-overrides; later deploys reuse the stack's previous value (docs/DEPLOYMENT.md §4a).
+    NoEcho: true
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    ConstraintDescription: must be an email address
+    Description: Email address for alarms and the monthly budget alert.
+  CreateBudget:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    # A budget covers the whole AWS account, so only one stack per account should create it.
+    Description: Create the account's $5/month budget alert in this stack.
+
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
+  ShouldCreateBudget: !Equals [!Ref CreateBudget, 'true']
 
 Globals:
   Function:
@@ -170,7 +186,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /sotd/${Stage}/api
-      RetentionInDays: 14 # logs are for debugging recent problems; old ones only cost storage
+      RetentionInDays: !If [IsProd, 30, 14] # for debugging recent problems; older logs only cost storage
 
   # ---------------------------------------------------------------------------------------------------------------
   # One function per route (docs/API.md). Each may use only the table actions its handler needs: never Scan
@@ -674,6 +690,147 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /songs/resolve
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Alerts (spec §7, §33; roadmap P4.4). Email when something is failing or the bill moves. Alarms stay quiet when
+  # there's no traffic (missing data = OK). Costs: 4 alarm metrics per stage, inside CloudWatch's 10 free; the budget
+  # is free (email-only budgets cost nothing). Prices checked 2026-10-03 (DEPLOYMENT.md §4).
+  # ---------------------------------------------------------------------------------------------------------------
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub sotd-${Stage}-alerts
+      DisplayName: !Sub Song of the Day (${Stage}) alerts
+
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email # AWS emails a confirmation link first; nothing arrives until it's clicked
+      Endpoint: !Ref AlertEmail
+
+  # Lambda's own Errors metric counts crashes our handler wrapper couldn't turn into a response (e.g. a function
+  # failing at startup, as in P4.3). Handled errors become HTTP 500s and are caught by ApiServerErrorsAlarm below.
+  # No dimension = every function in this account and region, which in a project account is just this app.
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub sotd-${Stage}-lambda-errors
+      AlarmDescription: API functions crashed 5+ times in 5 minutes. Check the /sotd/<stage>/api log group.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  ApiServerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub sotd-${Stage}-api-5xx
+      AlarmDescription: The API answered with a server error (5xx) 5+ times in 5 minutes.
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref HttpApi
+        - Name: Stage
+          Value: $default
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  # Any throttling means users saw errors, e.g. the table hit its on-demand caps (ADR-0005; the stats page is the
+  # likeliest cause as history grows).
+  TableReadThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub sotd-${Stage}-dynamodb-read-throttles
+      AlarmDescription: Database reads were throttled. Consider raising MaxReadRequestUnits (ADR-0005).
+      Namespace: AWS/DynamoDB
+      MetricName: ReadThrottleEvents
+      Dimensions:
+        - Name: TableName
+          Value: !Ref Table
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  TableWriteThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub sotd-${Stage}-dynamodb-write-throttles
+      AlarmDescription: Database writes were throttled. Consider raising MaxWriteRequestUnits (ADR-0005).
+      Namespace: AWS/DynamoDB
+      MetricName: WriteThrottleEvents
+      Dimensions:
+        - Name: TableName
+          Value: !Ref Table
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  # The account-wide safety net from P4.1 (Ethan's project also has a $20 spend limit). Emails directly, so it
+  # works even if the SNS subscription was never confirmed.
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: ShouldCreateBudget
+    Properties:
+      Budget:
+        BudgetName: sotd-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 5
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 50
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
 
 Outputs:
   # Public values for the website's environment file (apps/web/.env.example). None of these are secrets.
