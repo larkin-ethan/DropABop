@@ -553,3 +553,36 @@ describe('Joining and creating parties (P8.2)', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
   });
 });
+
+describe('How it works guide and invite message (2026-10-04)', () => {
+  it('can be read signed out, from the invite page, with a way to sign up', async () => {
+    renderApp('/join/SONG-7K4P', { auth: fakeAuth() });
+    await userEvent.click(await screen.findByRole('link', { name: /See how it works/ }));
+    expect(await screen.findByRole('heading', { name: 'How Drop a Bop works' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Share one song each sharing day/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Get started' })).toHaveAttribute('href', '/sign-up');
+    window.sessionStorage.clear();
+  });
+
+  it('copies an invite message with the party’s schedule, link and code', async () => {
+    let copied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: (text: string) => ((copied = text), Promise.resolve()) },
+    });
+    renderApp('/settings', {
+      setup: (s) => {
+        s.parties[0]!.settings.shareDays = ['MON', 'WED', 'FRI'];
+        s.parties[0]!.settings.ratingCloseDay = 'SAT';
+        s.parties[0]!.settings.ratingCloseTime = '21:00';
+      },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Copy invite message' }));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+    expect(copied).toContain('Join my Drop a Bop party “Ethan’s Music Party”!');
+    expect(copied).toContain('On Monday, Wednesday and Friday we each share a song');
+    expect(copied).toContain('Ratings lock Saturday at 9:00 pm');
+    expect(copied).toContain('/join/SONG-7K4P (or use code SONG-7K4P)');
+    expect(copied).toContain('/how-it-works');
+  });
+});

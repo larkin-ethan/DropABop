@@ -54,6 +54,9 @@ export function OnboardingSteps() {
           </li>
         ))}
       </ol>
+      <Link to="/how-it-works" className="mt-4 inline-block text-sm font-semibold text-blue hover:underline">
+        Read the full guide
+      </Link>
     </Card>
   );
 }
@@ -149,6 +152,9 @@ function InvitedSignedOut({ code }: { code: string }) {
           className={buttonClassName('secondary')}
         >
           I already have an account
+        </Link>
+        <Link to="/how-it-works" className="text-center text-sm font-semibold text-blue hover:underline">
+          New to Drop a Bop? See how it works
         </Link>
       </div>
     </AuthLayout>

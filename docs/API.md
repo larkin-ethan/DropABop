@@ -277,7 +277,7 @@ are ignored.
     "songs": [{ "recommendationId": "…", "rank": 1, "weekday": "TUE", "submittedOn": "…", "song": { … },
                 "recommendedBy": "userId", "averageRating": 9.5, "ratingCount": 4,
                 "distribution": [0,0,0,0,0,0,0,0,2,2], "myRating": 10 }],
-    "days": [{ "weekday": "MON", "songIds": ["…"], "winnerIds": ["…"] }, … 5 days],
+    "days": [{ "weekday": "MON", "songIds": ["…"], "winnerIds": ["…"] }, … one per sharing day],
     "totalRatings": 23
   },
   "members": [{ "userId": "…", "displayName": "…", "avatarColor": "#…" }]

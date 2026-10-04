@@ -26,6 +26,7 @@ const SCREENS = [
   { name: 'sign-in', path: '/sign-in' },
   { name: 'sign-up', path: '/sign-up' },
   { name: 'forgot-password', path: '/forgot-password' },
+  { name: 'how-it-works', path: '/how-it-works' },
 ];
 
 /** Interactive elements and images that a screen reader would announce with no name. */

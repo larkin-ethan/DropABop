@@ -3,7 +3,7 @@
 //
 // Creates two throwaway users the first time (passwords only in the git-ignored .test-users.json, never printed),
 // signs in with SRP through Amplify like the website does, and prints only statuses and error codes.
-// On a weekend sharing is closed (409 WEEKEND); on a weekday it also shares a song and rates it.
+// On a non-sharing day sharing is closed (409 WEEKEND); on a sharing day it also shares a song and rates it.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -197,7 +197,7 @@ await call(
 );
 
 if (roundId) {
-  // Weekend: sharing is closed (409 WEEKEND). Weekday: 201, or 409 if this user already shared today.
+  // Non-sharing day: sharing is closed (409 WEEKEND). Sharing day: 201, or 409 if this user already shared today.
   const shared = await call(
     'POST recommendation (u1)',
     'POST',
@@ -233,7 +233,9 @@ if (roundId) {
       [403],
     );
   } else {
-    print(`     no song to rate yet (${shared?.error?.code ?? 'none shared'}): rating checked on a weekday`);
+    print(
+      `     no song to rate yet (${shared?.error?.code ?? 'none shared'}): rating checked on a sharing day`,
+    );
   }
   await call(
     'PUT vote on unknown song -> 4xx',

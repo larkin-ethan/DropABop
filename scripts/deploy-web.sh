@@ -2,9 +2,9 @@
 # Publishes the website to a stack's S3 bucket and CloudFront (roadmap P9.2).
 #
 #   bash scripts/deploy-web.sh                  # dev, with your AWS profile dropabop-dev
-#   STACK=dropabop-prod AWS_PROFILE_NAME= …      # how the GitHub deploy workflow calls it (no profile there)
+#   STACK=dropabop-prod bash scripts/deploy-web.sh
 #
-# Prod releases go through the GitHub deploy workflow (P11.2) with Ethan's approval, not from a laptop.
+# Usually you don't run this directly: scripts/deploy.sh runs it after deploying the stack (ADR-0009).
 #
 # Steps: read the stack's outputs → build the site with those (public) addresses → upload it → clear CloudFront's
 # copy of index.html so people get the new version straight away.
@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.."
 
 STACK="${STACK:-dropabop-dev}"
 REGION="${REGION:-us-east-2}"
-# Unset → the dropabop-dev profile; set to empty (as in GitHub Actions) → use the credentials already configured.
+# Unset → the dropabop-dev profile; set to empty → use whatever credentials the shell already has.
 PROFILE="${AWS_PROFILE_NAME-dropabop-dev}"
 
 aws_cli() {

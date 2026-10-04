@@ -122,7 +122,7 @@ export function getSubmissionDay(
   };
 }
 
-/** True while ratings and (weekday) submissions are accepted for this round. */
+/** True while ratings and (sharing-day) submissions are accepted for this round. */
 export function isWeekOpen(round: Pick<Round, 'endsAt'>, now: Date): boolean {
   return now.getTime() < new Date(round.endsAt).getTime();
 }

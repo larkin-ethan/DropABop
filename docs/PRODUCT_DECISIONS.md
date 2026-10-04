@@ -39,7 +39,7 @@ this deliberate change to spec §13–§15.
   put (exactly one wins if two people arrive at once). Whether a week is `OPEN` or `CLOSED` is always computed
   from the current time, and the first request after it ends records the close. See ADR-0003.
 - **D4 — Weeks never overlap.** Exactly one round per party per week.
-- **D5 — Late joiners.** Someone who joins mid-week may submit songs for the remaining weekdays and may rate
+- **D5 — Late joiners.** Someone who joins mid-week may submit songs on the week's remaining sharing days and may rate
   every song from the whole week.
 
 ## Voting (§15, §16)
@@ -91,7 +91,8 @@ this deliberate change to spec §13–§15.
   The browser crops and shrinks the photo to a 128×128 JPEG (a few KB, so the original photo and its location data
   never leave the device); it's stored with the profile as a small data URL and shown to party members instead of the
   initials. JPEG/WebP only (no SVG), at most 9,000 characters; it can be removed any time. No new AWS service.
-- **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, preferred music app. Nothing else.
+- **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, optional profile picture (D18),
+  preferred music app. Nothing else.
 
 ## Music (§10, §11, §12)
 

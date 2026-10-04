@@ -35,7 +35,7 @@ import { TextField } from '../components/TextField';
 import { Avatar, Button, Card } from '../components/ui';
 import { AvatarImageError, toAvatarDataUrl } from '../lib/avatar-image';
 import { errorMessage } from '../lib/errors';
-import { DAY_NAMES } from '../lib/format';
+import { DAY_NAMES, formatDayList, formatTimeOfDay } from '../lib/format';
 import { PROVIDER_NAMES } from '../lib/music-links';
 import { inviteLink } from '../lib/pending-invite';
 import { useCurrentParty } from '../party/CurrentParty';
@@ -355,11 +355,30 @@ function SettingsForm({
   );
 }
 
+/** A ready-to-send invitation (text, chat, email) with the party's schedule, the link, and the guide. */
+export function inviteMessage(party: Party, link: string): string {
+  const { shareDays, ratingCloseDay, ratingCloseTime } = party.settings;
+  return [
+    `Join my Drop a Bop party “${party.name}”! 🎵`,
+    `On ${formatDayList(shareDays)} we each share a song we love, then rate each other’s picks from 1 to 10. ` +
+      `Ratings lock ${DAY_NAMES[ratingCloseDay]} at ${formatTimeOfDay(ratingCloseTime)}, and then we see the results.`,
+    `Join here: ${link} (or use code ${party.inviteCode})`,
+    `How it works: ${window.location.origin}/how-it-works`,
+  ].join('\n\n');
+}
+
 function InviteCard({ party, isHost }: { party: Party; isHost: boolean }) {
   const regenerate = useRegenerateInvite(party.partyId);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'link' | 'message' | null>(null);
   const [confirming, setConfirming] = useState(false);
   const link = inviteLink(party.inviteCode);
+
+  function copy(text: string, what: 'link' | 'message') {
+    void navigator.clipboard
+      ?.writeText(text)
+      .then(() => setCopied(what))
+      .catch(() => setCopied(null));
+  }
 
   return (
     <Card>
@@ -372,15 +391,11 @@ function InviteCard({ party, isHost }: { party: Party; isHost: boolean }) {
         Code: <span className="font-mono font-semibold text-ink">{party.inviteCode}</span>
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
-        <Button
-          onClick={() => {
-            void navigator.clipboard
-              ?.writeText(link)
-              .then(() => setCopied(true))
-              .catch(() => setCopied(false));
-          }}
-        >
-          <Icon name="copy" className="size-4" /> {copied ? 'Copied!' : 'Copy link'}
+        <Button onClick={() => copy(link, 'link')}>
+          <Icon name="copy" className="size-4" /> {copied === 'link' ? 'Copied!' : 'Copy link'}
+        </Button>
+        <Button variant="secondary" onClick={() => copy(inviteMessage(party, link), 'message')}>
+          <Icon name="copy" className="size-4" /> {copied === 'message' ? 'Copied!' : 'Copy invite message'}
         </Button>
         {isHost && (
           <Button variant="secondary" onClick={() => setConfirming(true)}>

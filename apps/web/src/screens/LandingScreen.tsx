@@ -117,7 +117,12 @@ export function LandingScreen() {
             </li>
           ))}
         </ol>
-        <p className="mt-10 text-center text-sm text-muted">
+        <p className="mt-8 text-center">
+          <Link to="/how-it-works" className="font-semibold text-blue hover:underline">
+            Read the full guide
+          </Link>
+        </p>
+        <p className="mt-4 text-center text-sm text-muted">
           Already have an account?{' '}
           <Link to="/sign-in" className="font-semibold text-blue hover:underline">
             Log in
