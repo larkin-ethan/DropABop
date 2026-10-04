@@ -1,0 +1,91 @@
+name: CI
+
+# Runs the same checks as `npm run verify` locally: format, lint, typecheck, unit tests, guardrails.
+# The e2e job runs the browser journey in sample mode. Deploys are in deploy.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Fast, dependency-free cost and security rules. Runs first so violations are reported even if the build breaks.
+      - name: Guardrails
+        run: bash scripts/guardrails.sh
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify (format, lint, typecheck, unit tests, guardrails)
+        run: npm run verify
+
+  # Integration tests against DynamoDB Local (same image version as docker-compose.yml).
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.1
+        ports:
+          - 8000:8000
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Integration tests
+        run: npm run test:integration
+
+  # End-to-end: a real browser drives the website in sample mode (no AWS). Playwright's Chromium is installed here
+  # on GitHub's runner; locally the tests use your own Chrome.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run e2e
+
+      - name: Keep the trace if something failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

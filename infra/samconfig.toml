@@ -1,0 +1,46 @@
+# SAM CLI settings for each stage (ADR-0002). Run sam commands from this folder (infra/), always building first:
+#   sam build --config-env dev
+#   sam deploy --config-env dev --profile dropabop-dev
+# Region: us-east-2. Ethan's AWS account (new experience, projects) only allows regional services in the project's
+# home region; us-east-1 allows only global ones (DEPLOYMENT.md §2.8).
+version = 0.1
+
+# ---- every build, including a plain `sam build` ----
+[default.build.parameters]
+# Build in services/api itself, so the Makefile can reach the workspace's node_modules and packages/shared.
+# (Without this SAM copies services/api to a temporary folder first, where those can't be found.)
+build_in_source = true
+
+# ---- dev: the test copy. Safe to break; the website runs locally against it. ----
+[dev.global.parameters]
+stack_name = "dropabop-dev"
+region = "us-east-2"
+
+[dev.build.parameters]
+build_in_source = true # same reason as above
+
+[dev.deploy.parameters]
+resolve_s3 = true # SAM's own small bucket for uploads
+s3_prefix = "dropabop-dev"
+capabilities = "CAPABILITY_IAM" # the stack creates one IAM role per function
+confirm_changeset = true # always show what will change and ask first
+# AlertEmail is deliberately not here (public repo): the stack keeps it from the first deploy (DEPLOYMENT.md §4a).
+# CreateBudget: the account's $5 budget lives in this stack (one per account).
+# HostWebsite=false until AWS Support verifies the account for CloudFront (2026-10-04); then remove it.
+parameter_overrides = "Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true HostWebsite=false"
+
+# ---- prod: the real app. Only Ethan deploys it (CLAUDE.md). ----
+[prod.global.parameters]
+stack_name = "dropabop-prod"
+region = "us-east-2" # check the prod project's home region before the first prod deploy (P11.3)
+
+[prod.build.parameters]
+build_in_source = true
+
+[prod.deploy.parameters]
+resolve_s3 = true
+s3_prefix = "dropabop-prod"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+# Prod allows only its own CloudFront site to call the API (no DevOrigin).
+parameter_overrides = "Stage=prod"

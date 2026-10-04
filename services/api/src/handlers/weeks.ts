@@ -1,0 +1,147 @@
+// GET /parties/{partyId}/rounds/current and GET /parties/{partyId}/rounds (docs/API.md → Weeks).
+
+import type { CurrentWeekResponse, RoundsResponse } from '@dropabop/shared';
+import type { Party, PartyMember, Round } from '@dropabop/shared';
+import { roundHistoryQuerySchema } from '@dropabop/shared';
+import type { DataContext } from '../data/context';
+import { listMySubmissionDates, listWeekRecommendations, listWeekSubmissions } from '../data/recommendations';
+import { parseRoundId } from '../data/keys';
+import {
+  createRoundIfMissing,
+  getLatestRound,
+  getRound,
+  listRounds,
+  recordRoundStatus,
+} from '../data/rounds';
+import { listMyWeekVotes } from '../data/votes';
+import {
+  getEffectiveWeekStatus,
+  getPendingStatusChange,
+  getSubmissionDay,
+  getWeekWindow,
+  planCurrentWeek,
+} from '../domain/week';
+import { fail } from '../http/errors';
+import { createHandler, ok, type HandlerFn } from '../http/handler';
+import { getAuthenticatedUser, parseQuery, pathId, pathParam, type ApiEvent } from '../http/request';
+import { loadPartyForMember } from './parties';
+
+export type CurrentWeek =
+  | { round: Round; reason: null }
+  | { round: null; reason: 'paused' | 'between-weeks'; lastRound: Round | null };
+
+/**
+ * The party's current week, doing the lazy work from ADR-0003: records the previous week's close if nobody has yet,
+ * and creates this week's round on the first request of the week. Every handler that needs "this week" uses this.
+ */
+export async function resolveCurrentWeek(data: DataContext, party: Party, now: Date): Promise<CurrentWeek> {
+  const latest = await getLatestRound(data, party.partyId);
+
+  if (latest !== null && latest.status === 'OPEN') {
+    const songCount = (await listWeekRecommendations(data, latest.roundId)).length;
+    const change = getPendingStatusChange(latest, now, songCount);
+    if (change !== null) {
+      await recordRoundStatus(data, latest, change);
+      latest.status = change;
+    }
+  }
+
+  const plan = planCurrentWeek(party, latest, now);
+  if (plan.action === 'use') {
+    return { round: plan.round, reason: null };
+  }
+  if (plan.action === 'create') {
+    return { round: await createRoundIfMissing(data, plan.round), reason: null };
+  }
+  return { round: null, reason: plan.reason, lastRound: plan.lastRound };
+}
+
+/**
+ * For `/rounds/{roundId}/…` routes: the round, its party, and the caller's membership. The party comes from the
+ * roundId itself, and membership of *that* party is checked, so a roundId can never be used to reach another
+ * party's data (spec §24). Unknown or malformed round ids → 404; non-members → 403.
+ */
+export async function loadRoundForMember(
+  event: ApiEvent,
+  data: DataContext,
+  userId: string,
+): Promise<{ round: Round; party: Party; membership: PartyMember }> {
+  const roundId = pathParam(event, 'roundId');
+  const parts = parseRoundId(roundId);
+  if (parts === null) {
+    fail('NOT_FOUND', 'We couldn’t find that week.');
+  }
+  const { party, membership } = await loadPartyForMember(data, parts.partyId, userId);
+  const round = await getRound(data, roundId);
+  if (round === null) {
+    fail('NOT_FOUND', 'We couldn’t find that week.');
+  }
+  return { round, party, membership };
+}
+
+/** Everything the home screen needs about this week, for the person asking. */
+export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
+  const { userId } = getAuthenticatedUser(event);
+  const partyId = pathId(event, 'partyId');
+  const { party } = await loadPartyForMember(data, partyId, userId);
+  const current = now();
+  const week = await resolveCurrentWeek(data, party, current);
+
+  if (week.round === null) {
+    const nextWeekStartsAt =
+      week.reason === 'between-weeks' ? getWeekWindow(party.settings, current).nextStartsAt : null;
+    return ok({
+      round: null,
+      reason: week.reason,
+      nextWeekStartsAt,
+      lastRoundId: week.lastRound?.roundId ?? null,
+    } satisfies CurrentWeekResponse);
+  }
+
+  const round = week.round;
+  const [songs, submissions, myDates, myVotes] = await Promise.all([
+    listWeekRecommendations(data, round.roundId),
+    listWeekSubmissions(data, round.roundId),
+    listMySubmissionDates(data, round.roundId, userId),
+    listMyWeekVotes(data, round.roundId, userId),
+  ]);
+  const today = getSubmissionDay(round, current);
+  const sharedTodayIds =
+    today === null ? [] : submissions.filter((s) => s.date === today.date).map((s) => s.userId);
+  const ratableSongIds = new Set(songs.filter((s) => s.userId !== userId).map((s) => s.recommendationId));
+
+  return ok({
+    round,
+    status: getEffectiveWeekStatus(round, current, songs.length),
+    reason: null,
+    /** null on days that aren't sharing days. */
+    today,
+    sharedToday: today !== null && myDates.includes(today.date),
+    mySubmissionDates: myDates,
+    /** How many people have shared a song today. */
+    sharedTodayCount: sharedTodayIds.length,
+    // *Who* has shared today is only shown when the party reveals recommenders (D10). Otherwise, comparing this list
+    // with the songs list (which the app polls) would reveal who shared each song.
+    ...(party.settings.revealRecommenderDuringVoting ? { sharedTodayUserIds: sharedTodayIds } : {}),
+    progress: {
+      songCount: songs.length,
+      ratableCount: ratableSongIds.size,
+      ratedCount: myVotes.filter((v) => ratableSongIds.has(v.recommendationId)).length,
+    },
+  } satisfies CurrentWeekResponse);
+};
+
+/** Past and current weeks, newest first, paged. */
+export const listWeeksFn: HandlerFn = async (event, { data, now }) => {
+  const { userId } = getAuthenticatedUser(event);
+  const partyId = pathId(event, 'partyId');
+  const query = parseQuery(event, roundHistoryQuerySchema);
+  const { party } = await loadPartyForMember(data, partyId, userId);
+
+  await resolveCurrentWeek(data, party, now()); // makes sure stored statuses are up to date
+  const page = await listRounds(data, partyId, { limit: query.limit ?? 20, cursor: query.cursor ?? null });
+  return ok(page satisfies RoundsResponse);
+};
+
+export const getCurrentWeekHandler = createHandler(getCurrentWeekFn);
+export const listWeeksHandler = createHandler(listWeeksFn);

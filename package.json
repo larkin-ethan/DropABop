@@ -1,0 +1,43 @@
+{
+  "name": "song-of-the-day",
+  "private": true,
+  "type": "module",
+  "description": "Private social music app: one song per member per weekday, rated 1–10 by the group.",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @dropabop/web",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p e2e",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "guardrails": "bash scripts/guardrails.sh",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run guardrails",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:dev": "playwright test -c e2e/dev-stack.config.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.19.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.11.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3",
+    "yaml": "^2.9.1"
+  }
+}

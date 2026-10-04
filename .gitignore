@@ -1,0 +1,30 @@
+# Dependencies & build output
+node_modules/
+dist/
+build/
+coverage/
+.aws-sam/
+playwright-report/
+test-results/
+
+# Environment files — never commit real values. *.example files are committed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local test credentials (P10.3)
+.test-users.json
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# P8.12 screenshots (regenerate with npm run e2e)
+e2e/screenshots/

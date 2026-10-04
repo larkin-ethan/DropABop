@@ -1,0 +1,16 @@
+{
+  "name": "@dropabop/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Types and validation schemas shared by the frontend and the API.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

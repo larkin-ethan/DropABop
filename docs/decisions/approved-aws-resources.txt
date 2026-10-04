@@ -1,0 +1,5 @@
+# Extra AWS resource types approved beyond the default allowlist in scripts/guardrails.sh.
+# One per line:  <Type>  <ADR-id>
+# The ADR file docs/decisions/<ADR-id>-*.md must exist and must include the Cost section.
+# Example:
+# AWS::Events::Rule  ADR-0009

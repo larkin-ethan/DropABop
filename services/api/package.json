@@ -1,0 +1,21 @@
+{
+  "name": "@dropabop/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lambda handlers, domain rules, data access, and music providers.",
+  "scripts": {
+    "build": "node scripts/bundle.mjs dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1144.0",
+    "@aws-sdk/lib-dynamodb": "^3.1144.0",
+    "@dropabop/shared": "*",
+    "luxon": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.164",
+    "@types/luxon": "^3.7.6"
+  }
+}

@@ -1,0 +1,1092 @@
+# Drop a Bop — application stack (ADR-0002). One copy per stage: dropabop-dev and dropabop-prod (infra/samconfig.toml).
+#
+# What's here: the DynamoDB table, the Cognito user pool + web app client, the HTTP API with a JWT authorizer, and one
+# Lambda function per API route. Everything is pay-per-use; nothing bills while idle (spec §2, docs/ARCHITECTURE.md).
+#
+# Build and deploy (docs/DEPLOYMENT.md), from the infra/ folder:
+#   sam build --config-env dev && sam deploy --config-env dev --profile dropabop-dev
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Drop a Bop (API, auth, database)
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [dev, prod]
+    Description: Which copy of the app this stack is. Prod turns on backups and deletion protection.
+  DevOrigin:
+    Type: String
+    Default: ''
+    # Dev only: the local website (http://localhost:5173) may also call the API. Empty in prod, where only the
+    # CloudFront site may (CORS). One origin, no path or trailing slash.
+    AllowedPattern: '^(https?://[a-zA-Z0-9.-]+(:[0-9]+)?)?$'
+    Description: Extra origin allowed to call the API besides the CloudFront site (local development). Empty for none.
+
+  AlertEmail:
+    Type: String
+    # Where alarm and budget emails go. Not stored in samconfig.toml (the repo is public): pass it once with
+    # --parameter-overrides; later deploys reuse the stack's previous value (docs/DEPLOYMENT.md §4a).
+    NoEcho: true
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    ConstraintDescription: must be an email address
+    Description: Email address for alarms and the monthly budget alert.
+  HostWebsite:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+    # Off only while an AWS account waits for CloudFront verification (new accounts: AWS Support must verify the
+    # account before CloudFront can be used). Prod always hosts the website.
+    Description: Create the website bucket and CloudFront distribution.
+  CreateBudget:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    # A budget covers the whole AWS account, so only one stack per account should create it.
+    Description: Create the account's $5/month budget alert in this stack.
+
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+  ShouldCreateBudget: !Equals [!Ref CreateBudget, 'true']
+  HasDevOrigin: !Not [!Equals [!Ref DevOrigin, '']]
+  ShouldHostWebsite: !Equals [!Ref HostWebsite, 'true']
+
+Rules:
+  # Prod must accept browser calls only from its own website (P9.3 security review): refuse to deploy otherwise.
+  ProdHasNoDevOrigin:
+    RuleCondition: !Equals [!Ref Stage, prod]
+    Assertions:
+      - Assert: !Equals [!Ref DevOrigin, '']
+        AssertDescription: DevOrigin must be empty for prod.
+  ProdHostsWebsite:
+    RuleCondition: !Equals [!Ref Stage, prod]
+    Assertions:
+      - Assert: !Equals [!Ref HostWebsite, 'true']
+        AssertDescription: Prod always hosts the website.
+
+Globals:
+  Function:
+    Runtime: nodejs24.x # newest GA Node.js runtime (checked 2026-10-01); local Node is 24 too
+    Architectures: [arm64] # cheaper per millisecond than x86 for the same work
+    MemorySize: 256
+    Timeout: 10 # iTunes calls give up after 5 s (providers/itunes.ts); DynamoDB calls take milliseconds
+    # Every function ships the same bundle (services/api/src/lambda.ts, built by services/api/Makefile).
+    CodeUri: ../services/api
+    LoggingConfig:
+      LogGroup: !Ref ApiLogGroup # one log group for the whole API, with a retention limit
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref Table
+        NODE_OPTIONS: --enable-source-maps # stack traces point at the TypeScript source
+
+Resources:
+  # ---------------------------------------------------------------------------------------------------------------
+  # Database (docs/DATABASE.md, ADR-0005). Single table, no secondary indexes, on-demand with throughput caps.
+  # ---------------------------------------------------------------------------------------------------------------
+  Table:
+    Type: AWS::DynamoDB::Table
+    # Keep the data even if the stack is deleted or the table would be replaced. Deleting data is a human decision.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      # Must match TABLE_KEY_SCHEMA in services/api/src/data/table-definition.ts (a unit test checks this).
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      # Per-second ceilings far above real use, so a runaway bug is throttled instead of billed (ADR-0005).
+      OnDemandThroughput:
+        MaxReadRequestUnits: !If [IsProd, 100, 50]
+        MaxWriteRequestUnits: !If [IsProd, 50, 25]
+      # Items with an `expiresAt` (seconds) are deleted automatically, at no cost: used for the hourly
+      # wrong-invite-code counters (docs/DATABASE.md → Invite failures).
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - Key: app
+          Value: dropabop
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Sign-in (spec §9, ADR-0008). Email + password only (D23). The website signs in with SRP through Amplify.
+  # ---------------------------------------------------------------------------------------------------------------
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain # accounts survive a deleted stack; removing them is a human decision
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub dropabop-${Stage}
+      # Essentials is the default plan: 10,000 monthly active users free (aws.amazon.com/cognito/pricing, 2026-10-02).
+      UserPoolTier: ESSENTIALS
+      UsernameAttributes: [email]
+      UsernameConfiguration:
+        CaseSensitive: false # Sam@Example.com and sam@example.com are the same person
+      AutoVerifiedAttributes: [email]
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: [email]
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false # people sign themselves up; parties are invite-only (spec §26)
+      MfaConfiguration: 'OFF'
+      # Same rules the sign-up form shows (apps/web/src/screens/AuthScreens.tsx).
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: Your Drop a Bop code
+        # Branded HTML (Cognito allows HTML here, up to 20,000 characters; the same template is used for password-reset
+        # codes). The logo image needs a public address, so it's included once the website is hosted (CloudFront).
+        EmailMessage: !If
+          - ShouldHostWebsite
+          - !Sub '<div style="background:#011420;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#e6f1ff;text-align:center"><div style="max-width:420px;margin:0 auto;background:#01192b;border:1px solid #0d3352;border-radius:16px;padding:28px 24px"><img src="https://${WebDistribution.DomainName}/logo.png" width="96" height="96" alt="Drop a Bop" style="display:block;margin:0 auto 16px;border:0"><p style="margin:0 0 4px;font-size:22px;font-weight:bold;color:#e6f1ff">Drop a <span style="color:#c084fc">Bop</span></p><p style="margin:0 0 20px;color:#8ba3bf;font-size:14px">One song a day. One group. Endless good vibes.</p><p style="margin:0 0 8px;font-size:15px">Your code is</p><p style="margin:0 0 20px;font-size:32px;letter-spacing:6px;font-weight:bold;color:#00e7d0">{####}</p><p style="margin:0;color:#8ba3bf;font-size:13px">Enter it in Drop a Bop to continue. If you didn&#39;t ask for it, you can ignore this email.</p></div></div>'
+          - '<div style="background:#011420;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#e6f1ff;text-align:center"><div style="max-width:420px;margin:0 auto;background:#01192b;border:1px solid #0d3352;border-radius:16px;padding:28px 24px"><p style="margin:0 0 4px;font-size:22px;font-weight:bold;color:#e6f1ff">Drop a <span style="color:#c084fc">Bop</span></p><p style="margin:0 0 20px;color:#8ba3bf;font-size:14px">One song a day. One group. Endless good vibes.</p><p style="margin:0 0 8px;font-size:15px">Your code is</p><p style="margin:0 0 20px;font-size:32px;letter-spacing:6px;font-weight:bold;color:#00e7d0">{####}</p><p style="margin:0;color:#8ba3bf;font-size:13px">Enter it in Drop a Bop to continue. If you didn&#39;t ask for it, you can ignore this email.</p></div></div>'
+      # Uses Cognito's built-in email sender (no extra service). Its daily sending limit is plenty for one group.
+      DeletionProtection: !If [IsProd, ACTIVE, INACTIVE]
+
+  WebClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub dropabop-${Stage}-web
+      GenerateSecret: false # a website can't keep a secret (spec §9)
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH # the password itself is never sent
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED # don't reveal whether an email has an account
+      EnableTokenRevocation: true # signing out revokes the refresh token
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # HTTP API (spec §3). Every route needs a valid Cognito *access* token.
+  # ---------------------------------------------------------------------------------------------------------------
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: CognitoAccessToken
+        Authorizers:
+          CognitoAccessToken:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              # Access tokens carry no `aud`, so API Gateway checks their `client_id` against this list.
+              audience:
+                - !Ref WebClient
+            # Only access tokens from sign-in carry this scope; ID tokens have no scope, so they're refused here.
+            # Handlers also require token_use = access (services/api/src/http/request.ts).
+            # Docs checked 2026-10-02: docs.aws.amazon.com/apigateway/latest/developerguide/http-api-jwt-authorizer.html
+            # and docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-access-token.html
+            AuthorizationScopes:
+              - aws.cognito.signin.user.admin
+      # One line per request, including the ones API Gateway rejects before our code runs (bad or missing token,
+      # rate limits), so auth failures are logged too (spec §33). Ids and outcomes only: no IP address, no headers.
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","route":"$context.routeKey","status":"$context.status","latencyMs":"$context.responseLatency","userId":"$context.authorizer.claims.sub","authError":"$context.authorizer.error","error":"$context.error.message","integrationError":"$context.integrationErrorMessage"}'
+      CorsConfiguration:
+        # Browsers may call the API only from the website (CloudFront), plus the local dev site in dev (spec §31).
+        AllowOrigins: !If
+          - ShouldHostWebsite
+          - !If
+            - HasDevOrigin
+            - [!Sub 'https://${WebDistribution.DomainName}', !Ref DevOrigin]
+            - [!Sub 'https://${WebDistribution.DomainName}']
+          - [!Ref DevOrigin] # no website yet: only the local dev site
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+        AllowHeaders: [authorization, content-type]
+        MaxAge: 600
+      # Rate limits (spec §32, roadmap P9.1). API Gateway counts each route's requests from ALL callers together
+      # (token bucket: RateLimit per second, Burst = short spikes) and answers 429 above them; there's no per-person
+      # limit in HTTP APIs. So limits leave room for a whole party at once (20 people) while capping abuse and cost.
+      # Per-person limits come from the app's own rules (5 parties each, one song a day, invite codes required).
+      # Docs checked 2026-10-04: docs.aws.amazon.com/apigateway/latest/developerguide/http-api-throttling.html
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 25
+      RouteSettings:
+        # Song search calls iTunes (about 20 calls a minute allowed; ADR-0007). Typing is debounced in the app.
+        'GET /songs/search':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 3
+        'POST /songs/resolve':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        # Invite codes: slow down anyone trying to guess codes (31^4 ≈ 920,000 possible).
+        'GET /invites/{code}':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'POST /parties/{partyId}/join':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'POST /parties':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+        'POST /parties/{partyId}/invite-code':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+        'PATCH /parties/{partyId}/settings':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'DELETE /parties/{partyId}/members/{memberId}':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'PATCH /users/me':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'POST /rounds/{roundId}/recommendations':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
+        # Ratings: a whole party may be tapping at once on Sunday evening.
+        'PUT /rounds/{roundId}/votes/{recommendationId}':
+          ThrottlingBurstLimit: 20
+          ThrottlingRateLimit: 10
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /dropabop/${Stage}/api-access
+      RetentionInDays: !If [IsProd, 30, 14]
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /dropabop/${Stage}/api
+      RetentionInDays: !If [IsProd, 30, 14] # for debugging recent problems; older logs only cost storage
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # One function per route (docs/API.md). Each may use only the table actions its handler needs: never Scan
+  # (spec §25), and Delete only where something is actually deleted. Transactions are authorized through the
+  # actions of the items inside them (Put/Update/Delete), so there's no separate permission for them.
+  # ---------------------------------------------------------------------------------------------------------------
+  # Proves the API and authorizer work.
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.healthHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /health
+
+  # Creates the profile on first call.
+  GetMeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getMeHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /users/me
+
+  UpdateMeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.updateMeHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PATCH
+            Path: /users/me
+
+  CreatePartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.createPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties
+
+  ListPartiesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listPartiesHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties
+
+  GetPartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}
+
+  PreviewInviteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.previewInviteHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem # counts wrong invite codes (P9.3)
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /invites/{code}
+
+  JoinPartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.joinPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/join
+
+  RegenerateInviteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.regenerateInviteHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/invite-code
+
+  RemoveMemberFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.removeMemberHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: DELETE
+            Path: /parties/{partyId}/members/{memberId}
+
+  UpdateSettingsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.updateSettingsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PATCH
+            Path: /parties/{partyId}/settings
+
+  # Creates and closes weeks lazily (ADR-0003).
+  GetCurrentWeekFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getCurrentWeekHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/rounds/current
+
+  # Creates and closes weeks lazily (ADR-0003).
+  ListWeeksFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listWeeksHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/rounds
+
+  SubmitRecommendationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.submitRecommendationHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /rounds/{roundId}/recommendations
+
+  ListRecommendationsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listRecommendationsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/recommendations
+
+  CastVoteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.castVoteHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PUT
+            Path: /rounds/{roundId}/votes/{recommendationId}
+
+  ListMyVotesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listMyVotesHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/votes/me
+
+  # Closes the week lazily (ADR-0003).
+  GetResultsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getResultsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/results
+
+  # Brings the current week up to date first (ADR-0003).
+  PersonalStatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.personalStatsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /users/me/stats
+
+  # Brings the current week up to date first (ADR-0003).
+  GroupStatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.groupStatsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/stats
+
+  # Brings the current week up to date first (ADR-0003).
+  LeaderboardFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.leaderboardHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/leaderboard
+
+  # iTunes only; no database access.
+  SearchSongsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.searchSongsHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /songs/search
+
+  # iTunes only; no database access.
+  ResolveSongFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.resolveSongHandler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /songs/resolve
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Alerts (spec §7, §33; roadmap P4.4). Email when something is failing or the bill moves. Alarms stay quiet when
+  # there's no traffic (missing data = OK). Costs: 4 alarm metrics per stage, inside CloudWatch's 10 free; the budget
+  # is free (email-only budgets cost nothing). Prices checked 2026-10-03 (DEPLOYMENT.md §4).
+  # ---------------------------------------------------------------------------------------------------------------
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub dropabop-${Stage}-alerts
+      DisplayName: !Sub Drop a Bop (${Stage}) alerts
+
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email # AWS emails a confirmation link first; nothing arrives until it's clicked
+      Endpoint: !Ref AlertEmail
+
+  # Lambda's own Errors metric counts crashes our handler wrapper couldn't turn into a response (e.g. a function
+  # failing at startup, as in P4.3). Handled errors become HTTP 500s and are caught by ApiServerErrorsAlarm below.
+  # No dimension = every function in this account and region, which in a project account is just this app.
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub dropabop-${Stage}-lambda-errors
+      AlarmDescription: API functions crashed 5+ times in 5 minutes. Check the /dropabop/<stage>/api log group.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  ApiServerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub dropabop-${Stage}-api-5xx
+      AlarmDescription: The API answered with a server error (5xx) 5+ times in 5 minutes.
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref HttpApi
+        - Name: Stage
+          Value: $default
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  # Any throttling means users saw errors, e.g. the table hit its on-demand caps (ADR-0005; the stats page is the
+  # likeliest cause as history grows).
+  TableReadThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub dropabop-${Stage}-dynamodb-read-throttles
+      AlarmDescription: Database reads were throttled. Consider raising MaxReadRequestUnits (ADR-0005).
+      Namespace: AWS/DynamoDB
+      MetricName: ReadThrottleEvents
+      Dimensions:
+        - Name: TableName
+          Value: !Ref Table
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  TableWriteThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub dropabop-${Stage}-dynamodb-write-throttles
+      AlarmDescription: Database writes were throttled. Consider raising MaxWriteRequestUnits (ADR-0005).
+      Namespace: AWS/DynamoDB
+      MetricName: WriteThrottleEvents
+      Dimensions:
+        - Name: TableName
+          Value: !Ref Table
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+
+  # The account-wide safety net from P4.1 (Ethan's project also has a $20 spend limit). Emails directly, so it
+  # works even if the SNS subscription was never confirmed.
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: ShouldCreateBudget
+    Properties:
+      Budget:
+        BudgetName: dropabop-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 5
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 50
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Website hosting (spec §3, roadmap P9.2): the built React app in a private S3 bucket, served only through
+  # CloudFront over HTTPS. Nobody can read the bucket directly (Origin Access Control signs CloudFront's requests).
+  # Cost: CloudFront's always-free 1 TB and 10 million requests a month; S3 holds a few MB (fractions of a cent).
+  # ---------------------------------------------------------------------------------------------------------------
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Condition: ShouldHostWebsite
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced # no ACLs at all; access is only by policy
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: app
+          Value: dropabop
+
+  WebOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Condition: ShouldHostWebsite
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub dropabop-${Stage}-web
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Only this distribution may read the files, and only read (spec §31: least privilege).
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: ShouldHostWebsite
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CloudFrontReadsTheSite
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${WebBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}'
+          # Refuse any request that isn't over HTTPS (the actions this bucket ever sees: read, upload, delete, list).
+          - Sid: HttpsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: [s3:GetObject, s3:PutObject, s3:DeleteObject, s3:ListBucket]
+            Resource:
+              - !GetAtt WebBucket.Arn
+              - !Sub '${WebBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  # Security headers on every response (spec §31). The CSP lets the page load only its own files, album art from
+  # Apple's image server, and talk only to Cognito and API Gateway in this region. (The API's exact address can't
+  # be named here without a circular reference: the API's CORS names this site.)
+  WebSecurityHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Condition: ShouldHostWebsite
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub dropabop-${Stage}-security-headers
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000 # 2 years
+            IncludeSubdomains: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: !Sub >-
+              default-src 'self';
+              script-src 'self';
+              style-src 'self' 'unsafe-inline';
+              img-src 'self' data: https://*.mzstatic.com;
+              connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com;
+              font-src 'self';
+              object-src 'none';
+              base-uri 'self';
+              form-action 'self';
+              frame-ancestors 'none'
+
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Condition: ShouldHostWebsite
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Drop a Bop website (${Stage})
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100 # North America and Europe edges only: the cheapest option
+        DefaultRootObject: index.html
+        Origins:
+          - Id: website
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt WebOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: '' # not used: Origin Access Control replaces it
+        DefaultCacheBehavior:
+          TargetOriginId: website
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          # AWS managed "CachingOptimized" policy. index.html is uploaded with no-cache, so new releases show at once.
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref WebSecurityHeaders
+        # A single-page app: links like /join/SONG-7K4P aren't files, so S3 answers 403; serve the app instead and
+        # let it show the right screen.
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+Outputs:
+  # Public values for the website's environment file (apps/web/.env.example). None of these are secrets.
+  ApiUrl:
+    Description: VITE_API_URL
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  UserPoolId:
+    Description: VITE_COGNITO_USER_POOL_ID
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: VITE_COGNITO_CLIENT_ID
+    Value: !Ref WebClient
+  Region:
+    Description: VITE_AWS_REGION
+    Value: !Ref AWS::Region
+  WebsiteUrl:
+    Condition: ShouldHostWebsite
+    Description: The website (CloudFront)
+    Value: !Sub https://${WebDistribution.DomainName}
+  WebBucketName:
+    Condition: ShouldHostWebsite
+    Description: Where scripts/deploy-web.sh uploads the built website
+    Value: !Ref WebBucket
+  WebDistributionId:
+    Condition: ShouldHostWebsite
+    Description: For clearing CloudFront's cache after a release
+    Value: !Ref WebDistribution
+  TableName:
+    Description: The DynamoDB table (for the AWS console; the API reads it from TABLE_NAME)
+    Value: !Ref Table
