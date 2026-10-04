@@ -59,6 +59,14 @@ function catalogSong(id: string, title: string, artist: string, album: string): 
   };
 }
 
+/** Monday 00:00 (local) after the week whose ratings lock at `endsAt`: when the next week starts, like the real API. */
+function nextMondayAfter(endsAt: string): string {
+  const monday = new Date(new Date(endsAt).getTime() - 60_000); // the lock minute itself
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7));
+  return monday.toISOString();
+}
+
 /** A fresh copy of the sample world. Tests can change it before rendering (e.g. make it the weekend). */
 export function createPreviewState(now: Date = new Date()): PreviewState {
   const party: Party = {
@@ -260,7 +268,7 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return {
         round: null,
         reason: 'between-weeks',
-        nextWeekStartsAt: state.round.endsAt,
+        nextWeekStartsAt: nextMondayAfter(state.round.endsAt),
         lastRoundId: state.round.roundId,
       };
     }
@@ -496,7 +504,11 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     if (is('POST', 'rounds', ':id', 'recommendations')) {
       const today = state.today;
       if (today === null)
-        throw new ApiError(409, 'WEEKEND', 'Sharing is closed on weekends. It opens again Monday.');
+        throw new ApiError(
+          409,
+          'WEEKEND',
+          'Today isn’t a sharing day. You can still rate this week’s songs.',
+        );
       if (state.songs.some((s) => s.isMine && s.weekday === today.weekday)) {
         throw new ApiError(409, 'ALREADY_SUBMITTED_TODAY', 'You’ve already shared your song for today.');
       }

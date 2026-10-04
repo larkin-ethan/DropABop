@@ -42,3 +42,10 @@ no duplicate ratings, friendly error messages, and votes can be changed only whi
   for songs, one per week for votes), but the voting UI must group songs by day and show progress.
 - **Stats** now accumulate up to 5× faster per member, so minimum-sample thresholds are reached sooner. The
   thresholds in PRODUCT_DECISIONS stay as they are.
+
+## Amendment (2026-10-04)
+
+Ethan asked for the schedule to be the host's choice: the sharing days (any of Monday–Sunday, at least one;
+default Monday–Friday) and when ratings lock (any day and minute not before the last sharing day; default Sunday
+23:59). Changes apply from the next week. Monday–Friday and Sunday 23:59 above are now the defaults rather than
+fixed rules. Details: PRODUCT_DECISIONS D1 and D2; ADR-0003 amendment.

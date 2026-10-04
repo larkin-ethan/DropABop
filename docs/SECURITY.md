@@ -43,7 +43,7 @@ app's own scripts, which is the main defence.
 - Who you are comes **only** from the verified token, never from anything you send. Request bodies are strict: an
   extra field such as `userId` is rejected.
 - Every handler checks, in order: signed in → member of this party → allowed to do this (e.g. host only) → the week's
-  state (e.g. sharing closed on weekends, ratings locked after Sunday). Rules are decided by the server clock, never
+  state (e.g. sharing closed on non-sharing days, ratings locked after the week's lock time). Rules are decided by the server clock, never
   the browser's.
 - A week id names its party, and membership of *that* party is checked, so ids can't be used to reach another party.
 - Open-week answers leave out other people's ratings entirely, and who shared each song unless the party turned that

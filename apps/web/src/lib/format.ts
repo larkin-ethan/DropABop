@@ -25,6 +25,18 @@ export function formatDayList(days: Weekday[]): string {
 }
 
 /**
+ * Between weeks: when sharing next opens. Weeks start Monday, but the first sharing day is the host's choice (D1).
+ * `shareDays` are the party's current settings (what the next week will use); undefined while they load.
+ */
+export function nextWeekSharingText(shareDays: Weekday[] | undefined): string {
+  const first = shareDays?.[0];
+  if (first === undefined) return 'Sharing opens when the next week starts.';
+  return first === 'MON'
+    ? 'The next week starts Monday, and so does sharing.'
+    : `The next week starts Monday; sharing opens ${DAY_NAMES[first]}.`;
+}
+
+/**
  * When ratings lock, in the viewer's own timezone. The API gives the exclusive end (the minute after the host's lock
  * time, e.g. next Monday 00:00); people expect the lock time itself ("Sunday 11:59 pm"), so show one minute earlier.
  */

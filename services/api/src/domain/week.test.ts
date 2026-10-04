@@ -311,6 +311,13 @@ describe('host-chosen schedule (D1, D2)', () => {
     expect(window.endsAt).toBe('2026-11-01T15:01:00.000Z');
   });
 
+  it('a lock time that doesn’t exist (clocks spring forward) moves to the same minute after the jump', () => {
+    // New York skips 02:00–03:00 on Sun Mar 8 2026. A "Sunday 02:30" lock becomes 03:30 EDT (07:30 UTC), so ratings
+    // lock at 03:31.
+    const window = getWeekWindow(schedule('America/New_York', 'SUN', '02:30'), utc('2026-03-04T12:00:00Z'));
+    expect(window.endsAt).toBe('2026-03-08T07:31:00.000Z');
+  });
+
   it('after an early lock the party is between weeks until Monday, then a new week starts', () => {
     const friday9pm = party({ ratingCloseDay: 'FRI', ratingCloseTime: '21:00' });
     const created = planCurrentWeek(friday9pm, null, utc('2026-10-07T17:00:00Z'));

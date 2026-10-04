@@ -67,7 +67,7 @@ export interface WeekResults {
   roundId: string;
   /** Every song from the week, best first. */
   songs: SongResult[];
-  /** Monday to Friday, always all five, in order. */
+  /** The week's sharing days (all of them, even ones with no songs), in week order. */
   days: DayResult[];
   totalRatings: number;
 }

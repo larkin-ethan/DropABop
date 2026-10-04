@@ -94,7 +94,7 @@ export interface Round {
   endsAt: IsoDateTime;
   /**
    * The party's sharing days when this week was created, so a mid-week change applies from next week.
-   * Missing on weeks created before the host could choose days: those used Monday–Friday (scheduleOf).
+   * Missing on weeks created before the host could choose days: those used Monday–Friday (shareDaysOf).
    */
   shareDays?: Weekday[];
   /**

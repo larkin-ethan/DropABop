@@ -18,6 +18,7 @@ import { Link, useNavigate } from 'react-router';
 import {
   useCurrentWeek,
   useMe,
+  useParty,
   useResolveSong,
   useShareSong,
   useSongSearch,
@@ -31,7 +32,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { TextField } from '../components/TextField';
 import { AlbumArt, Button, Card, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
-import { DAY_NAMES, formatDayList, formatLockTime, hueFor } from '../lib/format';
+import { DAY_NAMES, formatDayList, formatLockTime, hueFor, nextWeekSharingText } from '../lib/format';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
 
@@ -40,6 +41,7 @@ type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
 export function ShareScreen() {
   const { partyId, status, retry } = useCurrentParty();
   const week = useCurrentWeek(partyId);
+  const party = useParty(partyId);
   const { reveal } = useSharerNames(partyId);
 
   if (status === 'ready' && partyId === null) {
@@ -86,7 +88,7 @@ export function ShareScreen() {
                   message={
                     data.reason === 'paused'
                       ? 'Sharing is off until the host resumes the party.'
-                      : 'Sharing opens when the next week starts on Monday.'
+                      : nextWeekSharingText(party.data?.party.settings.shareDays)
                   }
                 />
               </Card>

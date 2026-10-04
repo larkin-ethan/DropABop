@@ -289,7 +289,7 @@ are ignored.
 - `ratings: [{ userId, rating }]` is added to each song only when the party's `showWhoRatedWhat` is on (D11).
 - `members` gives names for current members; a `recommendedBy` not in the list has left the party.
 
-Errors: `403 RESULTS_NOT_READY` ("Results unlock when the week ends on Sunday night." or, for weeks with fewer than
+Errors: `403 RESULTS_NOT_READY` ("Results unlock when this week’s ratings lock." or, for weeks with fewer than
 2 songs, "Not enough songs were shared this week…"), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
 
 ### Stats & leaderboards

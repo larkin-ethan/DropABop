@@ -27,8 +27,20 @@ export const updateSettingsFn: HandlerFn = async (event, { data }) => {
   if (settings.shareDays !== undefined) {
     settings.shareDays = sortWeekdays(settings.shareDays); // stored in week order
   }
-  if (settings.shareDays !== undefined || settings.ratingCloseDay !== undefined) {
-    assertAllowed(canSetSchedule({ ...party.settings, ...settings }));
+  if (
+    settings.shareDays !== undefined ||
+    settings.ratingCloseDay !== undefined ||
+    settings.ratingCloseTime !== undefined
+  ) {
+    const schedule = {
+      shareDays: settings.shareDays ?? party.settings.shareDays,
+      ratingCloseDay: settings.ratingCloseDay ?? party.settings.ratingCloseDay,
+      ratingCloseTime: settings.ratingCloseTime ?? party.settings.ratingCloseTime,
+    };
+    assertAllowed(canSetSchedule(schedule));
+    // Write all three together, so two quick changes (say, days from one tab and the lock day from another) can't
+    // combine into a schedule that was never checked: the last write stores a whole, valid schedule.
+    Object.assign(settings, schedule);
   }
 
   const updated = await updateParty(data, partyId, {

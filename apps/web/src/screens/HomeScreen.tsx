@@ -15,7 +15,7 @@ import { PageHeader, QueryBoundary } from '../components/Page';
 import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
 import { EmptyState } from '../components/States';
 import { Avatar, Card, ProgressBar, buttonClassName } from '../components/ui';
-import { DAY_NAMES, formatDayList, formatLockTime, formatTimeLeft } from '../lib/format';
+import { DAY_NAMES, formatDayList, formatLockTime, formatTimeLeft, nextWeekSharingText } from '../lib/format';
 import { WEEKDAYS, shareDaysOf } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
@@ -101,7 +101,7 @@ function PartyHome({ partyId }: { partyId: string }) {
         return data.reason === null ? (
           <OpenWeekHome partyId={partyId} week={data} />
         ) : (
-          <NoWeekHome week={data} />
+          <NoWeekHome partyId={partyId} week={data} />
         );
       }}
     </QueryBoundary>
@@ -109,8 +109,9 @@ function PartyHome({ partyId }: { partyId: string }) {
 }
 
 /** Paused party, or the gap between weeks. */
-function NoWeekHome({ week }: { week: NoWeek }) {
+function NoWeekHome({ partyId, week }: { partyId: string; week: NoWeek }) {
   const paused = week.reason === 'paused';
+  const party = useParty(partyId);
   return (
     <div>
       <PageHeader
@@ -123,9 +124,7 @@ function NoWeekHome({ week }: { week: NoWeek }) {
           message={
             paused
               ? 'The host can resume it any time in Party settings. Past results and stats are still here.'
-              : week.nextWeekStartsAt
-                ? `Sharing opens ${new Date(week.nextWeekStartsAt).toLocaleString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit' })}.`
-                : undefined
+              : nextWeekSharingText(party.data?.party.settings.shareDays)
           }
           action={
             week.lastRoundId ? (

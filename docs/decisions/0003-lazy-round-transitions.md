@@ -42,8 +42,17 @@ Zero additional services.
   Handlers never read `round.status` directly or compute dates themselves.
 - Each round stores the timezone it started with. A timezone change applies from the next week, and a new week
   starts only after the previous one ends and only for a later Monday, so weeks never overlap.
-- A week's `endsAt` is the *exclusive* next-Monday 00:00 instant: open means `now < endsAt`.
+- A week's `endsAt` is the *exclusive* lock instant (the minute after the host's lock time; next Monday 00:00 by
+  default): open means `now < endsAt`. It's fixed when the week is created.
 - Never trust a date or day sent by the client.
 - Results and stats for a closed week are computed when first requested after close (or on read; ADR-0006).
 - If push notifications are ever added ("today's songs are in!"), a scheduler becomes justified. Write a
   new ADR then.
+
+## Amendment (2026-10-04)
+
+The host can now choose the sharing days and when ratings lock (PRODUCT_DECISIONS D1, D2; roadmap P8.13). Nothing
+about the lazy approach changes: a week still starts on the first request after Monday 00:00 and still closes by
+time alone. What's new: `endsAt` comes from the host's lock day and time, and if it's before Sunday night,
+`planCurrentWeek` reports `between-weeks` from the lock until next Monday (no week runs over that gap). Each round
+stores its `shareDays`, so like the timezone, a schedule change applies from the next week.

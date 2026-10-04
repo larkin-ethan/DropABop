@@ -51,6 +51,11 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
   `shareDays`), results Bop of the Day per sharing day, settings form (day chips, lock day + time), copy no longer
   says "weekend"/"Sunday night". Verified: `npm run verify`, integration 188/188 (DynamoDB Local), e2e 19/19,
   settings screenshot at 320 px checked. Not deployed to dev yet (needs Ethan's approval at the prompt).
+  Spec review: fixed "sharing opens Monday" between weeks (now names the first sharing day), the settings handler
+  writes the whole validated schedule (two quick edits can't combine into an unchecked one), sample-mode next-week
+  time, stale ADR-0003/0004 (amendments), API.md, SECURITY.md, type comments; added a spring-forward lock-time test.
+  Re-verified: verify, integration 188/188, e2e 19/19. Allowed by D2 but worth knowing: a lock at 00:00 on the last
+  sharing day leaves that day effectively closed.
 - 2026-10-04 — **P8.12 done** — `e2e/screens.spec.ts` (part of `npm run e2e`): 17 screens × 320/375/390/430/768/
   1024/1440 px; fails on sideways scroll, an unnamed button/link/field, or an image without alt; checks the first Tab
   lands on a visible element; saves full-page screenshots to `e2e/screenshots/` (git-ignored). Verified: 17/17 pass;

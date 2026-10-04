@@ -39,6 +39,18 @@ describe('Home (P8.3)', () => {
     expect(screen.getByText(/Today isn’t a sharing day \(this week: Monday to Friday\)/)).toBeInTheDocument();
   });
 
+  it('between weeks, names the first sharing day rather than assuming Monday', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.weekClosed = true;
+        s.parties[0]!.settings.shareDays = ['TUE', 'THU'];
+      },
+    });
+    expect(
+      await screen.findByText('The next week starts Monday; sharing opens Tuesday.'),
+    ).toBeInTheDocument();
+  });
+
   it('counts sharing days from the week’s own schedule (D1)', async () => {
     renderApp('/', {
       setup: (s) => {

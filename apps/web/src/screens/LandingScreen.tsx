@@ -87,8 +87,8 @@ export function LandingScreen() {
           </h1>
           <p className="mt-3 text-lg text-ink/90">One song a day. One group. Endless good vibes.</p>
           <p className="mt-4 max-w-md text-muted">
-            Every weekday, everyone in your party shares a song. Rate each other’s picks all week, then see
-            what the group loved most when the week ends.
+            On each sharing day, everyone in your party shares a song. Rate each other’s picks all week, then
+            see what the group loved most when ratings lock.
           </p>
           <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
             <Link to="/sign-up" className={buttonClassName('primary', 'py-3')}>
