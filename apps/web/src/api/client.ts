@@ -34,6 +34,7 @@ interface ClientOptions {
 }
 
 const GENERIC = 'Something went wrong. Please try again.';
+export const RATE_LIMITED_MESSAGE = 'Lots of requests right now. Please wait a few seconds and try again.';
 
 export function createApiClient({ baseUrl, auth, onSignedOut, fetchImpl = fetch }: ClientOptions): ApiClient {
   async function send(method: string, path: string, body: unknown, forceRefresh: boolean): Promise<Response> {
@@ -66,6 +67,10 @@ export function createApiClient({ baseUrl, auth, onSignedOut, fetchImpl = fetch 
       return undefined as T;
     }
     const data: unknown = await response.json().catch(() => null);
+    if (response.status === 429) {
+      // API Gateway's own throttle (P9.1) answers before our code runs, without our error format.
+      throw new ApiError(429, 'RATE_LIMITED', RATE_LIMITED_MESSAGE);
+    }
     if (!response.ok) {
       const error = (data as Partial<ApiErrorBody> | null)?.error;
       throw new ApiError(response.status, error?.code ?? 'INTERNAL', error?.message ?? GENERIC);

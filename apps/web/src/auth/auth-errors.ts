@@ -23,6 +23,11 @@ const FALLBACK = 'Something went wrong. Please try again.';
 
 export function friendlyAuthError(error: unknown): string {
   const name = typeof error === 'object' && error !== null && 'name' in error ? String(error.name) : '';
+  const message = error instanceof Error ? error.message : '';
+  // Cognito's temporary lockout after 5 wrong passwords (P9.1) arrives as NotAuthorizedException with this message.
+  if (name === 'NotAuthorizedException' && message.includes('Password attempts exceeded')) {
+    return MESSAGES.TooManyFailedAttemptsException ?? FALLBACK;
+  }
   return MESSAGES[name] ?? FALLBACK;
 }
 

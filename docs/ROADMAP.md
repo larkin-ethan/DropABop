@@ -334,7 +334,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 9 — Hardening
 
-- [ ] **P9.1 — Rate limiting** (§32) — API Gateway stage + per-route throttles (tighter on invites, search, writes);
+- [ ] **P9.1 — Rate limiting** (template + app done 2026-10-04; deploys with P9.2) (§32) — API Gateway stage + per-route throttles (tighter on invites, search, writes);
   Cognito's built-in protections documented. No WAF unless an ADR justifies the monthly cost.
 - [ ] **P9.2 — Frontend hosting stack** (§3) — private S3 bucket + CloudFront with Origin Access Control, SPA
   fallback to `index.html`, CloudFront Response Headers Policy (HSTS, CSP, X-Content-Type-Options, frame-ancestors,

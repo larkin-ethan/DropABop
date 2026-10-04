@@ -177,10 +177,51 @@ Resources:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE]
         AllowHeaders: [authorization, content-type]
         MaxAge: 600
-      # Stage-wide limits per route (requests per second). Tighter per-route limits come in P9.1.
+      # Rate limits (spec §32, roadmap P9.1). API Gateway counts each route's requests from ALL callers together
+      # (token bucket: RateLimit per second, Burst = short spikes) and answers 429 above them; there's no per-person
+      # limit in HTTP APIs. So limits leave room for a whole party at once (20 people) while capping abuse and cost.
+      # Per-person limits come from the app's own rules (5 parties each, one song a day, invite codes required).
+      # Docs checked 2026-10-04: docs.aws.amazon.com/apigateway/latest/developerguide/http-api-throttling.html
       DefaultRouteSettings:
         ThrottlingBurstLimit: 50
         ThrottlingRateLimit: 25
+      RouteSettings:
+        # Song search calls iTunes (about 20 calls a minute allowed; ADR-0007). Typing is debounced in the app.
+        'GET /songs/search':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 3
+        'POST /songs/resolve':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        # Invite codes: slow down anyone trying to guess codes (31^4 ≈ 920,000 possible).
+        'GET /invites/{code}':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'POST /parties/{partyId}/join':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'POST /parties':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+        'POST /parties/{partyId}/invite-code':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+        'PATCH /parties/{partyId}/settings':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'DELETE /parties/{partyId}/members/{memberId}':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'PATCH /users/me':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        'POST /rounds/{roundId}/recommendations':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
+        # Ratings: a whole party may be tapping at once on Sunday evening.
+        'PUT /rounds/{roundId}/votes/{recommendationId}':
+          ThrottlingBurstLimit: 20
+          ThrottlingRateLimit: 10
 
   ApiLogGroup:
     Type: AWS::Logs::LogGroup

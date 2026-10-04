@@ -146,4 +146,31 @@ describe('infra/template.yaml', () => {
     // The repo is public: no email address may ever be committed in the deploy settings.
     expect(readRepoFile('infra/samconfig.toml')).not.toMatch(/[^\s"'=]+@[^\s"']+\.[a-z]{2,}/i);
   });
+
+  it('rate-limits the sensitive routes more tightly than the default, and only names real routes (P9.1)', () => {
+    const api = template.Resources.HttpApi?.Properties as {
+      DefaultRouteSettings: { ThrottlingRateLimit: number; ThrottlingBurstLimit: number };
+      RouteSettings: Record<string, { ThrottlingRateLimit: number; ThrottlingBurstLimit: number }>;
+    };
+    const routes = new Set(
+      functions.flatMap((fn) =>
+        Object.values(fn.props.Events).map((event) => `${event.Properties.Method} ${event.Properties.Path}`),
+      ),
+    );
+    // A typo in a route key would silently apply no limit, so every key must be a real route.
+    for (const key of Object.keys(api.RouteSettings)) {
+      expect(routes.has(key), key).toBe(true);
+    }
+    for (const key of [
+      'GET /songs/search',
+      'GET /invites/{code}',
+      'POST /parties/{partyId}/join',
+      'POST /parties',
+    ]) {
+      const limits = api.RouteSettings[key];
+      expect(limits, key).toBeDefined();
+      expect(limits!.ThrottlingRateLimit).toBeLessThan(api.DefaultRouteSettings.ThrottlingRateLimit);
+      expect(limits!.ThrottlingBurstLimit).toBeLessThanOrEqual(api.DefaultRouteSettings.ThrottlingBurstLimit);
+    }
+  });
 });

@@ -36,9 +36,19 @@ REST-style JSON API served by API Gateway (HTTP API) → Lambda. Every endpoint 
 | 403 | `FORBIDDEN`, `NOT_A_MEMBER`, `NOT_HOST`, `OWN_SONG`, `RESULTS_NOT_READY` |
 | 404 | `NOT_FOUND` |
 | 409 | `PARTY_FULL`, `ALREADY_MEMBER`, `PARTY_PAUSED`, `WEEKEND`, `ALREADY_SUBMITTED_TODAY`, `WEEK_CLOSED`, `CONFLICT` |
-| 429 | `RATE_LIMITED` |
+| 429 | `RATE_LIMITED` (also API Gateway's own throttle, which answers `{"message":"Too Many Requests"}`; the website shows "please wait a few seconds") |
 | 500 | `INTERNAL`: generic message; details are only in server logs |
 | 502 | `PROVIDER_UNAVAILABLE` |
+
+### Rate limits (P9.1)
+
+API Gateway limits each route for **all callers together** (requests per second / short burst; 429 above them).
+Default 25/s, burst 50. Tighter: song search 3/s (burst 10), resolve link 2/s (5), invite preview and join 2/s (5),
+create party and new invite link 1/s (3), settings / profile / remove member 2/s (5), share a song 5/s (10), rate
+10/s (20). Per-person limits come from the rules themselves: 5 parties per person, one song per day, invite code
+required. Sign-in is protected by Cognito: after 5 wrong passwords an account is locked for 1 s, doubling each time
+up to about 15 minutes (docs.aws.amazon.com/cognito/latest/developerguide/authentication.html, checked 2026-10-04).
+Values live in `infra/template.yaml` (`RouteSettings`).
 
 ### Logging
 

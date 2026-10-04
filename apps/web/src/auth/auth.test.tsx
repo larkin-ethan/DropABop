@@ -35,6 +35,13 @@ describe('friendlyAuthError (spec §30)', () => {
     expect(friendlyAuthError(named('SomethingNew'))).toBe('Something went wrong. Please try again.');
   });
 
+  it('explains Cognito’s temporary lockout instead of “wrong password”', () => {
+    const lockout = Object.assign(new Error('Password attempts exceeded'), {
+      name: 'NotAuthorizedException',
+    });
+    expect(friendlyAuthError(lockout)).toMatch(/Too many attempts/);
+  });
+
   it('does not reveal whether an account exists', () => {
     expect(friendlyAuthError(named('UserNotFoundException'))).toBe(
       friendlyAuthError(named('NotAuthorizedException')),
@@ -115,6 +122,20 @@ describe('API client (spec §9)', () => {
       fetchImpl: () => Promise.reject(new TypeError('Failed to fetch')),
     });
     await expect(offline.get('/users/me')).rejects.toMatchObject({ code: 'NETWORK' });
+  });
+
+  it('turns API Gateway’s throttling (429, no body) into a friendly “wait a moment”', async () => {
+    const client = createApiClient({
+      baseUrl: 'https://api.example.com',
+      auth: fakeAuth(),
+      onSignedOut: vi.fn(),
+      fetchImpl: () => ok({ message: 'Too Many Requests' }, 429),
+    });
+    await expect(client.get('/songs/search?q=ab')).rejects.toMatchObject({
+      status: 429,
+      code: 'RATE_LIMITED',
+      message: expect.stringMatching(/wait a few seconds/) as unknown,
+    });
   });
 });
 

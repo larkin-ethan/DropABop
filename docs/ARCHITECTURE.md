@@ -27,7 +27,7 @@ when someone makes a request (ADR-0003), and the website polls for new songs.
 | `Table` | DynamoDB table | On-demand, keys `PK`/`SK`, no indexes; throughput caps (dev 50 read / 25 write per second, prod 100 / 50); prod: point-in-time recovery + deletion protection; kept if the stack is deleted | Per request + storage over 25 GB (ADR-0005) |
 | `UserPool` | Cognito user pool | Email sign-in, email code verification, password ≥ 8 with upper/lower/number, Essentials plan; prod: deletion protection; kept if the stack is deleted | Over 10,000 monthly active users |
 | `WebClient` | Cognito app client | Public (no secret), SRP + refresh token only, user-existence errors hidden, token revocation on | Free |
-| `HttpApi` | API Gateway HTTP API | JWT authorizer on every route (Cognito issuer, audience = `WebClient`, scope `aws.cognito.signin.user.admin` so ID tokens are refused); CORS for one origin; default throttle 25 req/s, burst 50 per route | Per request |
+| `HttpApi` | API Gateway HTTP API | JWT authorizer on every route (Cognito issuer, audience = `WebClient`, scope `aws.cognito.signin.user.admin` so ID tokens are refused); CORS for one origin; rate limits per route (default 25 req/s, burst 50; tighter on search, invites, and writes: docs/API.md → Rate limits) | Per request |
 | 23 × `…Function` | Lambda | Node.js 24, arm64, 256 MB, 10 s timeout; one per route in `docs/API.md` | Per request + duration |
 | 23 × `…FunctionRole` | IAM role (created by SAM) | Each function may only use the table actions its handler needs (never Scan); the iTunes and health functions get no table access | Free |
 | `ApiLogGroup` | CloudWatch log group | `/dropabop/<stage>/api`, shared by all functions; kept 14 days (dev) / 30 days (prod) | Log volume + storage |
