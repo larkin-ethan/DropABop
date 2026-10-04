@@ -10,6 +10,7 @@ import { sampleCurrentWeek, sampleMembers, sampleParty, sampleSongs } from './pr
 import { ForgotPasswordScreen, SignInScreen, SignUpScreen, VerifyEmailScreen } from './screens/AuthScreens';
 import { ComponentGallery } from './screens/ComponentGallery';
 import { HomeScreen } from './screens/HomeScreen';
+import { LandingScreen } from './screens/LandingScreen';
 
 function ComingSoon({ title, task }: { title: string; task: string }) {
   return (
@@ -34,7 +35,7 @@ function SampleDataBanner({ preview }: { preview: boolean }) {
   );
 }
 
-/** Sends signed-out visitors to sign in, then brings them back to where they were going. */
+/** Sends signed-out visitors to the welcome page or to sign in (then back to where they were going). */
 function RequireAuth() {
   const { status } = useAuth();
   const location = useLocation();
@@ -46,6 +47,10 @@ function RequireAuth() {
     );
   }
   if (status === 'signedOut') {
+    // The front door gets the welcome page; any other link (e.g. /stats) asks to sign in, then returns there.
+    if (location.pathname === '/') {
+      return <Navigate to="/welcome" replace />;
+    }
     return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />;
   }
   return (
@@ -55,9 +60,19 @@ function RequireAuth() {
   );
 }
 
+/** Signed-in people have no use for the welcome page, so it takes them home. */
+function WelcomeRoute() {
+  const { status } = useAuth();
+  if (status === 'signedIn') {
+    return <Navigate to="/" replace />;
+  }
+  return <LandingScreen />;
+}
+
 export function App({ preview = false }: { preview?: boolean }) {
   return (
     <Routes>
+      <Route path="/welcome" element={<WelcomeRoute />} />
       <Route path="/sign-in" element={<SignInScreen />} />
       <Route path="/sign-up" element={<SignUpScreen />} />
       <Route path="/verify" element={<VerifyEmailScreen />} />

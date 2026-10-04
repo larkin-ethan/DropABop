@@ -20,6 +20,11 @@ const BUTTON_STYLES: Record<ButtonVariant, string> = {
   ghost: 'text-muted hover:text-ink hover:bg-surface-raised',
 };
 
+/** Button look for things that aren't <button>s, e.g. a router <Link> that should look like a button. */
+export function buttonClassName(variant: ButtonVariant = 'primary', extra = ''): string {
+  return `inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${BUTTON_STYLES[variant]} ${extra}`;
+}
+
 export function Button({
   variant = 'primary',
   className = '',
@@ -27,11 +32,7 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
   return (
-    <button
-      type="button"
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${BUTTON_STYLES[variant]} ${className}`}
-      {...props}
-    >
+    <button type="button" className={buttonClassName(variant, className)} {...props}>
       {children}
     </button>
   );

@@ -208,6 +208,32 @@ describe('protected routes', () => {
     expect(await screen.findByRole('heading', { name: 'Welcome back!' })).toBeInTheDocument();
   });
 
+  it('show signed-out visitors the welcome page at the front door', async () => {
+    render(
+      <AuthProvider service={fakeAuth()}>
+        <MemoryRouter initialEntries={['/']}>
+          <App />
+          <WhereAmI />
+        </MemoryRouter>
+      </AuthProvider>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Drop a Bop', level: 1 })).toBeInTheDocument();
+    expect(screen.getByTestId('path')).toHaveTextContent('/welcome');
+    expect(screen.getByRole('link', { name: 'Get started' })).toHaveAttribute('href', '/sign-up');
+    expect(screen.getByRole('heading', { name: 'How it works' })).toBeInTheDocument();
+  });
+
+  it('take signed-in people from the welcome page straight home', async () => {
+    render(
+      <AuthProvider service={fakeAuth({ getCurrentUserId: () => Promise.resolve('user-1') })}>
+        <MemoryRouter initialEntries={['/welcome']}>
+          <App />
+        </MemoryRouter>
+      </AuthProvider>,
+    );
+    expect(await screen.findByRole('heading', { name: 'This week’s songs' })).toBeInTheDocument();
+  });
+
   it('show the app to signed-in people', async () => {
     render(
       <AuthProvider service={fakeAuth({ getCurrentUserId: () => Promise.resolve('user-1') })}>
@@ -221,7 +247,7 @@ describe('protected routes', () => {
     expect(screen.getByText(/sample data until this screen is connected/)).toBeInTheDocument();
   });
 
-  it('let signed-in people sign out, back to the sign-in page', async () => {
+  it('let signed-in people sign out, back to the welcome page', async () => {
     let signedIn = true;
     const service = fakeAuth({
       getCurrentUserId: () => Promise.resolve(signedIn ? 'user-1' : null),
@@ -241,6 +267,6 @@ describe('protected routes', () => {
     const buttons = await screen.findAllByRole('button', { name: 'Sign out' });
     await userEvent.click(buttons[0] as HTMLElement);
     expect(service.signOut).toHaveBeenCalledOnce();
-    expect(await screen.findByRole('heading', { name: 'Welcome back!' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'How it works' })).toBeInTheDocument();
   });
 });

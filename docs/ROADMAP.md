@@ -303,7 +303,7 @@ there**. Behaviour always follows PRODUCT_DECISIONS. Compare a screenshot of you
 ticking the box. Each screen also needs loading, empty, and error states; works at 320/375/390/430/768/1024/1440; uses TanStack Query
 (polling for new songs during the week, e.g. every 30–60 s on the current week, paused when the tab is hidden).
 
-- [ ] **P8.1 — Landing / Welcome** (§19.1, §27)
+- [x] **P8.1 — Landing / Welcome** (§19.1, §27)
 - [ ] **P8.2 — Onboarding & join-by-code/link** (§26, §27) — `/join/:code` works logged out (sign up then auto-join).
 - [ ] **P8.3 — Home / Today** (§19.3) — today's songs first, then the rest of the week by day; "Share today's song"
   call to action (or "You've shared today's song ✓"; on weekends "Catch up on this week's songs"); countdown to the

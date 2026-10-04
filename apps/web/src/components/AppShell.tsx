@@ -1,7 +1,7 @@
 // Page frame from the mockup: sidebar on desktop/tablet, bottom tab bar on mobile (docs/design/README.md → Layout).
 
 import { useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { Icon, type IconName } from './Icon';
 import { Logo } from './ui';
@@ -26,11 +26,12 @@ const NAV: NavItem[] = [
 ];
 
 /**
- * Signs out and lets the route guard send you to the sign-in page. Lives in the frame so it's reachable from every
+ * Signs out and goes to the welcome page. Lives in the frame so it's reachable from every
  * screen; the Profile screen (P8.11) will offer it too.
  */
 function SignOutButton({ compact = false }: { compact?: boolean }) {
   const { service, refresh } = useAuth();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   async function handleClick() {
@@ -38,9 +39,11 @@ function SignOutButton({ compact = false }: { compact?: boolean }) {
     try {
       await service.signOut();
     } finally {
-      // Even if Cognito couldn't be reached, re-check: local tokens are cleared, so this shows the sign-in page.
+      // Even if Cognito couldn't be reached, local tokens are cleared; re-check and go to the welcome page
+      // (not "sign in to see this page again", which is what the route guard would show).
       await refresh();
       setBusy(false);
+      void navigate('/welcome', { replace: true });
     }
   }
 
