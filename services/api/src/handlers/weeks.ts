@@ -1,5 +1,6 @@
 // GET /parties/{partyId}/rounds/current and GET /parties/{partyId}/rounds (docs/API.md → Weeks).
 
+import type { CurrentWeekResponse, RoundsResponse } from '@dropabop/shared';
 import type { Party, PartyMember, Round } from '@dropabop/shared';
 import { roundHistoryQuerySchema } from '@dropabop/shared';
 import type { DataContext } from '../data/context';
@@ -94,7 +95,7 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
       reason: week.reason,
       nextWeekStartsAt,
       lastRoundId: week.lastRound?.roundId ?? null,
-    });
+    } satisfies CurrentWeekResponse);
   }
 
   const round = week.round;
@@ -127,7 +128,7 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
       ratableCount: ratableSongIds.size,
       ratedCount: myVotes.filter((v) => ratableSongIds.has(v.recommendationId)).length,
     },
-  });
+  } satisfies CurrentWeekResponse);
 };
 
 /** Past and current weeks, newest first, paged. */
@@ -139,7 +140,7 @@ export const listWeeksFn: HandlerFn = async (event, { data, now }) => {
 
   await resolveCurrentWeek(data, party, now()); // makes sure stored statuses are up to date
   const page = await listRounds(data, partyId, { limit: query.limit ?? 20, cursor: query.cursor ?? null });
-  return ok(page);
+  return ok(page satisfies RoundsResponse);
 };
 
 export const getCurrentWeekHandler = createHandler(getCurrentWeekFn);

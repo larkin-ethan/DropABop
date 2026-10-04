@@ -1,5 +1,6 @@
 // GET /rounds/{roundId}/results (docs/API.md → Results).
 
+import type { ResultsResponse } from '@dropabop/shared';
 import { listMembers } from '../data/parties';
 import { listWeekRecommendations } from '../data/recommendations';
 import { recordRoundStatus } from '../data/rounds';
@@ -50,7 +51,7 @@ export const getResultsFn: HandlerFn = async (event, { data, now }) => {
       displayName: m.displayName,
       avatarColor: m.avatarColor,
     })),
-  });
+  } satisfies ResultsResponse);
 };
 
 export const getResultsHandler = createHandler(getResultsFn);

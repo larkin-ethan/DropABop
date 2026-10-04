@@ -3,28 +3,26 @@
 // Privacy is handled here, not in the handlers: fields a viewer isn't allowed to see are left out of
 // the returned objects entirely (not set to null), so they can't leak into an API response by accident.
 
-import type { PartySettings, Recommendation, Round, Song, Vote, Weekday } from '@dropabop/shared';
+import type {
+  DayResult,
+  OpenWeekSongView,
+  PartySettings,
+  Recommendation,
+  Round,
+  SongResult,
+  Vote,
+  WeekResults,
+} from '@dropabop/shared';
 import { MAX_RATING, MIN_RATING, SUBMISSION_WEEKDAYS } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 import { getEffectiveWeekStatus } from './week';
 
+// The view types live in @dropabop/shared (api-types.ts) so the website reads exactly what this builds.
+export type { DayResult, OpenWeekSongView, SongResult, WeekResults };
+
 // ---------------------------------------------------------------------------
 // During the week (D9, D10)
 // ---------------------------------------------------------------------------
-
-/** A song as shown while the week is open. Never includes other people's ratings or averages (D9). */
-export interface OpenWeekSongView {
-  recommendationId: string;
-  weekday: Weekday;
-  submittedOn: string;
-  song: Song;
-  /** True if the viewer shared this song (so the UI can say "Your pick" and hide the rating control). */
-  isMine: boolean;
-  /** Only present when the party reveals recommenders during the week (D10), or for your own song. */
-  recommendedBy?: string;
-  /** The viewer's own rating, if they've given one. */
-  myRating: number | null;
-}
 
 export function toOpenWeekSongView(
   recommendation: Recommendation,
@@ -65,42 +63,6 @@ export function canViewResults(
     return deny('RESULTS_NOT_READY', MESSAGES.NO_RESULTS);
   }
   return { ok: true };
-}
-
-export interface SongResult {
-  recommendationId: string;
-  /** 1 = best. Songs with equal displayed averages share a rank (1, 1, 3). Unrated songs share last place. */
-  rank: number;
-  weekday: Weekday;
-  submittedOn: string;
-  song: Song;
-  /** Revealed with the results (D10). */
-  recommendedBy: string;
-  /** Average rounded to 1 decimal place (D12), or null if nobody rated it. */
-  averageRating: number | null;
-  ratingCount: number;
-  /** Count of each rating: index 0 = number of 1s … index 9 = number of 10s. Anonymous. */
-  distribution: number[];
-  myRating: number | null;
-  /** Who gave which rating. Only present when the party setting `showWhoRatedWhat` is on (D11). */
-  ratings?: { userId: string; rating: number }[];
-}
-
-export interface DayResult {
-  weekday: Weekday;
-  /** recommendationIds for that day, best first. Empty if nobody shared a song that day. */
-  songIds: string[];
-  /** The day's "Bop of the Day": highest average among rated songs. Several if tied; empty if none rated. */
-  winnerIds: string[];
-}
-
-export interface WeekResults {
-  roundId: string;
-  /** Every song from the week, best first. */
-  songs: SongResult[];
-  /** Monday to Friday, always all five, in order. */
-  days: DayResult[];
-  totalRatings: number;
 }
 
 /**

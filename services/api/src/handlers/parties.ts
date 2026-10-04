@@ -1,5 +1,6 @@
 // POST /parties, GET /parties, GET /parties/{partyId} (docs/API.md → Parties).
 
+import type { PartiesResponse, PartyResponse } from '@dropabop/shared';
 import type { Party, PartyMember } from '@dropabop/shared';
 import { DEFAULT_MAX_PARTY_SIZE, MAX_PARTIES_PER_USER, createPartyRequestSchema } from '@dropabop/shared';
 import type { DataContext } from '../data/context';
@@ -81,7 +82,7 @@ export const createPartyHandlerFn: HandlerFn = async (event, { data, now, newId 
     };
     try {
       await createParty(data, party, host);
-      return created({ party, members: [host], isHost: true });
+      return created({ party, members: [host], isHost: true } satisfies PartyResponse);
     } catch (error) {
       if (!(error instanceof InviteCodeTakenError) || attempt === 5) throw error;
     }
@@ -92,7 +93,7 @@ export const createPartyHandlerFn: HandlerFn = async (event, { data, now, newId 
 /** The parties you're in. */
 export const listPartiesHandlerFn: HandlerFn = async (event, { data }) => {
   const { userId } = getAuthenticatedUser(event);
-  return ok({ parties: await listUserParties(data, userId) });
+  return ok({ parties: await listUserParties(data, userId) } satisfies PartiesResponse);
 };
 
 /** One party with its members. Members only (spec §24). */
@@ -101,7 +102,7 @@ export const getPartyHandlerFn: HandlerFn = async (event, { data }) => {
   const partyId = pathId(event, 'partyId');
   const { party } = await loadPartyForMember(data, partyId, userId);
   const members = await listMembers(data, partyId);
-  return ok({ party, members, isHost: isHost(party, userId) });
+  return ok({ party, members, isHost: isHost(party, userId) } satisfies PartyResponse);
 };
 
 export const createPartyHandler = createHandler(createPartyHandlerFn);

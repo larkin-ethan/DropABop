@@ -1,5 +1,6 @@
 // POST and GET /rounds/{roundId}/recommendations (docs/API.md → Songs).
 
+import type { ShareSongResponse, WeekSongsResponse } from '@dropabop/shared';
 import type { Recommendation, SongProvider, SubmitRecommendationRequest } from '@dropabop/shared';
 import {
   canonicalLinks,
@@ -92,7 +93,9 @@ export const submitRecommendationFn: HandlerFn = async (event, { data, now, newI
     createdAt: now().toISOString(),
   };
   await putRecommendation(data, recommendation);
-  return created({ song: toOpenWeekSongView(recommendation, userId, undefined, party.settings) });
+  return created({
+    song: toOpenWeekSongView(recommendation, userId, undefined, party.settings),
+  } satisfies ShareSongResponse);
 };
 
 /**
@@ -119,7 +122,7 @@ export const listRecommendationsFn: HandlerFn = async (event, { data, now }) => 
         revealRecommenderDuringVoting: reveal,
       }),
     ),
-  });
+  } satisfies WeekSongsResponse);
 };
 
 export const submitRecommendationHandler = createHandler(submitRecommendationFn);

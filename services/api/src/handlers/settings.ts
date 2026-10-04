@@ -1,5 +1,6 @@
 // PATCH /parties/{partyId}/settings (docs/API.md → Party settings).
 
+import type { PartyResponse } from '@dropabop/shared';
 import { updatePartySettingsRequestSchema } from '@dropabop/shared';
 import { listMembers, updateParty } from '../data/parties';
 import { canManageParty, canSetMaxMembers } from '../domain/party';
@@ -27,7 +28,11 @@ export const updateSettingsFn: HandlerFn = async (event, { data }) => {
     ...(name === undefined ? {} : { name }),
     ...(Object.keys(settings).length === 0 ? {} : { settings }),
   });
-  return ok({ party: updated, members: await listMembers(data, partyId), isHost: true });
+  return ok({
+    party: updated,
+    members: await listMembers(data, partyId),
+    isHost: true,
+  } satisfies PartyResponse);
 };
 
 export const updateSettingsHandler = createHandler(updateSettingsFn);

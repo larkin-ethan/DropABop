@@ -1,5 +1,6 @@
 // PUT /rounds/{roundId}/votes/{recommendationId} and GET /rounds/{roundId}/votes/me (docs/API.md → Ratings).
 
+import type { MyVotesResponse, VoteResponse } from '@dropabop/shared';
 import type { Vote } from '@dropabop/shared';
 import { castVoteRequestSchema } from '@dropabop/shared';
 import { getRecommendation } from '../data/recommendations';
@@ -33,7 +34,7 @@ export const castVoteFn: HandlerFn = async (event, { data, now }) => {
     updatedAt: now().toISOString(),
   };
   await putVote(data, vote);
-  return ok({ vote: { recommendationId, rating, updatedAt: vote.updatedAt } });
+  return ok({ vote: { recommendationId, rating, updatedAt: vote.updatedAt } } satisfies VoteResponse);
 };
 
 /** Your own ratings for this week. Never anyone else's (D9). */
@@ -47,7 +48,7 @@ export const listMyVotesFn: HandlerFn = async (event, { data }) => {
       rating: v.rating,
       updatedAt: v.updatedAt,
     })),
-  });
+  } satisfies MyVotesResponse);
 };
 
 export const castVoteHandler = createHandler(castVoteFn);

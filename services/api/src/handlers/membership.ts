@@ -1,5 +1,6 @@
 // Invites, joining, leaving, and removing members (docs/API.md → Invites & membership).
 
+import type { InviteCodeResponse, InvitePreviewResponse, PartyResponse } from '@dropabop/shared';
 import type { PartyMember } from '@dropabop/shared';
 import { inviteCodeSchema, joinPartyRequestSchema } from '@dropabop/shared';
 import {
@@ -41,7 +42,7 @@ export const previewInviteFn: HandlerFn = async (event, { data }) => {
     maxMembers: party.settings.maxMembers,
     isFull: party.memberCount >= party.settings.maxMembers,
     alreadyMember,
-  });
+  } satisfies InvitePreviewResponse);
 };
 
 /** Join a party with its current invite code (spec §8, §26). */
@@ -73,7 +74,8 @@ export const joinPartyFn: HandlerFn = async (event, { data, now }) => {
   await joinParty(data, party, inviteCode, member);
 
   const [updated, members] = await Promise.all([getParty(data, partyId), listMembers(data, partyId)]);
-  return ok({ party: updated, members, isHost: false });
+  // Re-read for the new member count; parties are never deleted, but fall back to what we loaded just in case.
+  return ok({ party: updated ?? party, members, isHost: false } satisfies PartyResponse);
 };
 
 /** Host only: replace the invite code; the old one stops working immediately (D16). */
@@ -87,7 +89,7 @@ export const regenerateInviteFn: HandlerFn = async (event, { data }) => {
     const inviteCode = generateInviteCode();
     try {
       await regenerateInviteCode(data, partyId, party.inviteCode, inviteCode);
-      return ok({ inviteCode });
+      return ok({ inviteCode } satisfies InviteCodeResponse);
     } catch (error) {
       if (!(error instanceof InviteCodeTakenError) || attempt === 5) throw error;
     }

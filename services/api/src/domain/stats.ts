@@ -9,30 +9,26 @@
 //   is needed. We never show a number we can't back up (spec §17).
 // - Ratings on your own song (never accepted by the API) and ratings for unknown songs are ignored.
 
-import type { Recommendation, Round, Vote } from '@dropabop/shared';
+import type {
+  FavoriteArtist,
+  LeaderboardEntry,
+  MusicalTwin,
+  Recommendation,
+  Round,
+  Stat,
+  Superlative,
+  Vote,
+  Winner,
+} from '@dropabop/shared';
 import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
 
 // ---------------------------------------------------------------------------
-// Result types
+// Result types: defined in @dropabop/shared (api-types.ts) so the website reads exactly what this builds.
+// "Most …" stats return every tied winner; `sampleSize` = how many candidates met the minimum, and `required`
+// (when not enough data) = the per-candidate minimum.
 // ---------------------------------------------------------------------------
 
-export type Stat<T> =
-  | { status: 'ok'; value: T; sampleSize: number }
-  | { status: 'not-enough-data'; sampleSize: number; required: number };
-
-/** One winner of a "most …" stat. `id` is a recommendationId or a userId depending on the stat. */
-export interface Winner {
-  id: string;
-  value: number;
-  /** How much data this winner's value is based on (ratings, songs, …). */
-  sampleSize: number;
-}
-
-/**
- * "Most …" stats return every tied winner. `sampleSize` = how many candidates met the minimum;
- * `required` (when not enough data) = the per-candidate minimum.
- */
-export type Superlative = Stat<Winner[]>;
+export type { FavoriteArtist, LeaderboardEntry, MusicalTwin, Stat, Superlative, Winner };
 
 /** Minimum samples from the PRODUCT_DECISIONS stats table. */
 export const MINIMUMS = {
@@ -251,12 +247,6 @@ export function ratingDistributionGiven(data: StatsData, userId: string): Stat<n
   return { status: 'ok', value: distribution, sampleSize: ratings.length };
 }
 
-export interface FavoriteArtist {
-  artist: string;
-  averageRating: number;
-  songCount: number;
-}
-
 /** Artists the user rated highest on average, best first (top 3). Each needs 2+ songs rated by the user. */
 export function favoriteArtists(data: StatsData, userId: string): Stat<FavoriteArtist[]> {
   const songArtist = new Map(
@@ -286,13 +276,6 @@ export function favoriteArtists(data: StatsData, userId: string): Stat<FavoriteA
     return notEnough(0, MINIMUMS.favoriteArtistSongs);
   }
   return { status: 'ok', value: qualifying.slice(0, 3), sampleSize: qualifying.length };
-}
-
-export interface MusicalTwin {
-  userId: string;
-  /** Average gap between your rating and theirs on songs you both rated (0 = identical taste). */
-  meanAbsoluteDifference: number;
-  sharedSongs: number;
 }
 
 /** The member whose ratings are closest to yours, on at least 5 songs you both rated. */
@@ -500,15 +483,6 @@ export function mostPopular(data: StatsData): Superlative {
 // ---------------------------------------------------------------------------
 // Leaderboards (spec §18)
 // ---------------------------------------------------------------------------
-
-export interface LeaderboardEntry {
-  id: string;
-  /** Ties share a rank (1, 1, 3). */
-  rank: number;
-  value: number;
-  /** Shown as "Based on N …" next to every row. */
-  sampleSize: number;
-}
 
 /** Ranks candidates; only those meeting the minimum are included. */
 export function rankEntries(candidates: Winner[], direction: 'highest' | 'lowest'): LeaderboardEntry[] {

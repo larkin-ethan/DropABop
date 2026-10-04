@@ -1,6 +1,7 @@
 // GET /users/me/stats, GET /parties/{partyId}/stats, GET /parties/{partyId}/leaderboard (docs/API.md → Stats).
 // Computed on request from closed weeks only (ADR-0006, docs/STATISTICS.md).
 
+import type { GroupStatsResponse, LeaderboardResponse, PersonalStatsResponse } from '@dropabop/shared';
 import type { Party, Recommendation } from '@dropabop/shared';
 import { personalStatsQuerySchema } from '@dropabop/shared';
 import type { DataContext } from '../data/context';
@@ -92,7 +93,7 @@ export const personalStatsFn: HandlerFn = async (event, { data, now }) => {
     favoriteArtists: stats.favoriteArtists(d, userId),
     musicalTwin: twin,
     members: await memberNames(data, partyId),
-  });
+  } satisfies PersonalStatsResponse);
 };
 
 /** Group stats for a party (spec §17 group). */
@@ -117,7 +118,7 @@ export const groupStatsFn: HandlerFn = async (event, { data, now }) => {
     mostGenerousVoter: stats.mostGenerousVoter(d),
     toughestCritic: stats.toughestCritic(d),
     members: await memberNames(data, partyId),
-  });
+  } satisfies GroupStatsResponse);
 };
 
 /** Leaderboards (spec §18). Each entry carries its sample size ("Based on N …"). */
@@ -138,7 +139,7 @@ export const leaderboardFn: HandlerFn = async (event, { data, now }) => {
     mostSurprising: stats.surpriseLeaderboard(d),
     mostPopular: stats.popularityLeaderboard(d),
     members: await memberNames(data, partyId),
-  });
+  } satisfies LeaderboardResponse);
 };
 
 export const personalStatsHandler = createHandler(personalStatsFn);
