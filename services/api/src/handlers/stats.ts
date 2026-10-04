@@ -69,6 +69,7 @@ async function memberNames(ctx: DataContext, partyId: string) {
     userId: m.userId,
     displayName: m.displayName,
     avatarColor: m.avatarColor,
+    avatarImage: m.avatarImage ?? null,
   }));
 }
 

@@ -13,7 +13,7 @@ import {
   type PartyMember,
   type UpdatePartySettingsRequest,
 } from '@dropabop/shared';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   useMe,
@@ -29,6 +29,7 @@ import { Modal } from '../components/Modal';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { TextField } from '../components/TextField';
 import { Avatar, Button, Card } from '../components/ui';
+import { AvatarImageError, toAvatarDataUrl } from '../lib/avatar-image';
 import { errorMessage } from '../lib/errors';
 import { PROVIDER_NAMES } from '../lib/music-links';
 import { inviteLink } from '../lib/pending-invite';
@@ -371,7 +372,7 @@ function MembersCard({ party, members, isHost }: { party: Party; members: PartyM
       <ul className="mt-3 flex flex-col">
         {members.map((m) => (
           <li key={m.userId} className="flex items-center gap-3 border-b border-line py-2.5 last:border-0">
-            <Avatar name={m.displayName} color={m.avatarColor} />
+            <Avatar name={m.displayName} color={m.avatarColor} image={m.avatarImage} />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">
                 {m.displayName}
@@ -467,13 +468,38 @@ export function ProfileForm({
   user,
   compact = false,
 }: {
-  user: { displayName: string; avatarColor: string; preferredProvider: MusicProviderId | null };
+  user: {
+    displayName: string;
+    avatarColor: string;
+    avatarImage?: string | null;
+    preferredProvider: MusicProviderId | null;
+  };
   /** Onboarding's short version: just the name. */
   compact?: boolean;
 }) {
   const update = useUpdateProfile();
   const [name, setName] = useState(user.displayName === DEFAULT_DISPLAY_NAME ? '' : user.displayName);
   const [color, setColor] = useState(user.avatarColor);
+  const [image, setImage] = useState<string | null>(user.avatarImage ?? null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function handlePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // so choosing the same file again still triggers a change
+    if (file === undefined) return;
+    setImageError(null);
+    try {
+      setImage(await toAvatarDataUrl(file));
+      setSaved(false);
+    } catch (error) {
+      setImageError(
+        error instanceof AvatarImageError
+          ? error.message
+          : 'That photo couldn’t be used. Please try another.',
+      );
+    }
+  }
   const [preferred, setPreferred] = useState<MusicProviderId | ''>(user.preferredProvider ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -493,6 +519,7 @@ export function ProfileForm({
         : {
             displayName: parsed.data,
             avatarColor: color,
+            avatarImage: image,
             preferredProvider: preferred === '' ? null : preferred,
           },
       { onSuccess: () => setSaved(true) },
@@ -503,7 +530,7 @@ export function ProfileForm({
     <Card>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <div className="flex items-center gap-4">
-          <Avatar name={name.trim() || '?'} color={color} size="lg" />
+          <Avatar name={name.trim() || '?'} color={color} image={compact ? null : image} size="lg" />
           <div className="min-w-0 flex-1">
             <TextField
               label="Display name"
@@ -517,6 +544,41 @@ export function ProfileForm({
         </div>
         {!compact && (
           <>
+            <div>
+              <p className="text-sm font-medium">Profile picture</p>
+              <p className="text-xs text-muted">
+                Optional. Shown to your party members instead of your initials.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  aria-label="Choose a profile picture"
+                  onChange={(e) => void handlePhoto(e)}
+                />
+                <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+                  {image ? 'Change picture' : 'Upload a picture'}
+                </Button>
+                {image && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setImage(null);
+                      setSaved(false);
+                    }}
+                  >
+                    Remove picture
+                  </Button>
+                )}
+              </div>
+              {imageError && (
+                <p role="alert" className="mt-2 text-sm text-red-300">
+                  {imageError}
+                </p>
+              )}
+            </div>
             <fieldset>
               <legend className="text-sm font-medium">Avatar color</legend>
               <div className="mt-2 flex flex-wrap gap-2">

@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { parseAppleMusicSongUrl, parseSpotifyTrackUrl, parseYouTubeUrl } from './links';
 import {
+  AVATAR_IMAGE_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   INVITE_CODE_PATTERN,
   MAX_PARTY_SIZE,
@@ -79,6 +80,14 @@ export const avatarColorSchema = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, { error: 'Avatar colors must be a hex color like #3B82F6.' });
 
+/** A small JPEG or WebP picture as a data URL; never SVG or other formats that could carry script. */
+export const avatarImageSchema = z
+  .string()
+  .max(AVATAR_IMAGE_MAX_LENGTH, { error: 'That picture is too large. Please choose another.' })
+  .regex(/^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/, {
+    error: 'Please choose a JPEG or WebP picture.',
+  });
+
 export const musicProviderSchema = z.enum(MUSIC_PROVIDERS, { error: 'That music service isn’t supported.' });
 
 /** Only https links are stored and shown, so we never render an insecure or javascript: link. */
@@ -110,6 +119,7 @@ export const updateProfileRequestSchema = z
   .strictObject({
     displayName: displayNameSchema,
     avatarColor: avatarColorSchema,
+    avatarImage: avatarImageSchema.nullable(),
     preferredProvider: musicProviderSchema.nullable(),
   })
   .partial()

@@ -292,6 +292,7 @@ function ResultCard({
             <Avatar
               name={names.name(result.recommendedBy)}
               color={names.color(result.recommendedBy)}
+              image={names.image(result.recommendedBy)}
               size="sm"
             />
             Shared by {names.name(result.recommendedBy)} · {formatShortDate(result.submittedOn)}
@@ -341,7 +342,12 @@ function ResultCard({
                 {result.ratings.map((r) => (
                   <li key={r.userId} className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2">
-                      <Avatar name={names.name(r.userId)} color={names.color(r.userId)} size="sm" />
+                      <Avatar
+                        name={names.name(r.userId)}
+                        color={names.color(r.userId)}
+                        image={names.image(r.userId)}
+                        size="sm"
+                      />
                       {names.name(r.userId)}
                     </span>
                     <span className="font-semibold">{r.rating}</span>

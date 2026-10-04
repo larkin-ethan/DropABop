@@ -186,7 +186,7 @@ function ProfileLink({ compact = false }: { compact?: boolean }) {
       }
     >
       {user ? (
-        <Avatar name={user.displayName} color={user.avatarColor} size="sm" />
+        <Avatar name={user.displayName} color={user.avatarColor} image={user.avatarImage} size="sm" />
       ) : (
         <Icon name="user" className="size-8 text-muted" />
       )}

@@ -86,7 +86,8 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 #### `PATCH /users/me`
 
 Body (`updateProfileRequestSchema`, at least one field): `displayName` (1–40 chars, trimmed), `avatarColor`
-(`#RRGGBB`), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22).
+(`#RRGGBB`), `avatarImage` (profile picture: a `data:image/jpeg|webp;base64,…` URL up to 9,000 characters, or
+`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22).
 Updates only the given fields; your name/color in party member lists updates too.
 
 `200`: `{ "user": { … } }`. Errors: `400 VALIDATION_FAILED` (bad value, empty update, or any unexpected field such

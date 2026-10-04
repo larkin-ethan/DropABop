@@ -42,10 +42,13 @@ export function Button({
 export function Avatar({
   name,
   color,
+  image,
   size = 'md',
 }: {
   name: string;
   color: string;
+  /** Profile picture (a small data URL); falls back to initials on the colour. */
+  image?: string | null;
   size?: 'sm' | 'md' | 'lg';
 }) {
   const initials = name
@@ -55,6 +58,16 @@ export function Avatar({
     .map((part) => part[0]?.toUpperCase())
     .join('');
   const sizes = { sm: 'size-8 text-xs', md: 'size-10 text-sm', lg: 'size-12 text-base' };
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt=""
+        title={name}
+        className={`shrink-0 rounded-full object-cover ring-2 ring-bg ${sizes[size]}`}
+      />
+    );
+  }
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ring-2 ring-bg ${sizes[size]}`}

@@ -40,12 +40,14 @@ export async function getOrCreateUserProfile(ctx: DataContext, newUser: User): P
 export interface ProfileChanges {
   displayName?: string;
   avatarColor?: string;
+  /** A data URL, or null to go back to the initials avatar. */
+  avatarImage?: string | null;
   preferredProvider?: MusicProviderId | null;
 }
 
 /**
  * Updates only the fields that changed (so edits from two devices don't undo each other), and returns the
- * updated profile. Display name and avatar color are also copied onto the user's membership in each party (so
+ * updated profile. Display name, avatar color, and picture are also copied onto the user's membership in each party (so
  * member lists need one query); that copy is best-effort, because the user may leave a party meanwhile.
  */
 export async function updateUserProfile(
@@ -84,7 +86,11 @@ export async function updateUserProfile(
     throw error;
   }
 
-  if (changes.displayName !== undefined || changes.avatarColor !== undefined) {
+  if (
+    changes.displayName !== undefined ||
+    changes.avatarColor !== undefined ||
+    changes.avatarImage !== undefined
+  ) {
     const parties = await listUserParties(ctx, userId);
     const results = await Promise.allSettled(
       parties.map((party) =>
@@ -92,9 +98,13 @@ export async function updateUserProfile(
           new UpdateCommand({
             TableName: ctx.tableName,
             Key: keys.member(party.partyId, userId),
-            UpdateExpression: 'SET displayName = :name, avatarColor = :color',
+            UpdateExpression: 'SET displayName = :name, avatarColor = :color, avatarImage = :image',
             ConditionExpression: 'attribute_exists(PK)',
-            ExpressionAttributeValues: { ':name': updated.displayName, ':color': updated.avatarColor },
+            ExpressionAttributeValues: {
+              ':name': updated.displayName,
+              ':color': updated.avatarColor,
+              ':image': updated.avatarImage ?? null,
+            },
           }),
         ),
       ),
@@ -107,4 +117,9 @@ export async function updateUserProfile(
   return updated;
 }
 
-const PROFILE_FIELDS: (keyof ProfileChanges)[] = ['displayName', 'avatarColor', 'preferredProvider'];
+const PROFILE_FIELDS: (keyof ProfileChanges)[] = [
+  'displayName',
+  'avatarColor',
+  'avatarImage',
+  'preferredProvider',
+];

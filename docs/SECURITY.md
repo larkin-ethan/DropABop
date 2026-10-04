@@ -17,7 +17,8 @@ and three low ones are fixed or listed under Known limits below.
 
 - **In Cognito (AWS's sign-in service):** your email and password. The password is never sent to us: the website
   signs in with SRP, which proves you know it without sending it, and Cognito stores only a protected form of it.
-- **In our database:** your display name, avatar colour, preferred music app, your parties, the songs you share, and
+- **In our database:** your display name, avatar colour, optional profile picture (a small 128×128 copy made in
+  your browser), preferred music app, your parties, the songs you share, and
   your ratings. **Not** your email.
 - **In logs (kept 14 days in dev, 30 in prod):** request id, route, status, timing, and your user id (a random
   identifier, not your email). Never tokens, passwords, request bodies, or headers; the logger also strips these if

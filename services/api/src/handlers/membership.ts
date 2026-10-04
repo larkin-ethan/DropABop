@@ -110,6 +110,7 @@ async function joinWithCode(
     userId,
     displayName: profile.displayName,
     avatarColor: profile.avatarColor,
+    avatarImage: profile.avatarImage ?? null,
     role: 'member',
     joinedAt: now().toISOString(),
   };

@@ -46,6 +46,12 @@ export const MEMBER_ROLES = ['host', 'member'] as const;
 export const INVITE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const INVITE_CODE_PATTERN = /^SONG-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/;
 
+/**
+ * Profile pictures are stored as small data URLs (D18). The website shrinks photos to 128×128 first, which is usually
+ * 4–8 KB; this cap keeps the whole request under the API's 10 KB body limit.
+ */
+export const AVATAR_IMAGE_MAX_LENGTH = 9_000;
+
 /** Shown until the person picks a name during onboarding (P8.2). */
 export const DEFAULT_DISPLAY_NAME = 'New member';
 

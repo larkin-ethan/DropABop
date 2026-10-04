@@ -130,6 +130,7 @@ export interface MemberName {
   userId: string;
   displayName: string;
   avatarColor: string;
+  avatarImage?: string | null;
 }
 
 // ---------------------------------------------------------------------------

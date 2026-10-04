@@ -81,8 +81,10 @@ this deliberate change to spec §13–§15.
 
 ## Profiles (§19)
 
-- **D18 — Avatars** in v1 are generated (initials + color from user id). Image upload is deferred
-  (avoids S3 upload infrastructure and moderation).
+- **D18 — Avatars:** initials on a colour by default. **Updated 2026-10-04 (Ethan): people may add a profile picture.**
+  The browser crops and shrinks the photo to a 128×128 JPEG (a few KB, so the original photo and its location data
+  never leave the device); it's stored with the profile as a small data URL and shown to party members instead of the
+  initials. JPEG/WebP only (no SVG), at most 9,000 characters; it can be removed any time. No new AWS service.
 - **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, preferred music app. Nothing else.
 
 ## Music (§10, §11, §12)

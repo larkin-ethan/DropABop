@@ -22,10 +22,10 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 
 | Item | PK | SK | Main attributes |
 |---|---|---|---|
-| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, preferredProvider, createdAt |
+| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, createdAt |
 | "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt |
 | Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings, createdAt |
-| Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, role, joinedAt |
+| Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
 | Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt, status |
 | Song shared (recommendation) | `PARTY#<partyId>` | `REC#<week>#<recommendationId>` | userId, submittedOn, weekday, song (embedded), createdAt |
 | "Already shared today" marker | `PARTY#<partyId>` | `SUBMITTED#<week>#<userId>#<date>` | recommendationId |

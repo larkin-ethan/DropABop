@@ -116,7 +116,12 @@ function songLine(winner: WinnerWithSong, names: NameLookup, valueLabel: (v: num
 function personLine(winner: WinnerWithSong, names: NameLookup, valueLabel: (v: number) => string) {
   return (
     <div className="flex items-center gap-2">
-      <Avatar name={names.name(winner.id)} color={names.color(winner.id)} size="sm" />
+      <Avatar
+        name={names.name(winner.id)}
+        color={names.color(winner.id)}
+        image={names.image(winner.id)}
+        size="sm"
+      />
       <span className="min-w-0 flex-1 truncate font-semibold">{names.name(winner.id)}</span>
       <span className="text-xl font-bold text-primary">{valueLabel(winner.value)}</span>
     </div>
@@ -250,7 +255,11 @@ export function PersonalStatsScreen() {
                       <ul className="flex flex-col gap-2">
                         {twins.map((t) => (
                           <li key={t.userId} className="flex items-center gap-2">
-                            <Avatar name={names.name(t.userId)} color={names.color(t.userId)} />
+                            <Avatar
+                              name={names.name(t.userId)}
+                              color={names.color(t.userId)}
+                              image={names.image(t.userId)}
+                            />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-semibold">{names.name(t.userId)}</span>
                               <span className="block text-xs text-muted">
@@ -435,7 +444,12 @@ export function LeaderboardScreen() {
           if (b === undefined) return null;
           const names = nameLookup(b.members, me.data?.user.userId);
           const people = (entries: typeof b.mostConsistent) =>
-            entries.map((e) => ({ ...e, name: names.name(e.id), avatarColor: names.color(e.id) }));
+            entries.map((e) => ({
+              ...e,
+              name: names.name(e.id),
+              avatarColor: names.color(e.id),
+              avatarImage: names.image(e.id),
+            }));
           if (b.weeksPlayed === 0) {
             return (
               <Card>

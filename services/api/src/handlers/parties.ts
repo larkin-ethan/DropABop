@@ -59,6 +59,7 @@ export const createPartyHandlerFn: HandlerFn = async (event, { data, now, newId 
     userId,
     displayName: profile.displayName,
     avatarColor: profile.avatarColor,
+    avatarImage: profile.avatarImage ?? null,
     role: 'host',
     joinedAt: createdAt,
   };

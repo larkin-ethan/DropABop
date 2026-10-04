@@ -21,6 +21,11 @@ export interface User {
   displayName: string;
   /** #RRGGBB, used for the generated initials avatar (D18). */
   avatarColor: string;
+  /**
+   * Optional profile picture (D18, updated 2026-10-04): a small square JPEG/WebP as a data URL, made in the browser.
+   * Missing or null = initials avatar.
+   */
+  avatarImage?: string | null;
   /** D22: whose "Open in …" link is shown first. */
   preferredProvider: MusicProviderId | null;
   createdAt: IsoDateTime;
@@ -54,6 +59,8 @@ export interface PartyMember {
   userId: string;
   displayName: string;
   avatarColor: string;
+  /** Copy of the member's profile picture, if any (kept in sync like the name and colour). */
+  avatarImage?: string | null;
   role: MemberRole;
   joinedAt: IsoDateTime;
 }

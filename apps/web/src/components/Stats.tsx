@@ -57,6 +57,7 @@ export interface LeaderboardRow {
   sampleSize: number;
   name: string;
   avatarColor: string;
+  avatarImage?: string | null;
 }
 
 export function Leaderboard({
@@ -88,7 +89,7 @@ export function Leaderboard({
               >
                 {row.rank}
               </span>
-              <Avatar name={row.name} color={row.avatarColor} size="sm" />
+              <Avatar name={row.name} color={row.avatarColor} image={row.avatarImage} size="sm" />
               <span className="min-w-0 flex-1 truncate font-medium">{row.name}</span>
               <span className="text-right">
                 <span className="block font-bold">{format(row.value)}</span>

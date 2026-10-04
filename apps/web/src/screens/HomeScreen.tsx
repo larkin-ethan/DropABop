@@ -292,7 +292,7 @@ function MembersToday({ week, members }: { week: OpenWeek; members: PartyMember[
           const shared = sharedIds?.includes(m.userId);
           return (
             <li key={m.userId} className="relative" title={m.displayName}>
-              <Avatar name={m.displayName} color={m.avatarColor} size="sm" />
+              <Avatar name={m.displayName} color={m.avatarColor} image={m.avatarImage} size="sm" />
               {shared && (
                 <span
                   className="absolute -right-1 -bottom-1 inline-flex size-4 items-center justify-center rounded-full bg-success text-bg"

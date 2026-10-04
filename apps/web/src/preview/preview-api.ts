@@ -161,6 +161,7 @@ function memberNames(state: PreviewState) {
     userId: m.userId,
     displayName: m.displayName,
     avatarColor: m.avatarColor,
+    avatarImage: m.avatarImage ?? null,
   }));
 }
 
@@ -232,7 +233,12 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       state.user = { ...state.user, ...(body as Partial<User>) };
       state.members = state.members.map((m) =>
         m.userId === ME
-          ? { ...m, displayName: state.user.displayName, avatarColor: state.user.avatarColor }
+          ? {
+              ...m,
+              displayName: state.user.displayName,
+              avatarColor: state.user.avatarColor,
+              avatarImage: state.user.avatarImage ?? null,
+            }
           : m,
       );
       return { user: state.user };

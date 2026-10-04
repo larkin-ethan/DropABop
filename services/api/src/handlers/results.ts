@@ -50,6 +50,7 @@ export const getResultsFn: HandlerFn = async (event, { data, now }) => {
       userId: m.userId,
       displayName: m.displayName,
       avatarColor: m.avatarColor,
+      avatarImage: m.avatarImage ?? null,
     })),
   } satisfies ResultsResponse);
 };
