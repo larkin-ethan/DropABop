@@ -143,7 +143,7 @@ The deploy workflow uses GitHub variables `AWS_DEPLOY_ROLE_ARN`, `AWS_CLOUDFORMA
 | `npm run verify` | Format, lint, typecheck, unit tests, and guardrail checks. Run before every commit. |
 | `npm test` | Unit tests only (domain rules, screens against a pretend API, template checks). |
 | `npm run db:up` then `npm run test:integration` | API tests against DynamoDB Local in Docker. |
-| `npm run e2e` | A real browser walks join → share → rate → week ends → results, at phone and desktop widths. |
+| `npm run e2e` | A real browser walks join → share → rate → week ends → results at phone and desktop widths, then checks every screen at 7 widths (screenshots in `e2e/screenshots/`). |
 | `node scripts/smoke-dev.mjs`, then `npm run e2e:dev` | Every endpoint, then the browser journey, against your deployed dev stack (manual; the first creates the test users the second needs). |
 
 GitHub runs the first four on every pull request ([.github/workflows/ci.yml](.github/workflows/ci.yml)).

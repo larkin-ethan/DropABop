@@ -25,3 +25,6 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# P8.12 screenshots (regenerate with npm run e2e)
+e2e/screenshots/

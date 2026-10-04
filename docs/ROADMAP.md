@@ -327,7 +327,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
   plain-language note: "Days run midnight to midnight in America/Chicago; ratings lock Sunday 11:59 pm"), visibility
   settings, and pause/resume.
 - [x] **P8.11 — Profile / Account** (§19.12) — display name, avatar color, preferred music app (D22), sign out.
-- [ ] **P8.12 — Responsive & accessibility pass** (§21) (manual pass done 2026-10-03: no horizontal scroll on 16 pages × 7 widths, labels/headings check, contrast AA fixes; Playwright screenshots wait for P10.1) — check every screen at all 7 widths (screenshots via
+- [x] **P8.12 — Responsive & accessibility pass** (§21) (manual pass 2026-10-03: contrast AA fixes; automated 2026-10-04: `e2e/screens.spec.ts`, 17 screens × 7 widths) — check every screen at all 7 widths (screenshots via
   Playwright), keyboard navigation, color contrast AA, no horizontal scroll at 320px.
 
 ---

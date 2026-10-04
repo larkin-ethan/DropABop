@@ -44,6 +44,10 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P8.12 done** — `e2e/screens.spec.ts` (part of `npm run e2e`): 17 screens × 320/375/390/430/768/
+  1024/1440 px; fails on sideways scroll, an unnamed button/link/field, or an image without alt; checks the first Tab
+  lands on a visible element; saves full-page screenshots to `e2e/screenshots/` (git-ignored). Verified: 17/17 pass;
+  screenshots inspected by eye (results at 320, sign-in at 320). Contrast was fixed in the 2026-10-03 manual pass.
 - 2026-10-04 — **P12.1 done** — Docs finished after an independent "newcomer" review. Fixed: budget name clash (the
   dev stack makes `dropabop-monthly`, so the manual budget step now uses another name), region us-east-1 → us-east-2
   throughout DEPLOYMENT (+ list of files that hold the region, DEVELOPMENT.md), first deploy needs AlertEmail (README),
