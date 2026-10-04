@@ -454,7 +454,7 @@ export function LeaderboardScreen() {
           return (
             <>
               <WeeksNote weeksPlayed={b.weeksPlayed} />
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
                 <Card>
                   <h3 className="font-bold">Highest average song rating</h3>
                   <p className="mt-0.5 text-xs text-muted">

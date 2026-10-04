@@ -80,7 +80,9 @@ export function SongRow({
 /** "Your pick" / "8/10" badges used on the right of a SongRow. */
 export function MyPickBadge() {
   return (
-    <span className="rounded-full bg-purple/20 px-3 py-1 text-xs font-semibold text-purple">Your pick</span>
+    <span className="rounded-full bg-purple/20 px-3 py-1 text-xs font-semibold text-violet-200">
+      Your pick
+    </span>
   );
 }
 

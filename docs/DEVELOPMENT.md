@@ -39,6 +39,18 @@ npm run verify
 | `npm run typecheck` | TypeScript in every workspace (no output files; it only checks). |
 | `npm run format` | Auto-format with Prettier. Run this if `format:check` fails. |
 | `npm run guardrails` | Project rule checks: forbidden AWS services, secrets, unsafe auth patterns, DB scans. |
+| `npm run dev` | The website on http://localhost:5173, talking to the dev stack (needs `apps/web/.env.development.local`, see DEPLOYMENT.md). |
+| `npm run dev -w @dropabop/web -- --mode sample --port 5174` | The website with **sample data** (no AWS, no sign-in): every screen backed by the in-memory pretend API in `apps/web/src/preview/preview-api.ts`. A yellow banner says it's a preview. Also in `.claude/launch.json` as `web-sample`. |
+| `node scripts/smoke-dev.mjs` | Calls every API endpoint on the deployed dev stack with two throwaway users (after `aws login --profile dropabop-dev`). |
+
+### How the website gets its data
+
+- `apps/web/src/api/hooks.ts`: one TanStack Query hook per endpoint. The current week and its songs refresh every
+  45 s while the tab is visible; stats are cached for 5 minutes; results for the session.
+- `packages/shared/src/api-types.ts`: the response shapes. The API's handlers check their responses against them
+  (`satisfies`), so the website and API can't drift.
+- `apps/web/src/party/CurrentParty.tsx`: which of your parties the screens show (remembered on the device).
+- Screen tests (`apps/web/src/screens/screens.test.tsx`) render the whole app against the pretend API.
 
 ## Repository layout
 

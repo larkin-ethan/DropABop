@@ -304,26 +304,26 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 (polling for new songs during the week, e.g. every 30–60 s on the current week, paused when the tab is hidden).
 
 - [x] **P8.1 — Landing / Welcome** (§19.1, §27)
-- [ ] **P8.2 — Onboarding & join-by-code/link** (§26, §27) — `/join/:code` works logged out (sign up then auto-join).
-- [ ] **P8.3 — Home / Today** (§19.3) — today's songs first, then the rest of the week by day; "Share today's song"
+- [x] **P8.2 — Onboarding & join-by-code/link** (§26, §27) — `/join/:code` works logged out (sign up then auto-join).
+- [x] **P8.3 — Home / Today** (§19.3) — today's songs first, then the rest of the week by day; "Share today's song"
   call to action (or "You've shared today's song ✓"; on weekends "Catch up on this week's songs"); countdown to the
   week's end (in the viewer's local time); members with today's submitted status; unrated count; party switcher;
   create party; "paused" state.
-- [ ] **P8.4 — Share Today's Song** (§19.4) — provider search, paste-link fallback, confirm step ("You can't change
+- [x] **P8.4 — Share Today's Song** (§19.4) — provider search, paste-link fallback, confirm step ("You can't change
   it after sharing"), "already shared today" state, weekend state.
-- [ ] **P8.5 — Rate This Week's Songs** (§19.5) — all of the week's songs grouped by day (anonymous per D10),
+- [x] **P8.5 — Rate This Week's Songs** (§19.5) — all of the week's songs grouped by day (anonymous per D10),
   play/open buttons, RatingControl, "Unrated" filter, progress ("12 of 31 rated"), change a rating any time until the
   week ends, clear "ratings lock Sunday 11:59 pm" notice.
-- [ ] **P8.6 — Weekly Results** (§16, §19.6) — overall ranking, each day's "Bop of the Day" winner, per-day view,
+- [x] **P8.6 — Weekly Results** (§16, §19.6) — overall ranking, each day's "Bop of the Day" winner, per-day view,
   averages, distribution chart, your rating vs group, reveal per settings.
-- [ ] **P8.7 — History** (§19.11) — past weeks list → weekly results.
-- [ ] **P8.8 — Personal Stats** (§17, §19.7) — every stat with "Based on N" or "Not enough data yet".
-- [ ] **P8.9 — Group Stats & Leaderboard** (§17, §18, §19.8–9) — each metric shows its definition (tooltip/help).
-- [ ] **P8.10 — Party Settings** (§19.10) — host only; non-hosts see read-only. Includes the party timezone (with a
+- [x] **P8.7 — History** (§19.11) — past weeks list → weekly results.
+- [x] **P8.8 — Personal Stats** (§17, §19.7) — every stat with "Based on N" or "Not enough data yet".
+- [x] **P8.9 — Group Stats & Leaderboard** (§17, §18, §19.8–9) — each metric shows its definition (tooltip/help).
+- [x] **P8.10 — Party Settings** (§19.10) — host only; non-hosts see read-only. Includes the party timezone (with a
   plain-language note: "Days run midnight to midnight in America/Chicago; ratings lock Sunday 11:59 pm"), visibility
   settings, and pause/resume.
-- [ ] **P8.11 — Profile / Account** (§19.12) — display name, avatar color, preferred music app (D22), sign out.
-- [ ] **P8.12 — Responsive & accessibility pass** (§21) — check every screen at all 7 widths (screenshots via
+- [x] **P8.11 — Profile / Account** (§19.12) — display name, avatar color, preferred music app (D22), sign out.
+- [ ] **P8.12 — Responsive & accessibility pass** (§21) (manual pass done 2026-10-03: no horizontal scroll on 16 pages × 7 widths, labels/headings check, contrast AA fixes; Playwright screenshots wait for P10.1) — check every screen at all 7 widths (screenshots via
   Playwright), keyboard navigation, color contrast AA, no horizontal scroll at 320px.
 
 ---

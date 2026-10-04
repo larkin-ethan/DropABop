@@ -74,14 +74,25 @@ function Toggle({
         <span className="block font-medium">{label}</span>
         <span className="block text-sm text-muted">{description}</span>
       </span>
-      <input
-        type="checkbox"
-        role="switch"
-        className="mt-1 size-5 shrink-0 accent-[var(--color-primary)]"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+      <span className="relative mt-1 inline-flex shrink-0">
+        <input
+          type="checkbox"
+          role="switch"
+          className="peer sr-only"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        {/* The visible switch: track turns teal and the knob slides right when on. */}
+        <span
+          aria-hidden="true"
+          className="h-6 w-11 rounded-full border border-line bg-surface-raised transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-blue"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute top-1 left-1 size-4 rounded-full bg-muted transition peer-checked:translate-x-5 peer-checked:bg-primary-ink"
+        />
+      </span>
     </label>
   );
 }

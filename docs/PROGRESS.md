@@ -2,8 +2,10 @@
 
 ## Current focus
 
-Phase 4 is done except **P4.3**'s weekday check: on a weekday run `node scripts/smoke-dev.mjs` so a song is shared
-and rated, then tick P4.3. Next roadmap work after Phase 4: P8 screens (P8.1 onward) and P9.
+**Phase 8 screens are built** (P8.1–P8.11) and tested against the in-memory preview API; Ethan checks them all
+against the real dev stack when he's back (his request: "we will check them all at the end"). Open: **P4.3**'s weekday
+check (`node scripts/smoke-dev.mjs` on a weekday so a song is shared and rated), **P8.12**'s Playwright screenshots
+(after P10.1). Next roadmap work: Phase 9 (hardening).
 
 ## Blocked / Questions for Ethan
 
@@ -34,6 +36,26 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **P8.2–P8.11 (+ P8.12 manual pass)** — Every screen wired to the API: Home/Today (open week, weekend,
+  paused, between weeks, not-in-a-party onboarding, "what should we call you?" for new accounts, 45 s polling,
+  countdown in local time, today's songs first, ✓ per member only when the party reveals recommenders: D10), join by
+  link (works signed out: code kept in sessionStorage through sign-up/sign-in) and by code, create party (invite link),
+  Share (iTunes search, paste Apple Music link, optional Spotify/YouTube links, confirm "can't change it", already
+  shared / weekend / paused), Rate (by day, Unrated filter, progress, lock notice, saves after a 0.4 s pause,
+  optimistic update), Results (Bop of the Day per day, overall / by-day ranking, spreads, your rating, who-rated-what
+  only with D11), History (paged), Stats (you / group / leaderboard, every number with "Based on N" or "Not enough
+  data yet" and its definition), Party settings (host edit, read-only for members, switches, pause, invite link
+  copy / replace, remove → "make a new link?" per D17, leave), Profile (name, colour, preferred app D22). Party
+  switcher + create/join in the frame; sign-out clears cached data. Foundation: `packages/shared/src/api-types.ts`
+  (API handlers now `satisfies` these, which caught a possible `party: null` in the join response, fixed),
+  `api/hooks.ts`, `party/CurrentParty.tsx`, `preview/preview-api.ts` (sample mode + tests). Verified: `npm run verify`
+  exit 0 (396 tests + 1 skipped; 36 new screen tests), integration tests 183/183 (DynamoDB Local), web build OK
+  (622 kB / 182 kB gzip; sample data confirmed absent from the bundle). Browser (sample mode, port 5174): every page
+  viewed at 1280 px and 320 px; no horizontal scroll on 16 pages × 7 widths; no unnamed buttons/links, unlabelled
+  inputs, or missing h1; contrast checked (fixed: "Your pick" text and step numbers were below AA). **Not verified:**
+  the screens against the real dev stack (Ethan's walkthrough); keyboard-only walkthrough beyond unit tests;
+  Playwright screenshots (P10.1). Follow-up: the bundle is over Vite's 500 kB advisory; route code-splitting in P9.
 
 - 2026-10-03 — **Daily winner renamed "Bop of the Day"** (Ethan; D12, D24, SPEC note) in docs, API comments, tests.
 

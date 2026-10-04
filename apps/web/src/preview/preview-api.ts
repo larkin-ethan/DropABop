@@ -71,7 +71,11 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
     },
     createdAt: '2026-09-01T12:00:00.000Z',
   };
-  const endsAt = new Date(now.getTime() + 4 * 24 * 3_600_000 + 5 * 3_600_000).toISOString();
+  // Next Monday 00:00 local time, so the preview shows "Ratings lock Sunday 11:59 pm" like the real app.
+  const nextMonday = new Date(now);
+  nextMonday.setHours(0, 0, 0, 0);
+  nextMonday.setDate(nextMonday.getDate() + ((8 - nextMonday.getDay()) % 7 || 7));
+  const endsAt = nextMonday.toISOString();
   const pastSongs = sampleSongs.slice(0, 8).map((s, index): SongResult => {
     const ratings = [9, 8, 8, 7, 6, 5, 4, 3][index] ?? 5;
     const distribution = Array.from({ length: 10 }, (_, i) =>

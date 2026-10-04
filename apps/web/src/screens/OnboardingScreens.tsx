@@ -35,7 +35,7 @@ export function OnboardingSteps() {
       <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {steps.map(([title, text], index) => (
           <li key={title} className="flex gap-3">
-            <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-active text-sm font-bold text-blue">
+            <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-active text-sm font-bold text-primary">
               {index + 1}
             </span>
             <span>

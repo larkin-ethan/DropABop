@@ -15,7 +15,8 @@ export function ConnectedApi({ preview, children }: { preview: boolean; children
   const queryClient = useQueryClient();
   const client = useMemo(
     () =>
-      preview
+      // import.meta.env.DEV is false in production builds, so the bundler drops the preview API and its sample data.
+      preview && import.meta.env.DEV
         ? createPreviewApi()
         : createApiClient({
             baseUrl: getConfig().apiUrl,

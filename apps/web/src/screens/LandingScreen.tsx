@@ -111,7 +111,7 @@ export function LandingScreen() {
               key={step.title}
               className="card-glow rounded-[var(--radius-card)] border border-line bg-surface p-5"
             >
-              <span className="inline-flex size-8 items-center justify-center rounded-full bg-active text-sm font-bold text-blue">
+              <span className="inline-flex size-8 items-center justify-center rounded-full bg-active text-sm font-bold text-primary">
                 {index + 1}
               </span>
               <h3 className="mt-3 font-semibold">{step.title}</h3>
