@@ -13,8 +13,10 @@ import { signIn, signOut, fetchAuthSession } from 'aws-amplify/auth';
 // A CLI script's output is its point, so it writes to stdout directly (console.log is reserved by the lint rules).
 const print = (line) => process.stdout.write(`${line}\n`);
 
+// SMOKE_PROFILE overrides the AWS CLI profile (e.g. an older login name); defaults to dropabop-dev.
+const profile = process.env.SMOKE_PROFILE ?? 'dropabop-dev';
 const aws = (args) =>
-  execFileSync('aws', [...args, '--region', 'us-east-2', '--profile', 'dropabop-dev', '--output', 'json'], {
+  execFileSync('aws', [...args, '--region', 'us-east-2', '--profile', profile, '--output', 'json'], {
     encoding: 'utf8',
   });
 
