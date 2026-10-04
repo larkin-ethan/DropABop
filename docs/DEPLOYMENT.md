@@ -273,3 +273,50 @@ Deleting is a **human-only** action in this project (the AI is blocked from it).
 - **Prod:** the prod table has deletion protection on. Turn it off deliberately before deleting the stack, and only
   if you really mean to delete everyone's data.
 - **Everything:** delete both stacks, then check **Billing → Bills** the next day to confirm nothing is still running.
+
+## 6. Automatic deploys from GitHub (roadmap P11.1–P11.3)
+
+Once set up, every push to `main` runs the checks, deploys the **dev** stack, and publishes the dev website
+(`.github/workflows/deploy.yml`). **Prod** then waits for you to press **Approve** in GitHub, and deploys the same
+commit. GitHub never holds AWS keys: each run proves it's this repository (OpenID Connect) and gets short-lived
+credentials from the roles in `infra/bootstrap.yaml`.
+
+Do these once, in order. Steps 2 and 3 are AWS commands for your Terminal; the rest is on github.com.
+
+1. **Put the code on GitHub.** In the repo folder, `git remote -v` should show your GitHub repository. If it shows
+   nothing, create an empty repository on github.com, then connect and push (the app is on the `build` branch):
+
+   ```bash
+   git remote add origin https://github.com/YOUR-NAME/YOUR-REPO.git
+   ```
+
+   ```bash
+   git push -u origin main build
+   ```
+
+2. **Create the deploy roles** (once per AWS account). Replace `YOUR-NAME/YOUR-REPO`:
+
+   ```bash
+   aws cloudformation deploy --template-file infra/bootstrap.yaml --stack-name dropabop-github-deploy --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubRepo=YOUR-NAME/YOUR-REPO --region us-east-2 --profile dropabop-dev
+   ```
+
+3. **Copy the two role addresses** it created:
+
+   ```bash
+   aws cloudformation describe-stacks --stack-name dropabop-github-deploy --region us-east-2 --profile dropabop-dev --query "Stacks[0].Outputs" --output table
+   ```
+
+4. **GitHub → your repo → Settings → Secrets and variables → Actions.**
+   - *Variables* tab: `AWS_DEPLOY_ROLE_ARN` = DeployRoleArn, `AWS_CLOUDFORMATION_ROLE_ARN` = CloudFormationRoleArn.
+   - *Secrets* tab: `ALERT_EMAIL` = the address for prod alarm emails (kept out of the public repo).
+5. **Settings → Environments → New environment → `production`.** Tick **Required reviewers** and add yourself. Under
+   *Deployment branches*, choose **Selected branches** and add `main`.
+6. **Settings → Branches → Add rule for `main`:** require a pull request and the **CI** checks to pass. Anything
+   that reaches `main` deploys to dev, so this is the gate.
+7. **Ship:** merge the `build` branch into `main` (a pull request). The Deploy workflow runs; watch it under
+   **Actions**. When it reaches *deploy-prod*, review and **Approve**.
+
+**Before the first prod approval:** prod hosts the website on CloudFront, so wait until AWS has verified the account
+(§4c). The first prod deploy also creates prod's own user pool and table; then confirm the alarm-email subscription
+for prod, as you did for dev.
+

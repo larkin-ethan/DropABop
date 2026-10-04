@@ -2,9 +2,10 @@
 
 ## Current focus
 
-Phase 9 done except **P9.2**'s deploy (waiting for AWS to verify the account for CloudFront; Ethan's support case).
-Next: **Phase 10** (Playwright end-to-end tests; P10.1 needs Ethan's OK to download Playwright's browsers). Still open:
-**P4.3**'s weekday check, Ethan's walkthrough of the Phase 8 screens, **P8.12**'s Playwright screenshots.
+Phases 10–11 written. Waiting on Ethan: **P11.3** (put the repo on GitHub, deploy `infra/bootstrap.yaml`, set the
+GitHub variables / secret / `production` environment: DEPLOYMENT.md §6), and AWS's two account requests (§4c).
+Weekday checks still to run: **P4.3** and **P10.3** (`node scripts/smoke-dev.mjs`, `npm run e2e:dev`). Next AI work:
+**P12.1** (complete the docs).
 
 ## Blocked / Questions for Ethan
 
@@ -42,6 +43,16 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P11.1 done, P11.2 written** — `infra/bootstrap.yaml`: GitHub OIDC provider (optional if it already
+  exists), `dropabop-github-deploy` role (trust: this repo's `main` branch or its `production` environment; may only
+  run change sets on the dropabop stacks, upload build files, publish the website, clear CloudFront) and
+  `dropabop-cloudformation` role (what CloudFormation may do: listed actions only, on dropabop resources; IAM limited
+  to `dropabop-dev-*`/`dropabop-prod-*` so it can't edit the deploy roles: a gap I found and closed while writing it).
+  `infra-bootstrap.test.ts` locks those in. `.github/workflows/deploy.yml`: verify → dev deploy → dev website; prod
+  behind the `production` environment's required reviewer, alert email from a secret. `scripts/deploy-web.sh` works
+  in CI and skips while hosting is off. Verified: cfn-lint (it caught two non-existent API Gateway action names),
+  guardrails, `npm run verify` (420 tests), workflow YAML parses, deploy-web skip path run against dev. **Not run
+  yet:** the workflow and roles themselves (need P11.3). The local repo has no GitHub remote configured.
 - 2026-10-04 — **P10.3 (written; weekday run pending)** — `e2e/dev-stack.spec.ts` + `npm run e2e:dev`: the host and a
   friend (the two test users) sign in through the real Cognito screens, the friend joins via the invite link, the
   host shares today's song (real iTunes search) and the friend rates it on weekdays (on weekends it checks sharing is
