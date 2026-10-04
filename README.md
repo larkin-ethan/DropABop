@@ -20,6 +20,7 @@ It runs on AWS serverless services at (or very near) **$0/month** at this scale.
 9. [Running the tests](#running-the-tests)
 10. [Deploying](#deploying)
 11. [Watching AWS costs](#watching-aws-costs)
+12. [How this project is built](#how-this-project-is-built)
 
 ## What the app does
 
@@ -55,7 +56,8 @@ How it fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Why each cho
 
 ## Install
 
-You need Node.js 24 and npm 11; Docker Desktop for the database tests; the AWS CLI and SAM CLI only for deploying.
+You need Node.js 24 and npm 11; Docker Desktop for the database tests; Google Chrome for the browser tests; the AWS
+CLI and SAM CLI only for deploying.
 Full list and versions: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ```bash
@@ -142,7 +144,7 @@ The deploy workflow uses GitHub variables `AWS_DEPLOY_ROLE_ARN`, `AWS_CLOUDFORMA
 | `npm test` | Unit tests only (domain rules, screens against a pretend API, template checks). |
 | `npm run db:up` then `npm run test:integration` | API tests against DynamoDB Local in Docker. |
 | `npm run e2e` | A real browser walks join → share → rate → week ends → results, at phone and desktop widths. |
-| `npm run e2e:dev` / `node scripts/smoke-dev.mjs` | The same against your deployed dev stack (manual). |
+| `node scripts/smoke-dev.mjs`, then `npm run e2e:dev` | Every endpoint, then the browser journey, against your deployed dev stack (manual; the first creates the test users the second needs). |
 
 GitHub runs the first four on every pull request ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
@@ -151,17 +153,18 @@ GitHub runs the first four on every pull request ([.github/workflows/ci.yml](.gi
 - **Automatic** (once set up, [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §6): every push to `main` deploys dev and the
   dev website; prod deploys the same commit after you approve it in GitHub. GitHub uses short-lived OpenID Connect
   credentials; no AWS keys are stored anywhere.
-- **By hand (dev):** from `infra/`, `sam build --config-env dev`, then `sam deploy --config-env dev --profile
-  dropabop-dev`, then `bash scripts/deploy-web.sh` for the website. Prod is only deployed through the approved
-  workflow.
+- **By hand (dev):** `npm install` at the repo root, then from `infra/`, `sam build --config-env dev`, then `sam
+  deploy --config-env dev --profile dropabop-dev`, then `bash scripts/deploy-web.sh` for the website. The **first**
+  deploy also needs your alert email (it's kept out of this public repo): see
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §4a. Prod is only deployed through the approved workflow.
 - **First-time AWS setup** (account, sign-in, budget, region): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §1–2.
 
 ## Watching AWS costs
 
 Expected cost at 10–20 people: **well under $1/month**. Nothing here is guaranteed free forever, so:
 
-- **Budget alert:** `dropabop-monthly` ($5) emails at 50%, 80%, 100% of actual and 100% of forecast spend. A project
-  spend limit is set too.
+- **Budget alert:** `dropabop-monthly` ($5, created by the dev stack) emails at 50%, 80%, 100% of actual and 100% of
+  forecast spend. If your account offers one, set a spend limit too.
 - **Where to look:** AWS console → Billing and Cost Management → Home (month to date and forecast), Bills (per
   service), Cost Explorer (by day), Free Tier (how much allowance is used).
 - **What can charge:** a table of every service, its free allowance and expected cost:

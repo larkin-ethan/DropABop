@@ -370,7 +370,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 12 — Documentation & launch
 
-- [ ] **P12.1 — Complete docs** (§38) — README (all 11 required topics), ARCHITECTURE, DEVELOPMENT, DEPLOYMENT
+- [x] **P12.1 — Complete docs** (§38) — README (all 11 required topics), ARCHITECTURE, DEVELOPMENT, DEPLOYMENT
   (incl. billing: where to see it, budgets, alerts, which services can charge, how to tear down), SECURITY,
   MUSIC_PROVIDERS, DATABASE, API. A reader who didn't build it can set up from scratch.
 - [ ] **P12.2 — Cost check** — after one week of real use, read Cost Explorer with the user; record actual cost in

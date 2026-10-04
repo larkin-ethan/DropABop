@@ -4,8 +4,9 @@
 
 Phases 10–11 written. Waiting on Ethan: **P11.3** (put the repo on GitHub, deploy `infra/bootstrap.yaml`, set the
 GitHub variables / secret / `production` environment: DEPLOYMENT.md §6), and AWS's two account requests (§4c).
-Weekday checks still to run: **P4.3** and **P10.3** (`node scripts/smoke-dev.mjs`, `npm run e2e:dev`). Next AI work:
-**P12.1** (complete the docs).
+Weekday checks still to run: **P4.3** and **P10.3** (`node scripts/smoke-dev.mjs`, `npm run e2e:dev`). P12.1 done.
+Remaining AI work only follows those: P9.2 website publish once CloudFront is verified, P12.2 cost check after a week
+of real use.
 
 ## Blocked / Questions for Ethan
 
@@ -43,6 +44,14 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P12.1 done** — Docs finished after an independent "newcomer" review. Fixed: budget name clash (the
+  dev stack makes `dropabop-monthly`, so the manual budget step now uses another name), region us-east-1 → us-east-2
+  throughout DEPLOYMENT (+ list of files that hold the region, DEVELOPMENT.md), first deploy needs AlertEmail (README),
+  §6 says to deploy dev by hand first + `CreateOidcProvider=false`, teardown covers prod, the budget and SAM's bucket
+  stack, billing table gained CloudFront/S3/access logs, prerequisites (npm 11, Chrome, Intel SAM installer), stale
+  phase references, repo layout, ARCHITECTURE table gap, README contents. `e2e/dev-stack.spec.ts` now skips with a
+  message when `.test-users.json` doesn't exist. Verified: `npm run verify` passes (the skip itself wasn't run, as it
+  starts the dev-stack config).
 - 2026-10-04 — **P11.1 done, P11.2 written** — `infra/bootstrap.yaml`: GitHub OIDC provider (optional if it already
   exists), `dropabop-github-deploy` role (trust: this repo's `main` branch or its `production` environment; may only
   run change sets on the dropabop stacks, upload build files, publish the website, clear CloudFront) and

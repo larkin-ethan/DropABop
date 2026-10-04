@@ -1,7 +1,7 @@
 # API
 
 REST-style JSON API served by API Gateway (HTTP API) → Lambda. Every endpoint is added here as it's built
-(roadmap Phase 5). Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend uses the same ones.
+Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend uses the same ones.
 
 ## Conventions (all endpoints)
 

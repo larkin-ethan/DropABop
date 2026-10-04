@@ -2,7 +2,7 @@
 // friend (test user 2). On weekdays a song is shared and rated; on weekends the test checks sharing is closed.
 // Ends with the friend leaving, so the test can run again (people may be in at most 5 parties).
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
 interface TestUser {
@@ -11,7 +11,11 @@ interface TestUser {
 }
 
 const PARTY = 'Smoke test party';
-const users = JSON.parse(readFileSync(new URL('../.test-users.json', import.meta.url), 'utf8')) as TestUser[];
+// The test users are created by `node scripts/smoke-dev.mjs`; without them there's nobody to sign in as.
+const usersFile = new URL('../.test-users.json', import.meta.url);
+const users: TestUser[] = existsSync(usersFile)
+  ? (JSON.parse(readFileSync(usersFile, 'utf8')) as TestUser[])
+  : [];
 
 async function signIn(browser: Browser, user: TestUser, name: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
@@ -49,6 +53,7 @@ async function openParty(page: Page) {
 }
 
 test('host and friend: invite → join → share → rate (weekdays) → leave', async ({ browser }) => {
+  test.skip(users.length < 2, 'No test users yet: run `node scripts/smoke-dev.mjs` first.');
   const [host, friend] = users;
   test.skip(
     host === undefined || friend === undefined,

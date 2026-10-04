@@ -8,8 +8,10 @@ How to set up, run, and change Drop a Bop on your own machine.
 |---|---|---|---|
 | Node.js | 24 (see `.nvmrc`) | Everything. Matches the Lambda runtime `nodejs24.x` | https://nodejs.org (LTS installer) |
 | Git | any recent | Source control | Comes with Xcode Command Line Tools |
-| Docker Desktop or OrbStack | any recent | Integration tests (DynamoDB Local) from Phase 3 | https://www.docker.com / https://orbstack.dev |
-| AWS CLI v2 + AWS SAM CLI | latest | Deploying from Phase 4 | AWS docs |
+| npm | 11 (comes with Node 24) | Workspaces, scripts | Bundled with Node.js |
+| Docker Desktop or OrbStack | any recent | Integration tests (DynamoDB Local) | https://www.docker.com / https://orbstack.dev |
+| Google Chrome | any recent | End-to-end tests (`npm run e2e` drives your installed Chrome) | https://www.google.com/chrome |
+| AWS CLI v2 + AWS SAM CLI | latest | Deploying | DEPLOYMENT.md §1 (Intel Macs: the `aws-sam-cli-macos-x86_64.pkg` installer from the same release page) |
 
 Docker is **only for local development and tests**. Nothing runs in containers in AWS.
 
@@ -66,12 +68,14 @@ To run it against your own dev stack instead, deploy the stack (DEPLOYMENT.md), 
 ## Repository layout
 
 ```text
-apps/web/            React frontend (Vite app created in P7.1)
+apps/web/            React frontend (Vite)
 services/api/        Lambda handlers, domain rules, data access, music providers
 packages/shared/     Types + validation schemas used by both web and api (@dropabop/shared)
-infra/               AWS SAM templates (from P4.2)
+infra/               AWS SAM template (template.yaml, samconfig.toml) + bootstrap.yaml (GitHub deploy roles)
+e2e/                 Playwright browser tests (sample mode, and the dev-stack journey)
 docs/                Spec, roadmap, decisions, reference docs
-scripts/             guardrails.sh and Claude Code hook scripts
+scripts/             guardrails.sh, Claude Code hooks, deploy-web.sh, smoke-dev.mjs
+.github/workflows/   ci.yml (checks on every pull request), deploy.yml (dev → prod deploys)
 .claude/             Claude Code settings, skills, and reviewer agent
 ```
 
@@ -104,7 +108,7 @@ localhost** (`assertLocalEndpoint` in `services/api/src/data/client.ts`). Local 
 
 - Plain functions and plain objects. Use a class only when there's a clear reason.
 - Comments explain *why*, not *what*.
-- No `console.log`: from P5.1 use the structured logger, which redacts sensitive fields. `console.warn` and
+- No `console.log`: use the structured logger, which redacts sensitive fields. `console.warn` and
   `console.error` are allowed in scripts.
 - Imports of types use `import type { … }` (enforced by lint).
 - See `CLAUDE.md` for the full rules, including the security rules.
@@ -114,3 +118,9 @@ localhost** (`assertLocalEndpoint` in `services/api/src/data/client.ts`). Local 
 - **TypeScript is pinned to 6.0.x** (`~6.0.3`). TypeScript 7 (the native compiler) exists, but typescript-eslint
   doesn't support it yet (it supports TypeScript up to 6.0, as of 2026-10-01). Revisit when typescript-eslint adds support.
 - `@types/node` is pinned to the Node 24 line to match the Lambda runtime.
+
+## The AWS region
+
+Everything is in **us-east-2 (Ohio)**. If you deploy to another region, change it in all of these:
+`infra/samconfig.toml`, `.github/workflows/deploy.yml` (`AWS_REGION`), `scripts/deploy-web.sh` (`REGION`),
+`scripts/smoke-dev.mjs`, and the `VITE_AWS_REGION` value in `apps/web/.env.development.local`.

@@ -1,7 +1,7 @@
 name: CI
 
 # Runs the same checks as `npm run verify` locally: format, lint, typecheck, unit tests, guardrails.
-# Integration tests (DynamoDB Local) and deploys get their own jobs in later phases.
+# The e2e job runs the browser journey in sample mode. Deploys are in deploy.yml.
 
 on:
   pull_request:

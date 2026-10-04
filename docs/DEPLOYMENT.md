@@ -21,7 +21,8 @@ https://awscli.amazonaws.com/AWSCLIV2.pkg
 **AWS SAM CLI** ([official guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)):
 for Apple-silicon Macs download and run
 https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-macos-arm64.pkg
-(choose "Install for all users of this computer"). AWS no longer maintains a Homebrew formula for SAM, so use the package.
+(choose "Install for all users of this computer"). Intel Macs: use `aws-sam-cli-macos-x86_64.pkg` from the same
+[release page](https://github.com/aws/aws-sam-cli/releases/latest). AWS no longer maintains a Homebrew formula for SAM, so use the package.
 
 Check both, in a **new** terminal window:
 
@@ -61,7 +62,7 @@ Use an email address you'll keep long-term; it's the account's recovery address.
 > and use **2.8** instead. Everything this app needs (Lambda, API Gateway, DynamoDB, Cognito, CloudFormation, S3,
 > CloudFront, CloudWatch, SNS, Budgets) is available. Don't choose "Explore advanced features": it can't be undone
 > and isn't needed. Source: https://docs.aws.amazon.com/accounts/latest/reference/supported-services-sign-up-new.html
-> (checked 2026-10-03). Ethan's account is this kind.
+> (checked 2026-10-03). The account this project was built on is this kind.
 
 ### 2.2 Protect the root user with MFA
 
@@ -90,12 +91,15 @@ keys sitting in a file.
 
 This is the most important safety net. AWS emails you before costs get anywhere near meaningful.
 
+**You don't need to make one by hand:** the dev stack creates a $5 budget called `dropabop-monthly` (emails at 50%,
+80%, 100% actual and 100% forecast) on its first deploy. Don't create a budget with that name yourself, or the deploy
+fails because the name is taken. If you want an alert before the first deploy, make one by hand with a **different**
+name:
+
 1. Console → **Billing and Cost Management** → **Budgets** → **Create budget**.
 2. Choose **Use a template** → **Monthly cost budget**.
-3. Budget name: `dropabop-monthly`. Amount: **$5.00**. Email recipients: your email.
-4. Create. Then open the budget → **Alerts** and make sure there are alerts for: actual cost at **50%**, **80%**,
-   **100%**, and forecasted cost at **100%**.
-5. Optional extra: create a second budget from the **Zero spend budget** template. It emails you the first time
+3. Budget name: e.g. `manual-monthly`. Amount: **$5.00**. Email recipients: your email.
+4. Optional extra: create a second budget from the **Zero spend budget** template. It emails you the first time
    anything at all is charged.
 
 ### 2.5 Turn on Free Tier usage alerts
@@ -105,8 +109,8 @@ Tier alerts** and enter your email. You get a warning when any service approache
 
 ### 2.6 Pick the region
 
-Use **us-east-1 (N. Virginia)** unless you have a reason not to. Every service this app uses is available there,
-and CloudFront-related settings live there.
+This project uses **us-east-2 (Ohio)**: the home region of the account it was built on (see 2.8). Any region with
+these services works; if you choose another, change it in the files listed in DEVELOPMENT.md ("The AWS region").
 
 ### 2.7 Connect the CLI to your login
 
@@ -124,7 +128,7 @@ Answer the prompts:
 - **SSO registration scopes:** press Enter to accept the default
 - A browser window opens: approve the request
 - Choose your account and the **AdministratorAccess** role
-- **Default client Region:** `us-east-1`
+- **Default client Region:** `us-east-2`
 - **CLI default output format:** `json`
 - **Profile name:** `dropabop-dev`
 
@@ -150,7 +154,7 @@ credentials (12 hours, renewable for 90 days) without any access keys. Needs AWS
 aws login --profile dropabop-dev
 ```
 
-If asked for a region, enter `us-east-1`. A browser opens: choose your project. Check it, then repeat the login
+If asked for a region, enter your project's home region (`us-east-2` here). A browser opens: choose your project. Check it, then repeat the login
 whenever the credentials expire:
 
 ```bash
@@ -159,17 +163,16 @@ aws sts get-caller-identity --profile dropabop-dev
 
 The role shown is `AccountFullAccessRole`.
 
-**Region:** a project has one home region (Ethan's: **us-east-2**). Regional services (Lambda, DynamoDB, CloudFormation,
+**Region:** a project has one home region (this one's: **us-east-2**). Regional services (Lambda, DynamoDB, CloudFormation,
 Cognito, …) are denied everywhere else, and us-east-1 allows only global ones (IAM, billing, CloudFront, ACM). To find
 yours, run `aws cloudformation list-stacks --region <region> --profile dropabop-dev` per region: only the home region
 answers. `infra/samconfig.toml` sets it for deploys. For cost safety, also set a monthly **spend limit** (about $5) on the
-project in https://settings.aws.com, as well as or instead of the 2.4 budget. (The lowest limit AWS offered Ethan was $20/month;
-that's set. P4.4 adds a $5 budget alert in the stack so a cost shows up long before the limit.)
+project in https://settings.aws.com, as well as or instead of the 2.4 budget. (The lowest limit AWS offered here was $20/month;
+the stack's $5 budget alert flags a cost long before that.)
 Source: https://docs.aws.amazon.com/accounts/latest/reference/connect-ai-coding-tool.html (checked 2026-10-03).
 
-**Done when:** `aws sts get-caller-identity --profile dropabop-dev` works and the `dropabop-monthly` budget (or a project
-spend limit) exists. Tell
-the AI the account is ready; it will never ask for passwords, keys, or codes.
+**Done when:** `aws sts get-caller-identity --profile dropabop-dev` works. (Nobody working on this project, human or
+AI, should ever ask you for passwords, keys, or codes.)
 
 ---
 
@@ -182,7 +185,7 @@ the AI the account is ready; it will never ask for passwords, keys, or codes.
 
 ## 4. What can cost money
 
-Filled in as resources are added (P4.2, P4.4, P9.2). Expected total at 10–20 users: **well under $1/month**.
+Expected total at 10–20 users: **well under $1/month**.
 
 | Service | What we use it for | Free allowance | Expected cost at our scale |
 |---|---|---|---|
@@ -190,18 +193,20 @@ Filled in as resources are added (P4.2, P4.4, P9.2). Expected total at 10–20 u
 | API Gateway (HTTP API) | Every app request | 1M requests/month, **first 12 months only** | $1.00 per million → ~$0.10–$0.30/month after year one |
 | Lambda (arm64) | Runs each request | 1M requests + 400,000 GB-s/month, always | $0 (we use a small fraction) |
 | Cognito (Essentials) | Accounts and sign-in | 10,000 monthly active users | $0 |
-| CloudWatch Logs | One log group per stage, kept 14 days | 5 GB/month | $0 |
+| CloudWatch Logs | Per stage: Lambda logs + API access logs, kept 14 days (30 in prod) | 5 GB/month | $0 |
 | CloudWatch alarms | Failure/throttle alerts (4 per stage) | 10 alarm metrics/month | $0 (8 across dev + prod) |
 | SNS | Delivers alarm emails | Pricing page doesn't list email (checked 2026-10-03) | A handful of emails a month: negligible |
 | AWS Budgets | `dropabop-monthly` $5 alert | Budgets without actions are free | $0 |
-| _more rows added in P9.2_ | | | |
+| CloudFront | Serves the website over HTTPS | 1 TB + 10M requests/month, always | $0 |
+| S3 | Website files; SAM's upload bucket (`aws-sam-cli-managed-default`) | 5 GB for 12 months only | A few MB: under $0.01/month |
 
 Prices checked 2026-10-02 on aws.amazon.com/{api-gateway,lambda,cognito,cloudwatch}/pricing (US East).
 Full resource list: `docs/ARCHITECTURE.md`.
 
 ## 4a. Build and deploy the API (from P4.3)
 
-From the `infra/` folder, **always build before deploying** (deploy uploads whatever the last build produced):
+On a fresh checkout, first run `npm install` at the repo root. Then, from the `infra/` folder, **always build before
+deploying** (deploy uploads whatever the last build produced):
 
 ```bash
 sam build --config-env dev
@@ -212,21 +217,20 @@ sam deploy --config-env dev --profile dropabop-dev
 ```
 
 `sam build` bundles the API with esbuild through `services/api/Makefile` (in place, so it can use the workspace's
-packages). `sam deploy` shows the planned changes and asks before applying them. Run `npm install` at the repo root
-first on a fresh checkout.
+packages). `sam deploy` shows the planned changes and asks before applying them.
 
 **The alert email (first deploy of a stage only).** The template's `AlertEmail` parameter is where alarm and budget
 emails go. It's deliberately not in `samconfig.toml` because the repo is public, so pass it once, repeating the
 stage's other settings (a command-line `--parameter-overrides` replaces the file's):
 
 ```bash
-sam deploy --config-env dev --profile dropabop-dev --parameter-overrides Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true AlertEmail=you@example.com
+sam deploy --config-env dev --profile dropabop-dev --parameter-overrides Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true HostWebsite=false AlertEmail=you@example.com
 ```
 
 Later deploys reuse the stack's stored value automatically. Then click the confirmation link in the email from
 "AWS Notifications": alarms aren't delivered until you do (the budget emails directly and works either way).
 
-After a deploy, check every endpoint on dev (creates two throwaway test users the first time; their passwords
+(Leave out `HostWebsite=false` once the account is verified for CloudFront, §4c.) After a deploy, check every endpoint on dev (creates two throwaway test users the first time; their passwords
 stay in the git-ignored `.test-users.json`):
 
 ```bash
@@ -256,7 +260,8 @@ account must be verified before you can add new CloudFront resources". Dev runs 
 1. Console → **Support Center** (https://console.aws.amazon.com/support/home#/) → **Create case**.
 2. Choose **Account and billing** (free on every plan). Topic: account / service activation.
 3. Ask: "Please verify my account so I can create Amazon CloudFront distributions." Paste the error message above.
-4. When AWS confirms, tell the AI: it removes `HostWebsite=false` and deploys the website.
+4. When AWS confirms, remove ` HostWebsite=false` from the dev `parameter_overrides` line in `infra/samconfig.toml`,
+   deploy again (§4a), then publish the site (§4b).
 
 **Lambda concurrency.** The account may run only **10** functions at the same moment (default for new accounts;
 `aws lambda get-account-settings` shows `ConcurrentExecutions: 10`). Above that, API Gateway answers 503 (the
@@ -267,7 +272,7 @@ website retries once). Normal accounts get 1,000.
 
 ## 5. Shutting things down
 
-Deleting is a **human-only** action in this project (the AI is blocked from it). The table and user pool are kept
+Deleting is a **human-only** action in this project (the AI assistant is blocked from it). The table and user pool are kept
 on purpose when a stack is deleted (so a mistake can't wipe everyone's accounts and songs), so they're separate steps.
 
 1. **Empty the website bucket** (only if the stack hosts the website; a non-empty bucket stops the stack deletion).
@@ -277,8 +282,9 @@ on purpose when a stack is deleted (so a mistake can't wipe everyone's accounts 
    aws s3 rm s3://BUCKET-NAME --recursive --region us-east-2 --profile dropabop-dev
    ```
 
-2. **Delete the stack** (dev shown; for prod, first turn off deletion protection on the prod table and user pool in
-   the AWS console, and only if you really mean to delete everyone's data):
+2. **Delete the stack.** Dev shown; for prod use `--stack-name dropabop-prod`, and first turn off deletion protection
+   on the prod table and user pool in the AWS console (only if you really mean to delete everyone's data). Deleting
+   **dev** also deletes the `dropabop-monthly` budget, which lives in the dev stack.
 
    ```bash
    sam delete --stack-name dropabop-dev --region us-east-2 --profile dropabop-dev
@@ -294,7 +300,9 @@ on purpose when a stack is deleted (so a mistake can't wipe everyone's accounts 
    aws cognito-idp delete-user-pool --user-pool-id POOL-ID --region us-east-2 --profile dropabop-dev
    ```
 
-4. **Optional:** the GitHub deploy roles stack (`dropabop-github-deploy`), and the project's budget / spend limit.
+4. **Optional, when you're done with the whole project:** delete the `dropabop-github-deploy` stack (GitHub roles) and
+   `aws-sam-cli-managed-default` (SAM's upload bucket stack; empty its bucket first, as in step 1) in the
+   CloudFormation console, and remove the spend limit or any budget you made by hand.
 5. Check **Billing → Bills** the next day to confirm nothing is still running.
 
 ## 6. Automatic deploys from GitHub (roadmap P11.1–P11.3)
@@ -303,6 +311,9 @@ Once set up, every push to `main` runs the checks, deploys the **dev** stack, an
 (`.github/workflows/deploy.yml`). **Prod** then waits for you to press **Approve** in GitHub, and deploys the same
 commit. GitHub never holds AWS keys: each run proves it's this repository (OpenID Connect) and gets short-lived
 credentials from the roles in `infra/bootstrap.yaml`.
+
+**First deploy dev once by hand (§4a)** with your alert email: the workflow doesn't pass it for dev, so a brand-new
+dev stack created by GitHub would fail.
 
 Do these once, in order. Steps 2 and 3 are AWS commands for your Terminal; the rest is on github.com.
 
@@ -322,6 +333,9 @@ Do these once, in order. Steps 2 and 3 are AWS commands for your Terminal; the r
    ```bash
    aws cloudformation deploy --template-file infra/bootstrap.yaml --stack-name dropabop-github-deploy --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubRepo=YOUR-NAME/YOUR-REPO --region us-east-2 --profile dropabop-dev
    ```
+
+   If the account already has a GitHub OIDC provider (from another project), add `CreateOidcProvider=false` after
+   `GitHubRepo=…` so it's reused instead of created twice.
 
 3. **Copy the two role addresses** it created:
 
