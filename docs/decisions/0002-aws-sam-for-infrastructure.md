@@ -25,7 +25,8 @@ with simple text matching; nothing extra to bootstrap.
 - `infra/template.yaml` — app stack (Cognito, HTTP API, Lambdas, DynamoDB, alarms, frontend bucket + CloudFront).
 - `infra/samconfig.toml` — `dev` and `prod` config-envs → stacks `dropabop-dev` and `dropabop-prod`, separate
   tables/user pools/buckets, so local or dev work can never touch prod data (§36).
-- `infra/bootstrap.yaml` (Phase 11) — GitHub OIDC deploy role, deployed once by hand.
+- Deploys run with `scripts/deploy.sh` from the owner's Mac (ADR-0009). A GitHub OIDC deploy stack was written but
+  can't be created on this account type; it's in git history (commit db1c47f) if that changes.
 
 ## Cost
 

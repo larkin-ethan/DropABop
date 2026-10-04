@@ -305,55 +305,47 @@ on purpose when a stack is deleted (so a mistake can't wipe everyone's accounts 
    CloudFormation console, and remove the spend limit or any budget you made by hand.
 5. Check **Billing → Bills** the next day to confirm nothing is still running.
 
-## 6. Automatic deploys from GitHub (roadmap P11.1–P11.3)
+## 6. Deploying with one command (ADR-0009)
 
-Once set up, every push to `main` runs the checks, deploys the **dev** stack, and publishes the dev website
-(`.github/workflows/deploy.yml`). **Prod** then waits for you to press **Approve** in GitHub, and deploys the same
-commit. GitHub never holds AWS keys: each run proves it's this repository (OpenID Connect) and gets short-lived
-credentials from the roles in `infra/bootstrap.yaml`.
+GitHub can't deploy to this account: new-experience AWS accounts block GitHub's keyless sign-in (an AWS-managed
+service control policy denies `iam:CreateOpenIDConnectProvider`), and storing long-lived AWS keys in GitHub is
+what this project avoids. So GitHub runs the checks on every pull request, and **you deploy from your Mac**:
 
-**First deploy dev once by hand (§4a)** with your alert email: the workflow doesn't pass it for dev, so a brand-new
-dev stack created by GitHub would fail.
+```bash
+aws login --profile dropabop-dev
+```
 
-Do these once, in order. Steps 2 and 3 are AWS commands for your Terminal; the rest is on github.com.
+```bash
+bash scripts/deploy.sh dev
+```
 
-1. **Put the code on GitHub.** In the repo folder, `git remote -v` should show your GitHub repository. If it shows
-   nothing, create an empty repository on github.com, then connect and push (the app is on the `build` branch):
+`scripts/deploy.sh` refuses to run with uncommitted changes, runs `npm run verify`, builds, shows the planned stack
+changes and asks before applying them, then publishes the website (`scripts/deploy-web.sh`, skipped while the stack
+doesn't host it).
 
-   ```bash
-   git remote add origin https://github.com/YOUR-NAME/YOUR-REPO.git
-   ```
+### Shipping to prod
 
-   ```bash
-   git push -u origin main build
-   ```
-
-2. **Create the deploy roles** (once per AWS account). Replace `YOUR-NAME/YOUR-REPO`:
-
-   ```bash
-   aws cloudformation deploy --template-file infra/bootstrap.yaml --stack-name dropabop-github-deploy --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubRepo=YOUR-NAME/YOUR-REPO --region us-east-2 --profile dropabop-dev
-   ```
-
-   If the account already has a GitHub OIDC provider (from another project), add `CreateOidcProvider=false` after
-   `GitHubRepo=…` so it's reused instead of created twice.
-
-3. **Copy the two role addresses** it created:
+1. **GitHub → your repo → Settings → Branches → Add rule for `main`:** require a pull request and the **CI** checks
+   to pass. `main` is what prod is deployed from, so this is the gate.
+2. **Merge your work into `main`** with a pull request on github.com (from `build`, the first time).
+3. **On your Mac,** switch to `main` and bring it up to date (GitHub Desktop: *Current branch → main*, then
+   *Fetch origin → Pull*), then deploy. The script only deploys prod from a clean `main` and asks you to type
+   `prod` first:
 
    ```bash
-   aws cloudformation describe-stacks --stack-name dropabop-github-deploy --region us-east-2 --profile dropabop-dev --query "Stacks[0].Outputs" --output table
+   bash scripts/deploy.sh prod
    ```
 
-4. **GitHub → your repo → Settings → Secrets and variables → Actions.**
-   - *Variables* tab: `AWS_DEPLOY_ROLE_ARN` = DeployRoleArn, `AWS_CLOUDFORMATION_ROLE_ARN` = CloudFormationRoleArn.
-   - *Secrets* tab: `ALERT_EMAIL` = the address for prod alarm emails (kept out of the public repo).
-5. **Settings → Environments → New environment → `production`.** Tick **Required reviewers** and add yourself. Under
-   *Deployment branches*, choose **Selected branches** and add `main`.
-6. **Settings → Branches → Add rule for `main`:** require a pull request and the **CI** checks to pass. Anything
-   that reaches `main` deploys to dev, so this is the gate.
-7. **Ship:** merge the `build` branch into `main` (a pull request). The Deploy workflow runs; watch it under
-   **Actions**. When it reaches *deploy-prod*, review and **Approve**.
+   The **first** prod deploy needs the alert email (it creates prod's own user pool, table and alarms):
 
-**Before the first prod approval:** prod hosts the website on CloudFront, so wait until AWS has verified the account
-(§4c). The first prod deploy also creates prod's own user pool and table; then confirm the alarm-email subscription
-for prod, as you did for dev.
+   ```bash
+   ALERT_EMAIL=you@example.com bash scripts/deploy.sh prod
+   ```
 
+   Then confirm the "AWS Notification - Subscription Confirmation" email for prod, as you did for dev.
+
+**Before the first prod deploy:** prod hosts the website on CloudFront, so wait until AWS has verified the account
+for CloudFront (§4c); until then the prod deploy fails and rolls back.
+
+**Leftover from the GitHub attempt (2026-10-04):** an empty stack `dropabop-github-deploy` in `ROLLBACK_COMPLETE`.
+It has no resources and costs nothing; delete it in the CloudFormation console when convenient.

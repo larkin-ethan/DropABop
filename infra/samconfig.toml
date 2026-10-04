@@ -29,10 +29,10 @@ confirm_changeset = true # always show what will change and ask first
 # HostWebsite=false until AWS Support verifies the account for CloudFront (2026-10-04); then remove it.
 parameter_overrides = "Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true HostWebsite=false"
 
-# ---- prod: the real app. Only Ethan deploys it (CLAUDE.md). ----
+# ---- prod: the real app. Only Ethan deploys it: bash scripts/deploy.sh prod (CLAUDE.md, ADR-0009). ----
 [prod.global.parameters]
 stack_name = "dropabop-prod"
-region = "us-east-2" # check the prod project's home region before the first prod deploy (P11.3)
+region = "us-east-2" # the project's home region (DEPLOYMENT.md §2.8)
 
 [prod.build.parameters]
 build_in_source = true

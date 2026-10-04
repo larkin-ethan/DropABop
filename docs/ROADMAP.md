@@ -362,12 +362,14 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 11 — CI/CD & production
 
-- [x] **P11.1 — GitHub → AWS via OIDC** (§35) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
+- [x] **P11.1 — GitHub → AWS via OIDC** (§35) (superseded 2026-10-04 by ADR-0009: this account type can't create the
+  OIDC provider; removed) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
   frontend buckets (in a small separate `infra/bootstrap.yaml`). **No long-lived access keys.**
-- [ ] **P11.2 — Deploy workflow** (written 2026-10-04: `.github/workflows/deploy.yml`; first run happens in P11.3) — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
+- [x] **P11.2 — Deploy workflow** (2026-10-04: replaced by `scripts/deploy.sh`, run from Ethan's Mac, ADR-0009; GitHub
+  keeps running the checks) — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
   invalidation. Prod job exists but requires a manual approval (GitHub Environment `production` with Ethan as reviewer).
-- [ ] **P11.3 — Bootstrap & first prod deploy** [HUMAN] — deploy `bootstrap.yaml` once, add the role ARN as a GitHub
-  secret, approve the first prod run. AI provides exact commands.
+- [ ] **P11.3 — First prod deploy** [HUMAN] — after AWS verifies CloudFront: protect `main` on GitHub, merge
+  `build` → `main`, then `ALERT_EMAIL=… bash scripts/deploy.sh prod` (DEPLOYMENT.md §6). AI provides exact commands.
 - [ ] **P11.4 — Prod verification** — run P10.3 smoke test against prod with a throwaway account; confirm alarms and budget.
 
 ---

@@ -51,7 +51,7 @@ The rules in detail: [docs/PRODUCT_DECISIONS.md](docs/PRODUCT_DECISIONS.md). The
 | Data | DynamoDB, one table ([docs/DATABASE.md](docs/DATABASE.md)) |
 | Sign-in | Amazon Cognito, through the AWS Amplify library (sign-in only) |
 | Hosting | S3 + CloudFront (website), API Gateway HTTP API (API) |
-| Infrastructure | AWS SAM (`infra/template.yaml`), deployed by GitHub Actions |
+| Infrastructure | AWS SAM (`infra/template.yaml`), deployed with `scripts/deploy.sh` |
 | Tests | Vitest (unit + integration with DynamoDB Local), Playwright (end-to-end) |
 
 How it fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Why each choice:
@@ -136,8 +136,7 @@ stack outputs:
 | `VITE_AWS_REGION` | The AWS region (`us-east-2`) | `Region` |
 
 The API's settings (table name and so on) are set by the template; there are no secret keys anywhere in this app.
-The deploy workflow uses GitHub variables `AWS_DEPLOY_ROLE_ARN`, `AWS_CLOUDFORMATION_ROLE_ARN` and secret
-`ALERT_EMAIL` ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §6).
+The deploy script reads `ALERT_EMAIL` from your shell only for a stage's first deploy ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §6).
 
 ## Running the tests
 
@@ -153,13 +152,12 @@ GitHub runs the first four on every pull request ([.github/workflows/ci.yml](.gi
 
 ## Deploying
 
-- **Automatic** (once set up, [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §6): every push to `main` deploys dev and the
-  dev website; prod deploys the same commit after you approve it in GitHub. GitHub uses short-lived OpenID Connect
-  credentials; no AWS keys are stored anywhere.
-- **By hand (dev):** `npm install` at the repo root, then from `infra/`, `sam build --config-env dev`, then `sam
-  deploy --config-env dev --profile dropabop-dev`, then `bash scripts/deploy-web.sh` for the website. The **first**
-  deploy also needs your alert email (it's kept out of this public repo): see
-  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §4a. Prod is only deployed through the approved workflow.
+- **One command from your Mac:** after `aws login --profile dropabop-dev`, run `bash scripts/deploy.sh dev` (or
+  `prod`, from a clean `main`). It runs every check, deploys the stack, and publishes the website. GitHub runs the
+  checks on every pull request but doesn't deploy: this AWS account type blocks GitHub's keyless sign-in, and no
+  AWS keys are stored anywhere ([ADR-0009](docs/decisions/0009-manual-deploys.md),
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §6). The **first** deploy of a stage also needs your alert email (kept
+  out of this public repo): `ALERT_EMAIL=you@example.com bash scripts/deploy.sh prod`.
 - **First-time AWS setup** (account, sign-in, budget, region): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §1–2.
 
 ## Watching AWS costs

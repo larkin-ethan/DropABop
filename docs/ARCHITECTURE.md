@@ -39,8 +39,8 @@ when someone makes a request (ADR-0003), and the website polls for new songs.
 | `WebDistribution`, `WebOriginAccessControl`, `WebSecurityHeaders` | CloudFront | HTTPS-only website, single-page-app fallback, security headers (HSTS, CSP, no framing, nosniff, referrer policy) | Always-free 1 TB + 10M requests/month |
 
 Website hosting is behind the `HostWebsite` switch (on by default; dev has it off until AWS verifies the account for
-CloudFront: DEPLOYMENT.md §4c). Separate one-time stack `infra/bootstrap.yaml` (`dropabop-github-deploy`): the GitHub
-OIDC provider and two IAM roles for automatic deploys (P11.1, DEPLOYMENT.md §6).
+CloudFront: DEPLOYMENT.md §4c). Deploys run from the owner's Mac with `scripts/deploy.sh` (ADR-0009): this account type
+can't create GitHub's OIDC provider, so there are no CI deploy roles.
 
 Deploy-time only: SAM keeps uploaded code in a small S3 bucket it manages (`resolve_s3`), outside this stack.
 

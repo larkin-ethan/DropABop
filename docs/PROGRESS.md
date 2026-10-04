@@ -2,11 +2,10 @@
 
 ## Current focus
 
-Phases 10–11 written. Waiting on Ethan: **P11.3** (put the repo on GitHub, deploy `infra/bootstrap.yaml`, set the
-GitHub variables / secret / `production` environment: DEPLOYMENT.md §6), and AWS's two account requests (§4c).
-Weekday checks still to run: **P4.3** and **P10.3** (`node scripts/smoke-dev.mjs`, `npm run e2e:dev`). P12.1 done.
-Remaining AI work only follows those: P9.2 website publish once CloudFront is verified, P12.2 cost check after a week
-of real use.
+The repo now lives in `~/Documents/GitHub/DropABop` (GitHub: larkin-ethan/DropABop, public). Deploys are by hand
+with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). Waiting on Ethan:
+weekday checks **P4.3** and **P10.3** (Monday), AWS's CloudFront verification (§4c), then **P11.3** (protect `main`,
+merge `build` → `main`, first prod deploy). Remaining AI work follows those: P9.2 website publish, P11.4, P12.2.
 
 ## Blocked / Questions for Ethan
 
@@ -43,6 +42,17 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-04 — **Moved to DropABop; manual deploys (ADR-0009)** — Repo moved with full history to
+  `~/Documents/GitHub/DropABop` and published by Ethan (main + build). Bootstrap deploy failed: an AWS-managed SCP on
+  this new-experience account denies `iam:CreateOpenIDConnectProvider`. Ethan chose manual deploys: added
+  `scripts/deploy.sh` (clean tree, verify, build, deploy with change review, publish website; prod only from clean
+  `main` after typing "prod"; `ALERT_EMAIL` for a stage's first deploy), removed `deploy.yml`, `bootstrap.yaml` and its
+  test, updated DEPLOYMENT §6, README, ARCHITECTURE, DEVELOPMENT, ADR-0002, ROADMAP P11. Empty
+  `dropabop-github-deploy` stack (ROLLBACK_COMPLETE, $0) left for Ethan to delete. Also: dev deployed with P8.13
+  (Ethan approved); the post-deploy smoke run was blocked by the permission system, so it waits for Monday's run.
+  Verified: `npm run verify`; `bash -n` on the script and its samconfig parsing for both stages. The script itself
+  hasn't run end to end yet.
 
 - 2026-10-04 — **P8.13 done (Ethan's request)** — The host can choose the sharing days and the day + time ratings
   lock (Ethan chose: just these two, applying from next week). `packages/shared/src/schedule.ts` (defaults for old
