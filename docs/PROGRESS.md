@@ -42,6 +42,13 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P10.3 (written; weekday run pending)** — `e2e/dev-stack.spec.ts` + `npm run e2e:dev`: the host and a
+  friend (the two test users) sign in through the real Cognito screens, the friend joins via the invite link, the
+  host shares today's song (real iTunes search) and the friend rates it on weekdays (on weekends it checks sharing is
+  closed), then the friend leaves. Must use port 5173 (the dev API's only allowed local origin). Found a real bug:
+  after leaving a party the app stayed on Settings, because the data refresh removed the screen before its "go
+  home" step ran; fixed (refresh in the background) + screen test. Verified: `npm run e2e:dev` passed on the dev
+  stack (Sunday path); `npm run e2e` 2/2; `npm run verify` exit 0 (417 tests + 1 skipped).
 - 2026-10-04 — **P10.1 + P10.2 done** — Playwright 1.63 (dev dep; no browser download: locally it uses the installed
   Google Chrome, CI installs Chromium). Instead of MSW (roadmap suggestion) the e2e test runs the website in sample
   mode, reusing the in-memory preview API every screen already works with (no new dependency). Sample mode gained

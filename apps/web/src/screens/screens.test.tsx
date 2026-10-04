@@ -387,6 +387,20 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
     expect(screen.getByRole('button', { name: 'Leave' })).toBeInTheDocument();
   });
 
+  it('lets a member leave the party and takes them home', async () => {
+    const { state } = renderApp('/settings', {
+      setup: (s) => {
+        s.parties[0]!.hostUserId = 'u2';
+        s.members[0]!.role = 'member';
+        s.members[1]!.role = 'host';
+      },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Leave' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Leave party' }));
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent(/^\/$/));
+    expect(state.parties).toHaveLength(0);
+  });
+
   it('saves your name, colour, and preferred music app (D22)', async () => {
     const { state } = renderApp('/profile');
     const name = await screen.findByLabelText('Display name');

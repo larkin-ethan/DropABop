@@ -231,7 +231,11 @@ export function useRemoveMember(partyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (memberId: string) => api.delete<void>(`/parties/${enc(partyId)}/members/${enc(memberId)}`),
-    onSuccess: () => queryClient.invalidateQueries(),
+    // Refresh in the background (not awaited): the screen's own "after leaving, go home" step must run first, before
+    // the refreshed data removes the screen that holds it.
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+    },
   });
 }
 

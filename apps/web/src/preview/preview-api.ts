@@ -360,8 +360,11 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return { inviteCode: 'SONG-9QX3' };
     }
     if (is('DELETE', 'parties', ':id', 'members', ':member')) {
-      if (parts[3] === ME) throw new ApiError(403, 'FORBIDDEN', 'The host can’t leave the party.');
+      if (parts[3] === party().hostUserId) {
+        throw new ApiError(403, 'FORBIDDEN', 'The host can’t leave the party.');
+      }
       state.members = state.members.filter((m) => m.userId !== parts[3]);
+      if (parts[3] === ME) state.parties = state.parties.filter((p) => p.partyId !== parts[1]);
       return undefined;
     }
     if (is('GET', 'invites', ':code')) {

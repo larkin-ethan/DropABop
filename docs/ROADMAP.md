@@ -351,7 +351,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [x] **P10.1 — Playwright setup** — runs against `npm run dev` with a mocked API (MSW) for CI.
 - [x] **P10.2 — Critical journey** (§34) — sign up → join party → share today's song → rate others' songs → (clock
   moved past Sunday) ratings locked → view weekly results, at 375px and 1440px.
-- [ ] **P10.3 — Dev-stack smoke test** — same journey against the deployed dev stack with two test users
+- [ ] **P10.3 — Dev-stack smoke test** (`npm run e2e:dev` written and passing on 2026-10-04, a Sunday; tick after a weekday run covers share → rate) — same journey against the deployed dev stack with two test users
   (credentials created in this task and stored only in a git-ignored local file). Manual trigger only.
 
 ---
