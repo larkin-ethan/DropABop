@@ -124,6 +124,34 @@ describe('API client (spec §9)', () => {
     await expect(offline.get('/users/me')).rejects.toMatchObject({ code: 'NETWORK' });
   });
 
+  it('retries once when AWS is briefly busy (503), then explains if it still is', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(() => ok({ message: 'Service Unavailable' }, 503))
+      .mockImplementationOnce(() => ok({ ok: true }));
+    const client = createApiClient({
+      baseUrl: 'https://api.example.com',
+      auth: fakeAuth(),
+      onSignedOut: vi.fn(),
+      fetchImpl,
+      retryDelayMs: 0,
+    });
+    await expect(client.get('/users/me')).resolves.toEqual({ ok: true });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    const alwaysBusy = createApiClient({
+      baseUrl: 'https://api.example.com',
+      auth: fakeAuth(),
+      onSignedOut: vi.fn(),
+      fetchImpl: () => ok({ message: 'Service Unavailable' }, 503),
+      retryDelayMs: 0,
+    });
+    await expect(alwaysBusy.get('/users/me')).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringMatching(/busy/) as unknown,
+    });
+  });
+
   it('turns API Gateway’s throttling (429, no body) into a friendly “wait a moment”', async () => {
     const client = createApiClient({
       baseUrl: 'https://api.example.com',

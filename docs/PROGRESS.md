@@ -2,15 +2,21 @@
 
 ## Current focus
 
-**Phase 8 screens are built** (P8.1–P8.11) and tested against the in-memory preview API; Ethan checks them all
-against the real dev stack when he's back (his request: "we will check them all at the end"). Open: **P4.3**'s weekday
-check (`node scripts/smoke-dev.mjs` on a weekday so a song is shared and rated), **P8.12**'s Playwright screenshots
-(after P10.1). Next roadmap work: Phase 9 (hardening).
+Phase 9: **P9.1** done (deployed to dev). **P9.2** written but blocked on AWS (CloudFront account verification);
+next: **P9.3** security review, **P9.4** observability. Open from earlier: **P4.3**'s weekday check
+(`node scripts/smoke-dev.mjs` on a weekday), Ethan's walkthrough of the Phase 8 screens, **P8.12**'s Playwright
+screenshots (after P10.1).
 
 ## Blocked / Questions for Ethan
 
-_None open._ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app asks the host to make a new
-invite link (D17, P8.10); party limit lowered to 5 per person (D15).
+- **CloudFront verification (blocks P9.2's deploy, 2026-10-04).** Creating the distribution failed: "Your account must
+  be verified before you can add new CloudFront resources. ... contact AWS Support". Ethan opens a free Account and
+  billing case (DEPLOYMENT.md §4c). Until then dev has `HostWebsite=false`.
+- **Lambda concurrency is 10 for the account** (new-account default). Free quota request to 1,000 (DEPLOYMENT.md §4c).
+  Not blocking: the website retries a 503 once.
+
+Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app asks the host to make a new invite link
+(D17, P8.10); party limit lowered to 5 per person (D15).
 
 ## Environment facts
 
@@ -36,6 +42,25 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-04 — **P9.2 (written; deploy blocked by AWS)** — Template: private S3 bucket (public access blocked,
+  owner-enforced, SSE, HTTPS-only deny), Origin Access Control, bucket policy letting only this distribution read,
+  response-headers policy (HSTS 2 y, nosniff, DENY framing, strict-origin-when-cross-origin, CSP: self + Apple art +
+  Cognito/API Gateway in-region, `frame-ancestors 'none'`), CloudFront (HTTPS redirect, CachingOptimized,
+  PriceClass_100, SPA fallback 403/404 → index.html). API CORS: the CloudFront site, plus `DevOrigin` (localhost) in
+  dev; `FrontendOrigin` parameter replaced. `scripts/deploy-web.sh` (build with stack outputs, upload with immutable
+  assets / no-cache index, invalidate). zod set to jitless (no runtime code generation under CSP). `HostWebsite`
+  switch so dev can deploy without CloudFront until AWS verifies the account; a test forbids turning it off in prod.
+  Verified: `sam validate --lint`, `npm run verify`, template tests (bucket private, HTTPS, headers, CSP, CORS).
+  First deploy attempt: CloudFront refused ("account must be verified"); stack rolled back cleanly, smoke 34/34 after.
+- 2026-10-04 — **P9.1 done** — Per-route throttles in `RouteSettings` (search 3/s burst 10, invites/join 2/5, create
+  party and new link 1/3, other writes 2/5, share 5/10, rate 10/20; default 25/50); test checks every key is a real
+  route and sensitive ones are tighter. Website: 429 → "please wait a few seconds"; 503 (AWS couldn't start the
+  function) retried once then "busy"; Cognito lockout ("Password attempts exceeded") explained instead of "wrong
+  password". Docs: API.md → Rate limits, ARCHITECTURE.md. Deployed to dev (change set: API, stage, function code
+  only). Verified live: stage shows `GET /songs/search` 3/10; sustained bursts on `/invites/{code}` got 429s (AWS
+  applies limits as best-effort targets); 40 parallel searches hit the account's **10 concurrent Lambda** limit (503),
+  hence the retry and the quota request above.
 
 - 2026-10-03 — **Phase 8 review fixes** — Spec review of the screens: no privacy leak, security issue, or API behaviour
   change found. MUST FIX done: when a party reveals recommenders (D10), Home and Rate now show "Shared by …" and the

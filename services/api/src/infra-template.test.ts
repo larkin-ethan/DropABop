@@ -225,4 +225,10 @@ describe('infra/template.yaml', () => {
       expect(limits!.ThrottlingBurstLimit).toBeLessThanOrEqual(api.DefaultRouteSettings.ThrottlingBurstLimit);
     }
   });
+
+  it('never switches website hosting off for prod', () => {
+    const samconfig = readRepoFile('infra/samconfig.toml');
+    const prod = samconfig.slice(samconfig.indexOf('[prod.'));
+    expect(prod).not.toContain('HostWebsite=false');
+  });
 });

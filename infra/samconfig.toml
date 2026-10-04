@@ -26,7 +26,8 @@ capabilities = "CAPABILITY_IAM" # the stack creates one IAM role per function
 confirm_changeset = true # always show what will change and ask first
 # AlertEmail is deliberately not here (public repo): the stack keeps it from the first deploy (DEPLOYMENT.md §4a).
 # CreateBudget: the account's $5 budget lives in this stack (one per account).
-parameter_overrides = "Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true"
+# HostWebsite=false until AWS Support verifies the account for CloudFront (2026-10-04); then remove it.
+parameter_overrides = "Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true HostWebsite=false"
 
 # ---- prod: the real app. Only Ethan deploys it (CLAUDE.md). ----
 [prod.global.parameters]

@@ -31,12 +31,21 @@ interface ClientOptions {
   /** Called after the session can't be recovered (e.g. sends the user to the sign-in screen). */
   onSignedOut: () => void;
   fetchImpl?: typeof fetch;
+  /** Pause before retrying a 503 (tests pass 0). */
+  retryDelayMs?: number;
 }
 
 const GENERIC = 'Something went wrong. Please try again.';
+export const BUSY_MESSAGE = 'The app is busy right now. Please try again in a moment.';
 export const RATE_LIMITED_MESSAGE = 'Lots of requests right now. Please wait a few seconds and try again.';
 
-export function createApiClient({ baseUrl, auth, onSignedOut, fetchImpl = fetch }: ClientOptions): ApiClient {
+export function createApiClient({
+  baseUrl,
+  auth,
+  onSignedOut,
+  fetchImpl = fetch,
+  retryDelayMs = 600,
+}: ClientOptions): ApiClient {
   async function send(method: string, path: string, body: unknown, forceRefresh: boolean): Promise<Response> {
     const token = await auth.getAccessToken({ forceRefresh });
     const headers: Record<string, string> = { accept: 'application/json' };
@@ -61,6 +70,15 @@ export function createApiClient({ baseUrl, auth, onSignedOut, fetchImpl = fetch 
         await auth.signOut().catch(() => undefined);
         onSignedOut();
         throw new ApiError(401, 'UNAUTHENTICATED', 'Please sign in again.');
+      }
+    }
+    if (response.status === 503) {
+      // Our API never answers 503 itself. API Gateway does when AWS briefly can't start our function (the account's
+      // limit on functions running at once). The function didn't run, so trying once more is safe, even for writes.
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      response = await send(method, path, body, false);
+      if (response.status === 503) {
+        throw new ApiError(503, 'RATE_LIMITED', BUSY_MESSAGE);
       }
     }
     if (response.status === 204) {

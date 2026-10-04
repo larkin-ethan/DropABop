@@ -233,6 +233,38 @@ stay in the git-ignored `.test-users.json`):
 node scripts/smoke-dev.mjs
 ```
 
+## 4b. Publish the website (P9.2)
+
+The website is served from a private S3 bucket through CloudFront (HTTPS only, security headers). After the stack has
+the hosting resources (`HostWebsite` on), publish the current code to dev:
+
+```bash
+bash scripts/deploy-web.sh
+```
+
+It builds the site with the stack's public addresses, uploads it, and clears CloudFront's copy of `index.html`.
+The address is the stack output `WebsiteUrl`.
+
+## 4c. One-time AWS account requests (new accounts)
+
+New AWS accounts start with two limits that only the account owner can lift. Both requests are free.
+
+**CloudFront verification.** Until AWS verifies the account, creating a CloudFront distribution fails with "Your
+account must be verified before you can add new CloudFront resources". Dev runs with `HostWebsite=false` in
+`infra/samconfig.toml` until then.
+
+1. Console → **Support Center** (https://console.aws.amazon.com/support/home#/) → **Create case**.
+2. Choose **Account and billing** (free on every plan). Topic: account / service activation.
+3. Ask: "Please verify my account so I can create Amazon CloudFront distributions." Paste the error message above.
+4. When AWS confirms, tell the AI: it removes `HostWebsite=false` and deploys the website.
+
+**Lambda concurrency.** The account may run only **10** functions at the same moment (default for new accounts;
+`aws lambda get-account-settings` shows `ConcurrentExecutions: 10`). Above that, API Gateway answers 503 (the
+website retries once). Normal accounts get 1,000.
+
+1. Console → **Service Quotas** (https://console.aws.amazon.com/servicequotas/home) → region **US East (Ohio)**.
+2. **AWS Lambda** → **Concurrent executions** → **Request increase at account level** → **1000**.
+
 ## 5. Shutting things down
 
 Deleting is a **human-only** action in this project (the AI is blocked from it).
