@@ -1,7 +1,7 @@
 // SAMPLE DATA for previewing screens before the app is connected to the API (dev builds only).
 // Shapes match the real API responses in docs/API.md, so swapping in real data is a drop-in change.
 
-import type { Song, Weekday } from '@sotd/shared';
+import type { Song, Weekday } from '@dropabop/shared';
 
 export interface SongView {
   recommendationId: string;

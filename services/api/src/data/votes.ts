@@ -6,7 +6,7 @@
 // countableVotes / buildStatsData when counting (docs/DATABASE.md → "The rating lock").
 
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import type { Vote } from '@sotd/shared';
+import type { Vote } from '@dropabop/shared';
 import type { DataContext } from './context';
 import { queryByPrefix, withoutKeys } from './context';
 import { keys, parseRoundId, partitionKeys, prefixes } from './keys';

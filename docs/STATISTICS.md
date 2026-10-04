@@ -1,6 +1,6 @@
 # Statistics
 
-Every number Song of the Day shows about you or your party, how it's calculated, and how much data it
+Every number Drop a Bop shows about you or your party, how it's calculated, and how much data it
 needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.md`. Code:
 `services/api/src/domain/stats.ts` (each function's comment matches a row below).
 

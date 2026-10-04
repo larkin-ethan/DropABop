@@ -1,14 +1,14 @@
-# Song of the Day — application stack (ADR-0002). One copy per stage: sotd-dev and sotd-prod (infra/samconfig.toml).
+# Drop a Bop — application stack (ADR-0002). One copy per stage: dropabop-dev and dropabop-prod (infra/samconfig.toml).
 #
 # What's here: the DynamoDB table, the Cognito user pool + web app client, the HTTP API with a JWT authorizer, and one
 # Lambda function per API route. Everything is pay-per-use; nothing bills while idle (spec §2, docs/ARCHITECTURE.md).
 #
 # Build and deploy (docs/DEPLOYMENT.md), from the infra/ folder:
-#   sam build --config-env dev && sam deploy --config-env dev --profile sotd-dev
+#   sam build --config-env dev && sam deploy --config-env dev --profile dropabop-dev
 
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Song of the Day (API, auth, database)
+Description: Drop a Bop (API, auth, database)
 
 Parameters:
   Stage:
@@ -88,7 +88,7 @@ Resources:
       DeletionProtectionEnabled: !If [IsProd, true, false]
       Tags:
         - Key: app
-          Value: sotd
+          Value: dropabop
 
   # ---------------------------------------------------------------------------------------------------------------
   # Sign-in (spec §9, ADR-0008). Email + password only (D23). The website signs in with SRP through Amplify.
@@ -98,7 +98,7 @@ Resources:
     DeletionPolicy: Retain # accounts survive a deleted stack; removing them is a human decision
     UpdateReplacePolicy: Retain
     Properties:
-      UserPoolName: !Sub sotd-${Stage}
+      UserPoolName: !Sub dropabop-${Stage}
       # Essentials is the default plan: 10,000 monthly active users free (aws.amazon.com/cognito/pricing, 2026-10-02).
       UserPoolTier: ESSENTIALS
       UsernameAttributes: [email]
@@ -125,8 +125,8 @@ Resources:
           TemporaryPasswordValidityDays: 7
       VerificationMessageTemplate:
         DefaultEmailOption: CONFIRM_WITH_CODE
-        EmailSubject: Your Song of the Day code
-        EmailMessage: 'Your Song of the Day verification code is {####}'
+        EmailSubject: Your Drop a Bop code
+        EmailMessage: 'Your Drop a Bop verification code is {####}'
       # Uses Cognito's built-in email sender (no extra service). Its daily sending limit is plenty for one group.
       DeletionProtection: !If [IsProd, ACTIVE, INACTIVE]
 
@@ -134,7 +134,7 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       UserPoolId: !Ref UserPool
-      ClientName: !Sub sotd-${Stage}-web
+      ClientName: !Sub dropabop-${Stage}-web
       GenerateSecret: false # a website can't keep a secret (spec §9)
       ExplicitAuthFlows:
         - ALLOW_USER_SRP_AUTH # the password itself is never sent
@@ -185,7 +185,7 @@ Resources:
   ApiLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /sotd/${Stage}/api
+      LogGroupName: !Sub /dropabop/${Stage}/api
       RetentionInDays: !If [IsProd, 30, 14] # for debugging recent problems; older logs only cost storage
 
   # ---------------------------------------------------------------------------------------------------------------
@@ -699,8 +699,8 @@ Resources:
   AlertTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub sotd-${Stage}-alerts
-      DisplayName: !Sub Song of the Day (${Stage}) alerts
+      TopicName: !Sub dropabop-${Stage}-alerts
+      DisplayName: !Sub Drop a Bop (${Stage}) alerts
 
   AlertEmailSubscription:
     Type: AWS::SNS::Subscription
@@ -715,8 +715,8 @@ Resources:
   LambdaErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub sotd-${Stage}-lambda-errors
-      AlarmDescription: API functions crashed 5+ times in 5 minutes. Check the /sotd/<stage>/api log group.
+      AlarmName: !Sub dropabop-${Stage}-lambda-errors
+      AlarmDescription: API functions crashed 5+ times in 5 minutes. Check the /dropabop/<stage>/api log group.
       Namespace: AWS/Lambda
       MetricName: Errors
       Statistic: Sum
@@ -730,7 +730,7 @@ Resources:
   ApiServerErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub sotd-${Stage}-api-5xx
+      AlarmName: !Sub dropabop-${Stage}-api-5xx
       AlarmDescription: The API answered with a server error (5xx) 5+ times in 5 minutes.
       Namespace: AWS/ApiGateway
       MetricName: 5xx
@@ -752,7 +752,7 @@ Resources:
   TableReadThrottleAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub sotd-${Stage}-dynamodb-read-throttles
+      AlarmName: !Sub dropabop-${Stage}-dynamodb-read-throttles
       AlarmDescription: Database reads were throttled. Consider raising MaxReadRequestUnits (ADR-0005).
       Namespace: AWS/DynamoDB
       MetricName: ReadThrottleEvents
@@ -770,7 +770,7 @@ Resources:
   TableWriteThrottleAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub sotd-${Stage}-dynamodb-write-throttles
+      AlarmName: !Sub dropabop-${Stage}-dynamodb-write-throttles
       AlarmDescription: Database writes were throttled. Consider raising MaxWriteRequestUnits (ADR-0005).
       Namespace: AWS/DynamoDB
       MetricName: WriteThrottleEvents
@@ -792,7 +792,7 @@ Resources:
     Condition: ShouldCreateBudget
     Properties:
       Budget:
-        BudgetName: sotd-monthly
+        BudgetName: dropabop-monthly
         BudgetType: COST
         TimeUnit: MONTHLY
         BudgetLimit:

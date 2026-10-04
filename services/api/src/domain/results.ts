@@ -3,8 +3,8 @@
 // Privacy is handled here, not in the handlers: fields a viewer isn't allowed to see are left out of
 // the returned objects entirely (not set to null), so they can't leak into an API response by accident.
 
-import type { PartySettings, Recommendation, Round, Song, Vote, Weekday } from '@sotd/shared';
-import { MAX_RATING, MIN_RATING, SUBMISSION_WEEKDAYS } from '@sotd/shared';
+import type { PartySettings, Recommendation, Round, Song, Vote, Weekday } from '@dropabop/shared';
+import { MAX_RATING, MIN_RATING, SUBMISSION_WEEKDAYS } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 import { getEffectiveWeekStatus } from './week';
 

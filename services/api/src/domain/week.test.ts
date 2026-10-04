@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Round } from '@sotd/shared';
+import type { Round } from '@dropabop/shared';
 import {
   getEffectiveWeekStatus,
   getPendingStatusChange,

@@ -2,7 +2,7 @@
 // Kept in one place so the same situation always reads the same way, whether it was caught by a
 // rule check up front or by a conditional database write that lost a race.
 
-import type { ErrorCode } from '@sotd/shared';
+import type { ErrorCode } from '@dropabop/shared';
 
 export const MESSAGES = {
   NOT_A_MEMBER: 'You’re not a member of this party.',

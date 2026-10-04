@@ -1,7 +1,7 @@
 // Turning DynamoDB's technical failures into the app's friendly errors (spec §30).
 // A lost race (e.g. two "share today's song" taps at once) ends up as the same message the rule check would give.
 
-import type { ErrorCode } from '@sotd/shared';
+import type { ErrorCode } from '@dropabop/shared';
 
 /** An expected, user-facing failure. Handlers turn it into an API error response (P5.1). */
 export class DomainError extends Error {

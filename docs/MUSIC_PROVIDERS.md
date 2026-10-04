@@ -1,6 +1,6 @@
 # Music providers
 
-How Song of the Day finds songs and links people to them, what each music service allows, and how to add one.
+How Drop a Bop finds songs and links people to them, what each music service allows, and how to add one.
 Every fact below was checked against the provider's official documentation or terms on **2026-10-01** (sources at the
 end). Provider rules change often: re-check before relying on anything here, and update the date.
 

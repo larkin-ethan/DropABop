@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Recommendation, Round, Vote, Weekday } from '@sotd/shared';
+import type { Recommendation, Round, Vote, Weekday } from '@dropabop/shared';
 import { calculateWeekResults, canViewResults, roundToOneDecimal, toOpenWeekSongView } from './results';
 
 const round: Round = {

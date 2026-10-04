@@ -29,7 +29,7 @@ export function AuthLayout({
           <div className="flex justify-center">
             <Logo compact />
           </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight">Song of the Day</p>
+          <p className="mt-4 text-3xl font-bold tracking-tight">Drop a Bop</p>
           <p className="mt-2 text-muted">One song a day. One group. Endless good vibes.</p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export function SignUpScreen() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Join Song of the Day and start sharing music.">
+    <AuthLayout title="Create your account" subtitle="Join Drop a Bop and start sharing music.">
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <FormError message={error} />
         <TextField

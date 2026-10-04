@@ -1,4 +1,4 @@
-import type { Party } from '@sotd/shared';
+import type { Party } from '@dropabop/shared';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
 import { newId } from '../../test/fixtures';

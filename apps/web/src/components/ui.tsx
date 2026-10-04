@@ -126,7 +126,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
           <path d="M9 18V6l11-2v12a3 3 0 1 1-2-2.8V7.3l-7 1.3V18a3 3 0 1 1-2-2.8" />
         </svg>
       </span>
-      {!compact && <span className="text-lg font-bold tracking-tight">Song of the Day</span>}
+      {!compact && <span className="text-lg font-bold tracking-tight">Drop a Bop</span>}
     </div>
   );
 }

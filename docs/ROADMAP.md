@@ -196,13 +196,13 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - Follow `docs/DEPLOYMENT.md` → "Account safety" (the AI writes that section first if missing):
     enable MFA on root, create an IAM Identity Center user for daily work, set a **$5/month budget** with
     email alerts at 50%/80%/100% actual and 100% forecasted, enable Free Tier usage alerts, pick a region.
-    Run `aws configure sso` with profile name `sotd-dev`.
-  - Done when: `aws sts get-caller-identity --profile sotd-dev` works and the budget exists.
+    Run `aws configure sso` with profile name `dropabop-dev`.
+  - Done when: `aws sts get-caller-identity --profile dropabop-dev` works and the budget exists.
 
 - [x] **P4.2 — SAM template: core stack**
   - *Spec:* §3, §6, §9, §36, §41 · *ADR:* 0002
   - *Do:* `infra/template.yaml` + `infra/samconfig.toml` with `dev` and `prod` config-envs (separate stack
-    names `sotd-dev` / `sotd-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1 / ADR-0005: on-demand,
+    names `dropabop-dev` / `dropabop-prod`, parameter `Stage`). Resources: DynamoDB table (from P3.1 / ADR-0005: on-demand,
     `OnDemandThroughput` caps, PITR + deletion protection in prod), every Phase 5 route with its handler,
     Cognito User Pool (email sign-in, email verification, strong password policy) + public app client
     (no secret, SRP + refresh), HTTP API with **JWT authorizer** (issuer + audience = app client id; routes require
@@ -216,7 +216,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
 - [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`; website sign-up run done)
-  - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile sotd-dev` (user approves at the prompt), then calls
+  - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile dropabop-dev` (user approves at the prompt), then calls
     `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
     Cognito tokens: create party → join → share a song → rate → (results/stats return the "not ready" error while
@@ -354,7 +354,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 11 — CI/CD & production
 
-- [ ] **P11.1 — GitHub → AWS via OIDC** (§35) — IAM OIDC provider + deploy role scoped to the `sotd-*` stacks and
+- [ ] **P11.1 — GitHub → AWS via OIDC** (§35) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
   frontend buckets (in a small separate `infra/bootstrap.yaml`). **No long-lived access keys.**
 - [ ] **P11.2 — Deploy workflow** — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
   invalidation. Prod job exists but requires a manual approval (GitHub Environment `production` with Ethan as reviewer).

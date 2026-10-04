@@ -1,8 +1,8 @@
 // GET /users/me/stats, GET /parties/{partyId}/stats, GET /parties/{partyId}/leaderboard (docs/API.md → Stats).
 // Computed on request from closed weeks only (ADR-0006, docs/STATISTICS.md).
 
-import type { Party, Recommendation } from '@sotd/shared';
-import { personalStatsQuerySchema } from '@sotd/shared';
+import type { Party, Recommendation } from '@dropabop/shared';
+import { personalStatsQuerySchema } from '@dropabop/shared';
 import type { DataContext } from '../data/context';
 import { listMembers } from '../data/parties';
 import { listPartyRecommendations } from '../data/recommendations';

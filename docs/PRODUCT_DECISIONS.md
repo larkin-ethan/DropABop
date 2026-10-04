@@ -102,6 +102,9 @@ this deliberate change to spec §13–§15.
   for v1 (see `docs/design/README.md`).
 - **D23 — Sign-in methods.** v1 uses email + password via Cognito only. "Continue with Google" from the mockup is
   deferred (needs a Google OAuth app and Cognito federation setup).
+- **D24 — Name (2026-10-03).** The app is called **Drop a Bop**; `dropabop` in package, stack, and AWS resource
+  names. It replaces "Song of the Day" / `sotd` everywhere except the name of each day's winner in the weekly
+  results (D12), which stays "Song of the Day" unless Ethan renames it.
 
 ## Statistics definitions (§17, §18)
 

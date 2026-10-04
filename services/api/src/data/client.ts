@@ -1,7 +1,7 @@
 // One DynamoDB client per Lambda container, configured from environment variables (spec §37: no hard-coded
 // table names or regions).
 //
-// - TABLE_NAME:        set by the SAM template per stage (sotd-dev / sotd-prod).
+// - TABLE_NAME:        set by the SAM template per stage (dropabop-dev / dropabop-prod).
 // - AWS_REGION:        set automatically by Lambda.
 // - DYNAMODB_ENDPOINT: ONLY for local development/tests (DynamoDB Local). Must point at localhost.
 

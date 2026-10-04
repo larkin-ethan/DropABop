@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Party, PartyMember } from '@sotd/shared';
-import { INVITE_CODE_ALPHABET, INVITE_CODE_PATTERN, inviteCodeSchema } from '@sotd/shared';
+import type { Party, PartyMember } from '@dropabop/shared';
+import { INVITE_CODE_ALPHABET, INVITE_CODE_PATTERN, inviteCodeSchema } from '@dropabop/shared';
 import {
   canJoinParty,
   canManageParty,

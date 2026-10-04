@@ -1,7 +1,7 @@
 // GET /parties/{partyId}/rounds/current and GET /parties/{partyId}/rounds (docs/API.md → Weeks).
 
-import type { Party, PartyMember, Round } from '@sotd/shared';
-import { roundHistoryQuerySchema } from '@sotd/shared';
+import type { Party, PartyMember, Round } from '@dropabop/shared';
+import { roundHistoryQuerySchema } from '@dropabop/shared';
 import type { DataContext } from '../data/context';
 import { listMySubmissionDates, listWeekRecommendations, listWeekSubmissions } from '../data/recommendations';
 import { parseRoundId } from '../data/keys';

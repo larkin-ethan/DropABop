@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Recommendation, Vote } from '@sotd/shared';
+import type { Recommendation, Vote } from '@dropabop/shared';
 import {
   averageRatingGiven,
   averageScoreReceived,

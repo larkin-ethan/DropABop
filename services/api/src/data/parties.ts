@@ -1,7 +1,7 @@
 // Parties, members, and invite codes (docs/DATABASE.md patterns 2–6 and the write table).
 
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import type { MemberRole, Party, PartyMember, PartySettings } from '@sotd/shared';
+import type { MemberRole, Party, PartyMember, PartySettings } from '@dropabop/shared';
 import { MESSAGES } from '../domain/messages';
 import type { DataContext } from './context';
 import { queryByPrefix, transactWrite, withoutKeys } from './context';

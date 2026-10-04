@@ -1,7 +1,7 @@
 // Test data builders shared by integration tests. Every builder uses fresh random ids so tests never collide.
 
 import { randomUUID } from 'node:crypto';
-import type { Party, PartyMember, Recommendation, Round, User, Vote } from '@sotd/shared';
+import type { Party, PartyMember, Recommendation, Round, User, Vote } from '@dropabop/shared';
 import { createDataContext, type DataContext } from '../src/data/context';
 import { generateInviteCode } from '../src/domain/party';
 

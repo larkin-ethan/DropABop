@@ -1,5 +1,5 @@
 // Bundles the API into one file for Lambda: `node scripts/bundle.mjs <output-dir>` writes <output-dir>/index.mjs.
-// `sam build` runs this through services/api/Makefile; `npm run build -w @sotd/api` runs it into dist/ for checking.
+// `sam build` runs this through services/api/Makefile; `npm run build -w @dropabop/api` runs it into dist/ for checking.
 
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';

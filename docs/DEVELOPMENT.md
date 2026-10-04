@@ -1,6 +1,6 @@
 # Development guide
 
-How to set up, run, and change Song of the Day on your own machine.
+How to set up, run, and change Drop a Bop on your own machine.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ npm run verify
 ```text
 apps/web/            React frontend (Vite app created in P7.1)
 services/api/        Lambda handlers, domain rules, data access, music providers
-packages/shared/     Types + validation schemas used by both web and api (@sotd/shared)
+packages/shared/     Types + validation schemas used by both web and api (@dropabop/shared)
 infra/               AWS SAM templates (from P4.2)
 docs/                Spec, roadmap, decisions, reference docs
 scripts/             guardrails.sh and Claude Code hook scripts
@@ -54,7 +54,7 @@ scripts/             guardrails.sh and Claude Code hook scripts
 
 ### How the workspaces connect
 
-- `@sotd/shared` points straight at its TypeScript source (`packages/shared/src/index.ts`). There's no build
+- `@dropabop/shared` points straight at its TypeScript source (`packages/shared/src/index.ts`). There's no build
   step: Vite (frontend) and esbuild (Lambdas) compile it as part of their own builds.
 - TypeScript runs in "check only" mode (`noEmit`) with shared settings in `tsconfig.base.json`.
 

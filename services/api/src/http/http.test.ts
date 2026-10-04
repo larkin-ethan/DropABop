@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { castVoteRequestSchema } from '@sotd/shared';
+import { castVoteRequestSchema } from '@dropabop/shared';
 import { apiEvent, bodyOf } from '../../test/events';
 import type { DataContext } from '../data/context';
 import { DomainError } from '../data/errors';

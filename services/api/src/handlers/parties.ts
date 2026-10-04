@@ -1,7 +1,7 @@
 // POST /parties, GET /parties, GET /parties/{partyId} (docs/API.md → Parties).
 
-import type { Party, PartyMember } from '@sotd/shared';
-import { DEFAULT_MAX_PARTY_SIZE, MAX_PARTIES_PER_USER, createPartyRequestSchema } from '@sotd/shared';
+import type { Party, PartyMember } from '@dropabop/shared';
+import { DEFAULT_MAX_PARTY_SIZE, MAX_PARTIES_PER_USER, createPartyRequestSchema } from '@dropabop/shared';
 import type { DataContext } from '../data/context';
 import {
   InviteCodeTakenError,

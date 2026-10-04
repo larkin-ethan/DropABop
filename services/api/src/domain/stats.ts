@@ -9,8 +9,8 @@
 //   is needed. We never show a number we can't back up (spec §17).
 // - Ratings on your own song (never accepted by the API) and ratings for unknown songs are ignored.
 
-import type { Recommendation, Round, Vote } from '@sotd/shared';
-import { MAX_RATING, MIN_RATING } from '@sotd/shared';
+import type { Recommendation, Round, Vote } from '@dropabop/shared';
+import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
 
 // ---------------------------------------------------------------------------
 // Result types

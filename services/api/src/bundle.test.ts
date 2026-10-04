@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { apiEvent } from '../test/events';
 
-const outDir = mkdtempSync(join(tmpdir(), 'sotd-bundle-'));
+const outDir = mkdtempSync(join(tmpdir(), 'dropabop-bundle-'));
 afterAll(() => rmSync(outDir, { recursive: true, force: true }));
 
 describe('Lambda bundle (scripts/bundle.mjs)', () => {

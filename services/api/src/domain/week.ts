@@ -10,8 +10,8 @@
 // and its weeks start on Monday (ISO weeks), which is exactly our week.
 
 import { DateTime } from 'luxon';
-import type { IsoDate, IsoDateTime, Round, RoundStatus, Weekday } from '@sotd/shared';
-import { SUBMISSION_WEEKDAYS } from '@sotd/shared';
+import type { IsoDate, IsoDateTime, Round, RoundStatus, Weekday } from '@dropabop/shared';
+import { SUBMISSION_WEEKDAYS } from '@dropabop/shared';
 
 /** A round needs at least this many songs to have results (D2). */
 export const MIN_SONGS_FOR_RESULTS = 2;

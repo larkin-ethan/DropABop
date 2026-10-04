@@ -27,7 +27,7 @@ describe('assertLocalEndpoint (spec §36: local work can never reach a real data
 
 describe('getTableName', () => {
   it('reads TABLE_NAME and fails loudly when missing', () => {
-    expect(getTableName({ TABLE_NAME: 'sotd-dev' })).toBe('sotd-dev');
+    expect(getTableName({ TABLE_NAME: 'dropabop-dev' })).toBe('dropabop-dev');
     expect(() => getTableName({})).toThrow('TABLE_NAME is not set');
   });
 });

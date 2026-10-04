@@ -1,7 +1,7 @@
 // PUT /rounds/{roundId}/votes/{recommendationId} and GET /rounds/{roundId}/votes/me (docs/API.md → Ratings).
 
-import type { Vote } from '@sotd/shared';
-import { castVoteRequestSchema } from '@sotd/shared';
+import type { Vote } from '@dropabop/shared';
+import { castVoteRequestSchema } from '@dropabop/shared';
 import { getRecommendation } from '../data/recommendations';
 import { listMyWeekVotes, putVote } from '../data/votes';
 import { canCastVote } from '../domain/rules';

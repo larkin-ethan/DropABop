@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 // Local-only settings. Set here (not in a .env file) so they're visible and can't point anywhere real:
 // the client and the setup both refuse any endpoint that isn't localhost.
 process.env.DYNAMODB_ENDPOINT ??= 'http://localhost:8000';
-process.env.TABLE_NAME ??= 'sotd-integration-test';
+process.env.TABLE_NAME ??= 'dropabop-integration-test';
 process.env.AWS_REGION ??= 'us-east-1';
 
 export default defineConfig({

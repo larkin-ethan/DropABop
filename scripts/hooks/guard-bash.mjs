@@ -17,7 +17,9 @@ process.stdin.on('end', () => {
   const rules = [
     {
       // Only real AWS/SAM invocations: doc edits or commit messages that merely mention "prod" are fine.
-      pattern: /\b(aws|sam)\s[^|;&]*(--config-env[= ]+prod\b|--profile[= ]+\S*prod\b|\bsotd-prod\b)/,
+      // dropabop-prod is the prod stack; sotd-prod is its pre-rename name (2026-10-03), still blocked just in case.
+      pattern:
+        /\b(aws|sam)\s[^|;&]*(--config-env[= ]+prod\b|--profile[= ]+\S*prod\b|\b(dropabop|sotd)-prod\b)/,
       reason:
         'Production actions are done by Ethan, not the AI. Give him the exact command and explain what it does.',
     },

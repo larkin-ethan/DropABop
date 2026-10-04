@@ -1,6 +1,6 @@
 // New-user defaults (D18, D19).
 
-import type { User } from '@sotd/shared';
+import type { User } from '@dropabop/shared';
 
 /** Shown until the person picks a name during onboarding (P8.2). */
 export const DEFAULT_DISPLAY_NAME = 'New member';

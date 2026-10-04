@@ -4,8 +4,8 @@
 // shared today) and ask these functions for a decision. The database then enforces the same rules again
 // with conditional writes, so two simultaneous requests can't both slip through (see docs/DATABASE.md).
 
-import type { PartyMember, Recommendation, Round } from '@sotd/shared';
-import { MAX_RATING, MIN_RATING } from '@sotd/shared';
+import type { PartyMember, Recommendation, Round } from '@dropabop/shared';
+import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 import { getSubmissionDay, isWeekOpen, type SubmissionDay } from './week';
 

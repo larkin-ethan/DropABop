@@ -1,6 +1,6 @@
 // PATCH /parties/{partyId}/settings (docs/API.md → Party settings).
 
-import { updatePartySettingsRequestSchema } from '@sotd/shared';
+import { updatePartySettingsRequestSchema } from '@dropabop/shared';
 import { listMembers, updateParty } from '../data/parties';
 import { canManageParty, canSetMaxMembers } from '../domain/party';
 import { assertAllowed } from '../http/errors';

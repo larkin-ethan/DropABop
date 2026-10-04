@@ -1,8 +1,8 @@
 // Invite codes, joining, and who may manage a party (spec §8, §24, §26; decisions D13–D17).
 
 import { randomBytes } from 'node:crypto';
-import type { Party, PartyMember } from '@sotd/shared';
-import { INVITE_CODE_ALPHABET } from '@sotd/shared';
+import type { Party, PartyMember } from '@dropabop/shared';
+import { INVITE_CODE_ALPHABET } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 
 /** Returns `count` cryptographically secure random bytes. Swappable in tests. */

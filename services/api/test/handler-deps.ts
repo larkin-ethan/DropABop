@@ -1,7 +1,7 @@
 // Dependencies for handler integration tests: the real DynamoDB Local table, plus a controllable clock.
 
 import { randomUUID } from 'node:crypto';
-import type { MusicProviderId, Song } from '@sotd/shared';
+import type { MusicProviderId, Song } from '@dropabop/shared';
 import type { Deps } from '../src/http/handler';
 import { testContext } from './fixtures';
 

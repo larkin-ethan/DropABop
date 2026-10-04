@@ -1,13 +1,13 @@
 // POST and GET /rounds/{roundId}/recommendations (docs/API.md → Songs).
 
-import type { Recommendation, SongProvider, SubmitRecommendationRequest } from '@sotd/shared';
+import type { Recommendation, SongProvider, SubmitRecommendationRequest } from '@dropabop/shared';
 import {
   canonicalLinks,
   parseSpotifyTrackUrl,
   parseYouTubeUrl,
   songSchema,
   submitRecommendationRequestSchema,
-} from '@sotd/shared';
+} from '@dropabop/shared';
 import { parseRoundId } from '../data/keys';
 import { listMySubmissionDates, listWeekRecommendations, putRecommendation } from '../data/recommendations';
 import { listMyWeekVotes } from '../data/votes';

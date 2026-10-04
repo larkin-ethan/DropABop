@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PartyMember, Recommendation, Round } from '@sotd/shared';
+import type { PartyMember, Recommendation, Round } from '@dropabop/shared';
 import {
   canCastVote,
   canSubmitRecommendation,

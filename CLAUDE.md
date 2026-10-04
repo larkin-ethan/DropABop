@@ -1,4 +1,4 @@
-# CLAUDE.md — Song of the Day
+# CLAUDE.md — Drop a Bop
 
 Private social music app. Each week, every party member shares one song per day (Mon–Fri), anyone can
 rate any of that week's songs 1–10 until Sunday night, then ratings lock and the weekly results and taste

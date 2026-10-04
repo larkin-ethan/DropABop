@@ -12,7 +12,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @sotd/web",
+    "dev": "npm run dev -w @dropabop/web",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",

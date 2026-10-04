@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Song of the Day — automated guardrail checks.
+# Drop a Bop — automated guardrail checks.
 #
 # Enforces the spec's cost and security rules that can be checked mechanically, so a
 # mistake (by a person or an AI) is caught right after the edit instead of in a bill or a breach.

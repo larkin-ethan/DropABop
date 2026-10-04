@@ -1,5 +1,5 @@
 // Dev smoke test (roadmap P4.3, reused by P10.3): calls every API endpoint on the deployed dev stack.
-// Run from the repo root after `aws login --profile sotd-dev`:   node scripts/smoke-dev.mjs
+// Run from the repo root after `aws login --profile dropabop-dev`:   node scripts/smoke-dev.mjs
 //
 // Creates two throwaway users the first time (passwords only in the git-ignored .test-users.json, never printed),
 // signs in with SRP through Amplify like the website does, and prints only statuses and error codes.
@@ -14,12 +14,12 @@ import { signIn, signOut, fetchAuthSession } from 'aws-amplify/auth';
 const print = (line) => process.stdout.write(`${line}\n`);
 
 const aws = (args) =>
-  execFileSync('aws', [...args, '--region', 'us-east-2', '--profile', 'sotd-dev', '--output', 'json'], {
+  execFileSync('aws', [...args, '--region', 'us-east-2', '--profile', 'dropabop-dev', '--output', 'json'], {
     encoding: 'utf8',
   });
 
 // Stack outputs are read live, so no addresses are kept in the (public) repo.
-const stack = JSON.parse(aws(['cloudformation', 'describe-stacks', '--stack-name', 'sotd-dev']));
+const stack = JSON.parse(aws(['cloudformation', 'describe-stacks', '--stack-name', 'dropabop-dev']));
 const outputs = Object.fromEntries(stack.Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]));
 const api = outputs.ApiUrl;
 const poolId = outputs.UserPoolId;
@@ -30,7 +30,7 @@ if (existsSync(usersFile)) {
   users = JSON.parse(readFileSync(usersFile, 'utf8'));
 } else {
   users = [1, 2].map((n) => ({
-    email: `sotd-dev-test-${n}@example.com`,
+    email: `dropabop-dev-test-${n}@example.com`,
     password: `Aa1-${randomBytes(18).toString('base64url')}`,
   }));
   for (const u of users) {

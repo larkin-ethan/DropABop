@@ -1,5 +1,5 @@
 {
-  "name": "@sotd/web",
+  "name": "@dropabop/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sotd/shared": "*",
+    "@dropabop/shared": "*",
     "@tanstack/react-query": "^5.104.0",
     "aws-amplify": "^6.22.1",
     "react": "^19.3.0",

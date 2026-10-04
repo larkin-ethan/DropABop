@@ -1,4 +1,4 @@
-# Song of the Day
+# Drop a Bop
 
 A private social music app for small groups (10–20 friends). Every weekday (Mon–Fri), each member
 shares one song. All week long, everyone listens and rates the week's songs 1–10. When Sunday ends, ratings

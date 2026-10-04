@@ -1,7 +1,7 @@
 // Calls our API with the signed-in user's access token (spec §9: in the Authorization header, never the URL).
 // On 401 it refreshes the token once and retries; if that still fails, it signs the person out.
 
-import type { ApiErrorBody, ErrorCode } from '@sotd/shared';
+import type { ApiErrorBody, ErrorCode } from '@dropabop/shared';
 import type { AuthService } from '../auth/auth-service';
 
 /** A failed API call, carrying the API's friendly message (safe to show to people as-is). */

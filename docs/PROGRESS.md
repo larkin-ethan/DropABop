@@ -2,8 +2,10 @@
 
 ## Current focus
 
-**P4.4** (alarms + $5 budget). **P4.3** has one check left: on a weekday, run `node scripts/smoke-dev.mjs` so a song
-is actually shared and rated (weekends → 409 WEEKEND), then tick it.
+**Renamed to Drop a Bop** (D24): code and AWS names are now `dropabop`. Next: deploy the new `dropabop-dev` stack
+(includes P4.4's alarms + $5 budget; alert email passed at deploy time, not in the repo), re-run the smoke test, point
+the website at it, Ethan re-signs up there and confirms the SNS email, then Ethan deletes the old `sotd-dev` stack
+plus its retained table and user pool (steps in the chat / DEPLOYMENT.md). P4.3 still needs a weekday share → rate run.
 
 ## Blocked / Questions for Ethan
 
@@ -17,12 +19,12 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 
 - AWS region: **`us-east-2`** (the project's home region; regional services are denied everywhere else, and
   us-east-1 allows only global ones like IAM, billing, CloudFront, ACM). Set in `infra/samconfig.toml`; pass
-  `--region us-east-2` to other CLI calls (the `sotd-dev` profile's default region is us-east-1).
+  `--region us-east-2` to other CLI calls (the `dropabop-dev` profile's default region is us-east-1).
 - The GitHub repo is **public**: never commit account ids, emails, stack addresses, or test-user details.
 - AWS account: AWS's *new experience* (projects, settings.aws.com); IAM Identity Center is unavailable there.
-  CLI profile `sotd-dev` signs in with `aws login --profile sotd-dev` (role `AccountFullAccessRole`, 12 h credentials;
+  CLI profile `dropabop-dev` signs in with `aws login --profile dropabop-dev` (role `AccountFullAccessRole`, 12 h credentials;
   verified 2026-10-03). See DEPLOYMENT.md §2.8.
-- Stacks: `sotd-dev`, `sotd-prod` (planned)
+- Stacks: `dropabop-dev` (to deploy), `dropabop-prod` (planned). Old `sotd-dev` (us-east-2) is retired: Ethan deletes it.
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
 - AWS CLI 2.37.9, SAM CLI 1.166.2 (verified 2026-10-03). Set `SAM_CLI_TELEMETRY=0` to skip SAM's telemetry.
@@ -33,6 +35,13 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **Rename: Song of the Day → Drop a Bop** (Ethan's request; D24, SPEC.md header note) — app name in
+  the UI, verification email, docs, skills and hooks; `@sotd/*` → `@dropabop/*` packages; stacks, user pool, log
+  group, alarms, budget → `dropabop-*`. Kept: "Song of the Day" as the name of each day's winner (D12), history in
+  this log, the repo folder name. Prod-deploy guard blocks both `dropabop-prod` and `sotd-prod`. CLI profile renamed
+  to `dropabop-dev` in docs (Ethan runs `aws login --profile dropabop-dev`). Verified: `npm install`, `npm run verify`
+  exit 0 (361 tests + 1 skipped), `sam validate --lint`, `sam build --config-env dev`.
 
 - 2026-10-03 — **P7.3 done** — Ethan ran the real flow on the website against `sotd-dev`: sign-up → emailed code →
   sign-in → sign-out → forgot password → sign-in with the new password, all working (his account is CONFIRMED in the
@@ -123,7 +132,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
   (sidebar ≥ md, bottom tab bar on mobile), basic components (`ui.tsx`, `Icon`, `SongCard`), `config.ts` (lazy env
   read, fails loudly), `.env.example`. Head start on P8.3: `HomeScreen` rendered with sample data (dev-only banner
   says so; other routes show "built in task …"). **P8.3 is not done** (no API wiring, states, or tests yet).
-  `.claude/launch.json` "web" for the preview. Verified: `npm run build -w @sotd/web` → static files only
+  `.claude/launch.json` "web" for the preview. Verified: `npm run build -w @dropabop/web` → static files only
   (298 kB JS / 22 kB CSS); screenshots at desktop and 375px; 320px has no horizontal scroll; no console errors;
   `npm run verify` exit 0.
 
@@ -269,7 +278,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
   weeks, pause, east/west timezone changes); mutation check: disabling the overlap rules fails 2 tests. `npm run verify`
   exit 0, 111 tests. Dependency added: luxon (runtime, api) + @types/luxon (dev).
 
-- 2026-10-01 — **P1.3** — `@sotd/shared`: limits/enums (`limits.ts`), domain types (`types.ts`), API error shape +
+- 2026-10-01 — **P1.3** — `@dropabop/shared`: limits/enums (`limits.ts`), domain types (`types.ts`), API error shape +
   codes (`errors.ts`), zod 4 request schemas (`schemas.ts`). Decisions made: all request schemas are strict (unknown
   keys like `userId` are rejected, spec §24); recommendation requests carry only `{provider, providerSongId}` so the
   server looks up song metadata itself (client can't forge titles/links); only https links accepted; invite codes
@@ -281,7 +290,7 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
   setup-node README, 2026-10-01). Verified: YAML parses; `npm ci && npm run verify` exit 0 locally. **Not yet verified
   on GitHub**: the `build` branch hasn't been pushed (push needs Ethan's OK).
 
-- 2026-10-01 — **P1.1** — npm workspaces (`packages/shared` as `@sotd/shared`, `services/api`, `apps/web`
+- 2026-10-01 — **P1.1** — npm workspaces (`packages/shared` as `@dropabop/shared`, `services/api`, `apps/web`
   placeholder), strict `tsconfig.base.json`, ESLint flat config with type-aware rules, Prettier, Vitest unit +
   integration configs, `.nvmrc` = 24, root scripts incl. `verify`, `docs/DEVELOPMENT.md`. Verified: `npm run verify`
   exit 0 (3 test files / 3 tests pass, guardrails pass). Negative check: a deliberate type error fails `typecheck`

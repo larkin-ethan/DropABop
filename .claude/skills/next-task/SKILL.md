@@ -1,6 +1,6 @@
 ---
 name: next-task
-description: Continue building Song of the Day — pick the next unchecked task in docs/ROADMAP.md, implement it within the project guardrails, verify it, update docs and progress, and commit. Use when the user says "next", "continue", "keep going", "next task", or "/next-task [count]".
+description: Continue building Drop a Bop — pick the next unchecked task in docs/ROADMAP.md, implement it within the project guardrails, verify it, update docs and progress, and commit. Use when the user says "next", "continue", "keep going", "next task", or "/next-task [count]".
 ---
 
 # Next task

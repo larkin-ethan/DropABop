@@ -1,4 +1,4 @@
-import type { Party, Round } from '@sotd/shared';
+import type { Party, Round } from '@dropabop/shared';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
 import { aRecommendation, aRound, aVote, newId } from '../../test/fixtures';

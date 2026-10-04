@@ -1,6 +1,6 @@
 # Database
 
-Song of the Day stores everything in **one DynamoDB table** per environment (`sotd-dev`, `sotd-prod`).
+Drop a Bop stores everything in **one DynamoDB table** per environment (`dropabop-dev`, `dropabop-prod`).
 The design starts from how the app reads and writes data (spec §25), not from entities. There are **no
 secondary indexes** and **no scans**: every operation below is a `GetItem`, a `Query` on one partition, or a
 transaction.

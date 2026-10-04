@@ -5,7 +5,7 @@
 // must pass them through toOpenWeekSongView / calculateWeekResults, which hide it when required (D10).
 
 import { GetCommand } from '@aws-sdk/lib-dynamodb';
-import type { Recommendation } from '@sotd/shared';
+import type { Recommendation } from '@dropabop/shared';
 import { MESSAGES } from '../domain/messages';
 import type { DataContext } from './context';
 import { queryByPrefix, transactWrite, withoutKeys } from './context';

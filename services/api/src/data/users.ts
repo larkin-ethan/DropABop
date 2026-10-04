@@ -1,7 +1,7 @@
 // User profiles (docs/DATABASE.md patterns 1–2). Email is never stored here; it lives in Cognito (D19).
 
 import { GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import type { MusicProviderId, User } from '@sotd/shared';
+import type { MusicProviderId, User } from '@dropabop/shared';
 import type { DataContext } from './context';
 import { withoutKeys } from './context';
 import { isConditionalCheckFailed } from './errors';

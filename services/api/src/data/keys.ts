@@ -6,7 +6,7 @@
 // Handlers validate input with the shared zod schemas first, so users get a 400; these checks are a last line of
 // defence and throw plain Errors (which become a generic 500).
 
-import { INVITE_CODE_PATTERN } from '@sotd/shared';
+import { INVITE_CODE_PATTERN } from '@dropabop/shared';
 
 const SAFE_ID = /^[A-Za-z0-9-]{1,64}$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;

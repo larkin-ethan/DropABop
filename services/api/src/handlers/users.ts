@@ -1,6 +1,6 @@
 // GET /users/me and PATCH /users/me (docs/API.md → Profile).
 
-import { updateProfileRequestSchema } from '@sotd/shared';
+import { updateProfileRequestSchema } from '@dropabop/shared';
 import { listUserParties } from '../data/parties';
 import { getOrCreateUserProfile, updateUserProfile } from '../data/users';
 import { buildNewUser } from '../domain/profile';

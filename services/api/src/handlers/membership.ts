@@ -1,7 +1,7 @@
 // Invites, joining, leaving, and removing members (docs/API.md → Invites & membership).
 
-import type { PartyMember } from '@sotd/shared';
-import { inviteCodeSchema, joinPartyRequestSchema } from '@sotd/shared';
+import type { PartyMember } from '@dropabop/shared';
+import { inviteCodeSchema, joinPartyRequestSchema } from '@dropabop/shared';
 import {
   InviteCodeTakenError,
   getMembership,

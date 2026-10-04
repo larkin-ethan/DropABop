@@ -3,7 +3,7 @@
 // The server always looks songs up itself from the id the client sends, so titles, artwork, and links can't be
 // forged by the client (see submitRecommendationRequestSchema).
 
-import type { MusicProviderId, ProviderCapabilities, Song } from '@sotd/shared';
+import type { MusicProviderId, ProviderCapabilities, Song } from '@dropabop/shared';
 import { DomainError } from '../data/errors';
 
 export interface SongLookup {

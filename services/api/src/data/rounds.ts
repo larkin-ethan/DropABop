@@ -1,7 +1,7 @@
 // Weekly rounds (docs/DATABASE.md patterns 7–9; ADR-0003).
 
 import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import type { Round, RoundStatus } from '@sotd/shared';
+import type { Round, RoundStatus } from '@dropabop/shared';
 import type { DataContext } from './context';
 import { withoutKeys } from './context';
 import { isConditionalCheckFailed } from './errors';

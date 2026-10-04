@@ -2,8 +2,8 @@
 // Response fields checked against a live response on 2026-10-01: trackId, trackName, artistName, collectionName,
 // trackTimeMillis, releaseDate, trackViewUrl (a music.apple.com link), artworkUrl100.
 
-import type { MusicProviderId, Song } from '@sotd/shared';
-import { songSchema } from '@sotd/shared';
+import type { MusicProviderId, Song } from '@dropabop/shared';
+import { songSchema } from '@dropabop/shared';
 import { DomainError } from '../data/errors';
 import { logger } from '../http/logger';
 import type { SongLookup } from './song-lookup';

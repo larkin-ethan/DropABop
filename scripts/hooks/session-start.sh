@@ -3,7 +3,7 @@
 # oriented — what's next, and whether anything is blocked — without the user re-explaining.
 cd "$(dirname "$0")/../.." || exit 0
 
-echo "## Song of the Day — session briefing (auto-generated)"
+echo "## Drop a Bop — session briefing (auto-generated)"
 echo
 echo "Rules: CLAUDE.md. Spec: docs/SPEC.md. Use /next-task to continue the roadmap."
 echo

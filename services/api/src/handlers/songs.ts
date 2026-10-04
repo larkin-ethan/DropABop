@@ -1,6 +1,6 @@
 // GET /songs/search and POST /songs/resolve (docs/API.md → Song search). iTunes catalog, server-side (ADR-0007).
 
-import { parseAppleMusicSongUrl, resolveSongRequestSchema, songSearchQuerySchema } from '@sotd/shared';
+import { parseAppleMusicSongUrl, resolveSongRequestSchema, songSearchQuerySchema } from '@dropabop/shared';
 import { fail } from '../http/errors';
 import { createHandler, ok, type HandlerFn } from '../http/handler';
 import { getAuthenticatedUser, parseBody, parseQuery } from '../http/request';

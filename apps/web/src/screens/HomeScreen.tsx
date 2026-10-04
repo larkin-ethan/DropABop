@@ -1,7 +1,7 @@
 // Home / Today (roadmap P8.3; mockup screens 8–9 adapted for the weekly model, docs/design/README.md).
 // Currently rendered with sample data; P8.3 connects it to GET /parties/{id}/rounds/current and the songs list.
 
-import type { Weekday } from '@sotd/shared';
+import type { Weekday } from '@dropabop/shared';
 import { Icon } from '../components/Icon';
 import { SongCard } from '../components/SongCard';
 import { AlbumArt, Avatar, Button, Card, ProgressBar } from '../components/ui';

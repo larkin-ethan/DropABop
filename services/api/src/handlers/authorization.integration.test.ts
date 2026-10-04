@@ -4,7 +4,7 @@
 // a regular member, and the host. Expected outcomes are listed per route; the test fails if any route lets the
 // wrong person through or blocks the right one.
 
-import type { Party, Round } from '@sotd/shared';
+import type { Party, Round } from '@dropabop/shared';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf, type EventOptions } from '../../test/events';
 import { newId } from '../../test/fixtures';

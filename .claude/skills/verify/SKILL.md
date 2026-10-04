@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Run Song of the Day's full verification (lint, typecheck, unit tests, guardrails, and infra/integration checks when relevant) and report results truthfully. Use before ticking a roadmap task, before committing, or when the user asks "does it work?" / "run the checks".
+description: Run Drop a Bop's full verification (lint, typecheck, unit tests, guardrails, and infra/integration checks when relevant) and report results truthfully. Use before ticking a roadmap task, before committing, or when the user asks "does it work?" / "run the checks".
 ---
 
 # Verify

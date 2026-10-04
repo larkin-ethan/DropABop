@@ -1,6 +1,6 @@
 // HTTP status for each error code, and helpers to stop a request with a friendly error.
 
-import type { ErrorCode } from '@sotd/shared';
+import type { ErrorCode } from '@dropabop/shared';
 import { DomainError } from '../data/errors';
 import type { RuleResult } from '../domain/messages';
 
