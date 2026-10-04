@@ -50,7 +50,8 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
   `main` after typing "prod"; `ALERT_EMAIL` for a stage's first deploy), removed `deploy.yml`, `bootstrap.yaml` and its
   test, updated DEPLOYMENT §6, README, ARCHITECTURE, DEVELOPMENT, ADR-0002, ROADMAP P11. Empty
   `dropabop-github-deploy` stack (ROLLBACK_COMPLETE, $0) left for Ethan to delete. Also: dev deployed with P8.13
-  (Ethan approved); the post-deploy smoke run was blocked by the permission system, so it waits for Monday's run.
+  (Ethan approved); Ethan then ran `node scripts/smoke-dev.mjs` against it: 34/34 (Sunday path: sharing closed, results
+  not ready).
   Verified: `npm run verify`; `bash -n` on the script and its samconfig parsing for both stages. The script itself
   hasn't run end to end yet.
 
