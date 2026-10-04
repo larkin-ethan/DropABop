@@ -168,6 +168,18 @@ function memberNames(state: PreviewState) {
 const notEnough = (sampleSize: number, required: number) =>
   ({ status: 'not-enough-data', sampleSize, required }) as const;
 
+/**
+ * The world the sample-data preview opens with: like the test world, but you haven't shared today's song yet, so the
+ * whole Share flow can be tried (search → choose → confirm → shared). Your Wednesday pick becomes someone else's.
+ */
+export function createDemoState(now: Date = new Date()): PreviewState {
+  const state = createPreviewState(now);
+  state.songs = state.songs.map((song) =>
+    song.recommendationId === 'r9' ? { ...song, isMine: false, recommendedBy: undefined } : song,
+  );
+  return state;
+}
+
 export function createPreviewApi(state: PreviewState = createPreviewState()): ApiClient {
   const party = () => state.parties[0] ?? notFound();
 

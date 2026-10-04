@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getConfig } from '../config';
-import { createPreviewApi } from '../preview/preview-api';
+import { createDemoState, createPreviewApi } from '../preview/preview-api';
 import { ApiProvider } from './ApiContext';
 import { createApiClient } from './client';
 
@@ -18,7 +18,7 @@ export function ConnectedApi({ preview, children }: { preview: boolean; children
       // Only in the dev server's explicit sample mode; in production builds this is false, so the bundler drops the
       // preview API and its sample data.
       preview && import.meta.env.DEV && import.meta.env.MODE === 'sample'
-        ? createPreviewApi()
+        ? createPreviewApi(createDemoState())
         : createApiClient({
             baseUrl: getConfig().apiUrl,
             auth: service,
