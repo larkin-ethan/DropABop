@@ -227,7 +227,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     pool id, client id) in the git-ignored `apps/web/.env.development.local` only: not secrets, but the repo is public,
     so real dev addresses aren't committed.
 
-- [ ] **P4.4 — Cost & failure alarms**
+- [x] **P4.4 — Cost & failure alarms**
   - *Spec:* §7, §33
   - *Do:* In the template: SNS topic + email subscription (parameter), CloudWatch alarms for Lambda errors
     (sum ≥ 5 in 5 min), API 5xx, and DynamoDB throttles. AWS Budget resource as a second safety net.

@@ -2,11 +2,10 @@
 
 ## Current focus
 
-`dropabop-dev` is live (us-east-2) with P4.4's alarms and the $5 `dropabop-monthly` budget; the website points at it.
-Waiting on Ethan: (1) click the SNS confirmation link sent to the alert email (then tick P4.4), (2) sign up again on
-the new pool, (3) run the CLI login once with profile `dropabop-dev` (until then the smoke test uses
-`SMOKE_PROFILE=sotd-dev`), (4) delete the old `sotd-dev` stack plus its retained table and user pool.
-P4.3 still needs a weekday share → rate run.
+Phase 4 is done except **P4.3**'s weekday check: on a weekday run `node scripts/smoke-dev.mjs` so a song is shared
+and rated, then tick P4.3. Waiting on Ethan: delete the retired `sotd-dev` stack and its retained table
+(`sotd-dev-Table-…`) and user pool (steps given in chat 2026-10-03). Open question: keep "Song of the Day" as the name
+of each day's winner, or rename it? Next roadmap work after Phase 4: P8 screens (P8.1 onward) and P9.
 
 ## Blocked / Questions for Ethan
 
@@ -20,7 +19,8 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 
 - AWS region: **`us-east-2`** (the project's home region; regional services are denied everywhere else, and
   us-east-1 allows only global ones like IAM, billing, CloudFront, ACM). Set in `infra/samconfig.toml`; pass
-  `--region us-east-2` to other CLI calls (the `dropabop-dev` profile's default region is us-east-1).
+  `--region us-east-2` to other CLI calls anyway (the `dropabop-dev` profile's default is also us-east-2).
+- Alerts: SNS topic `dropabop-dev-alerts` → the alert email (confirmed 2026-10-03); budget `dropabop-monthly` $5.
 - The GitHub repo is **public**: never commit account ids, emails, stack addresses, or test-user details.
 - AWS account: AWS's *new experience* (projects, settings.aws.com); IAM Identity Center is unavailable there.
   CLI profile `dropabop-dev` signs in with `aws login --profile dropabop-dev` (role `AccountFullAccessRole`, 12 h credentials;
@@ -36,6 +36,10 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **P4.4 done** — Ethan confirmed the SNS subscription (list-subscriptions shows a real subscription
+  ARN, no longer PendingConfirmation). CLI profile `dropabop-dev` works (`sts get-caller-identity` →
+  `AccountFullAccessRole`, region us-east-2). Billable resources are listed in ARCHITECTURE.md and DEPLOYMENT.md §4.
 
 - 2026-10-03 — **dropabop-dev deployed (+ P4.4 resources)** — 82 resources, CREATE_COMPLETE. Alert email passed as a
   NoEcho parameter at deploy time (not in the repo). Verified: smoke test 34/34 on the new stack; 4 alarms in state OK;
