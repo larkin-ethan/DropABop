@@ -91,9 +91,12 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
   const now = useNow();
   const songs = useWeekSongs(week.round.roundId, { poll: true });
   const me = useMe();
-  const vote = useCastVote(week.round.roundId, partyId);
   const [params, setParams] = useSearchParams();
   const onlyUnrated = params.get('show') === 'unrated';
+  // Songs rated while "Unrated" is showing stay on screen until the filter changes, so a mis-tap (7 instead of 8) can
+  // be fixed and keyboard focus doesn't vanish with the card.
+  const [keptIds, setKeptIds] = useState<string[]>([]);
+  useEffect(() => setKeptIds([]), [onlyUnrated]);
   const location = useLocation();
   const locked = new Date(week.round.endsAt).getTime() <= now.getTime();
   const sharers = useSharerNames(partyId);
@@ -101,7 +104,9 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
   const all = songs.data?.songs ?? [];
   const ratable = all.filter((s) => !s.isMine);
   const rated = ratable.filter((s) => s.myRating !== null).length;
-  const visible = onlyUnrated ? all.filter((s) => !s.isMine && s.myRating === null) : all;
+  const visible = onlyUnrated
+    ? all.filter((s) => !s.isMine && (s.myRating === null || keptIds.includes(s.recommendationId)))
+    : all;
 
   // Arriving from Home's "Rate" button on one song (#recommendationId): scroll it into view.
   useEffect(() => {
@@ -170,15 +175,6 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
         </div>
       </Card>
 
-      {vote.error && (
-        <p
-          role="alert"
-          className="mb-4 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200"
-        >
-          {errorMessage(vote.error)}
-        </p>
-      )}
-
       <QueryBoundary
         isPending={songs.isPending}
         error={songs.error}
@@ -214,10 +210,16 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
                         <RateCard
                           key={s.recommendationId}
                           item={s}
+                          roundId={week.round.roundId}
+                          partyId={partyId}
                           preferred={me.data?.user.preferredProvider ?? null}
                           disabled={locked}
                           sharedBy={sharers.sharedBy(s)}
-                          onRate={(rating) => vote.mutate({ recommendationId: s.recommendationId, rating })}
+                          onRated={() =>
+                            setKeptIds((ids) =>
+                              ids.includes(s.recommendationId) ? ids : [...ids, s.recommendationId],
+                            )
+                          }
                         />
                       ))}
                   </ul>
@@ -233,17 +235,25 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
 
 function RateCard({
   item,
+  roundId,
+  partyId,
   preferred,
   disabled,
-  onRate,
+  onRated,
   sharedBy,
 }: {
   sharedBy: string | null;
   item: OpenWeekSongView;
+  roundId: string;
+  partyId: string;
   preferred: MusicProviderId | null;
   disabled: boolean;
-  onRate: (rating: number) => void;
+  /** Called when the person picks a rating (before it's saved). */
+  onRated: () => void;
 }) {
+  // One save per card, so each card can say "Saved" or show its own error right where the person is looking.
+  const vote = useCastVote(roundId, partyId);
+  const onRate = (rating: number) => vote.mutate({ recommendationId: item.recommendationId, rating });
   // Local copy so the control moves instantly; the saved rating comes back from the server.
   const [value, setValue] = useState<number | null>(item.myRating);
   useEffect(() => setValue(item.myRating), [item.myRating]);
@@ -277,7 +287,7 @@ function RateCard({
       <div className="flex items-start gap-3 sm:items-center">
         <AlbumArt url={item.song.albumArtUrl} hue={hueFor(item.recommendationId)} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{item.song.title}</p>
+          <p className="line-clamp-2 font-semibold break-words">{item.song.title}</p>
           <p className="truncate text-sm text-muted">{item.song.artist}</p>
           {sharedBy && <p className="mt-0.5 text-xs text-muted">{sharedBy}</p>}
           <div className="mt-1.5">
@@ -296,9 +306,27 @@ function RateCard({
           onChange={(rating) => {
             setValue(rating);
             scheduleSave(rating);
+            onRated();
           }}
         />
       )}
+      {!item.isMine && <SaveStatus pending={vote.isPending} saved={vote.isSuccess} error={vote.error} />}
     </li>
+  );
+}
+
+/** Below each rating: "Saving…", then "Saved ✓", or the error if the save failed (the old rating comes back). */
+function SaveStatus({ pending, saved, error }: { pending: boolean; saved: boolean; error: Error | null }) {
+  if (error) {
+    return (
+      <p role="alert" className="text-sm text-red-200">
+        {errorMessage(error)} Your rating wasn’t saved.
+      </p>
+    );
+  }
+  return (
+    <p aria-live="polite" className="min-h-5 text-sm text-muted">
+      {pending ? 'Saving…' : saved ? '✓ Saved. You can change it until ratings lock.' : ''}
+    </p>
   );
 }

@@ -14,7 +14,7 @@ import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { LoadingState } from '../components/States';
 import { TextField } from '../components/TextField';
-import { Button, Card, buttonClassName } from '../components/ui';
+import { Button, Card, Logo, buttonClassName } from '../components/ui';
 import { errorCode, errorMessage } from '../lib/errors';
 import {
   inviteLink,
@@ -126,9 +126,26 @@ export function JoinByLinkScreen() {
   if (status === 'signedOut') {
     return <InvitedSignedOut code={code} />;
   }
+  // This page sits outside the app's menus (it also works signed out), so it gives signed-in people a way back.
   return (
-    <div className="mx-auto max-w-lg px-4 py-10">
-      <JoinPreview code={code} />
+    <div className="min-h-screen">
+      <header className="flex items-center justify-between px-4 py-4 md:px-10">
+        <Link to="/" aria-label="Drop a Bop home">
+          <Logo />
+        </Link>
+        <Link to="/" className={buttonClassName('ghost', 'px-3 text-ink')}>
+          Go to Drop a Bop
+        </Link>
+      </header>
+      <div className="mx-auto max-w-lg px-4 pt-4 pb-10">
+        <JoinPreview code={code} />
+        <p className="mt-4 text-center text-sm text-muted">
+          Got a different code?{' '}
+          <Link to="/join" className="font-semibold text-blue hover:underline">
+            Enter it here
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
@@ -202,7 +219,9 @@ function JoinPreview({ code }: { code: string }) {
       <QueryBoundary
         isPending={preview.isPending}
         error={preview.error}
-        onRetry={() => void preview.refetch()}
+        // Trying the same code again can't fix an invalid one (e.g. the host made a new link), so offer the way on
+        // instead: entering a different code.
+        onRetry={errorCode(preview.error) === 'INVALID_INVITE' ? undefined : () => void preview.refetch()}
         loadingLabel="Checking the invite…"
       >
         {() => {

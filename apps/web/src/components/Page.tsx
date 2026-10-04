@@ -37,7 +37,8 @@ export function QueryBoundary({
 }: {
   isPending: boolean;
   error: unknown;
-  onRetry: () => void;
+  /** Leave out when retrying can't help; the error then shows without a "Try again" button. */
+  onRetry?: () => void;
   loadingLabel?: string;
   children: () => ReactNode;
 }) {

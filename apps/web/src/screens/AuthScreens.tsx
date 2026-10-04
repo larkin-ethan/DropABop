@@ -75,8 +75,14 @@ export function SignInScreen() {
   const { service, refresh } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const returnTo = (location.state as { from?: string } | null)?.from ?? '/';
-  const [email, setEmail] = useState('');
+  const arrival = location.state as {
+    from?: string;
+    verified?: boolean;
+    passwordReset?: boolean;
+    email?: string;
+  } | null;
+  const returnTo = arrival?.from ?? '/';
+  const [email, setEmail] = useState(arrival?.email ?? '');
   const [password, setPassword] = useState('');
   const { busy, error, run } = useFormAction();
 
@@ -103,6 +109,16 @@ export function SignInScreen() {
   return (
     <AuthLayout title="Welcome back!" subtitle="Sign in to continue to your party.">
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+        {(arrival?.verified === true || arrival?.passwordReset === true) && (
+          <p
+            role="status"
+            className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success"
+          >
+            {arrival.verified === true
+              ? 'Email confirmed! Sign in to continue.'
+              : 'Password changed. Sign in with your new password.'}
+          </p>
+        )}
         <FormError message={error} />
         <TextField
           label="Email"
@@ -212,7 +228,8 @@ export function VerifyEmailScreen() {
     event.preventDefault();
     void run(async () => {
       await service.confirmSignUp(email.trim(), code.trim());
-      await navigate('/sign-in', { state: { verified: true } });
+      // The email goes in navigation state (never the URL) so the sign-in form can fill it in.
+      await navigate('/sign-in', { state: { verified: true, email: email.trim() } });
     });
   }
 
@@ -274,7 +291,7 @@ export function ForgotPasswordScreen() {
         setStep('reset');
       } else {
         await service.confirmResetPassword(email.trim(), code.trim(), password);
-        await navigate('/sign-in', { state: { passwordReset: true } });
+        await navigate('/sign-in', { state: { passwordReset: true, email: email.trim() } });
       }
     });
   }

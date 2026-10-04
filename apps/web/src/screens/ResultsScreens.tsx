@@ -73,7 +73,18 @@ export function LatestResultsScreen() {
             </div>
           );
         }
-        return <WeekResults roundId={latest.roundId} openWeekLocksAt={thisWeek?.endsAt ?? null} />;
+        // Weeks newer than the one shown that ended without results (fewer than 2 songs), so the page can say why
+        // it's showing an older week instead of calling it "last week".
+        const skippedWeeks = all
+          .slice(0, all.indexOf(latest))
+          .filter((r) => r.status === 'NOT_ENOUGH_SONGS').length;
+        return (
+          <WeekResults
+            roundId={latest.roundId}
+            openWeekLocksAt={thisWeek?.endsAt ?? null}
+            skippedWeeks={skippedWeeks}
+          />
+        );
       }}
     </QueryBoundary>
   );
@@ -85,10 +96,18 @@ export function LatestResultsScreen() {
 
 export function ResultsScreen() {
   const { roundId = '' } = useParams();
-  return <WeekResults roundId={roundId} openWeekLocksAt={null} />;
+  return <WeekResults roundId={roundId} openWeekLocksAt={null} skippedWeeks={0} />;
 }
 
-function WeekResults({ roundId, openWeekLocksAt }: { roundId: string; openWeekLocksAt: string | null }) {
+function WeekResults({
+  roundId,
+  openWeekLocksAt,
+  skippedWeeks,
+}: {
+  roundId: string;
+  openWeekLocksAt: string | null;
+  skippedWeeks: number;
+}) {
   const results = useResults(roundId);
   const me = useMe();
 
@@ -115,6 +134,7 @@ function WeekResults({ roundId, openWeekLocksAt }: { roundId: string; openWeekLo
       names={names}
       preferred={me.data?.user.preferredProvider ?? null}
       openWeekLocksAt={openWeekLocksAt}
+      skippedWeeks={skippedWeeks}
     />
   );
 }
@@ -124,12 +144,15 @@ function ResultsView({
   names,
   preferred,
   openWeekLocksAt,
+  skippedWeeks,
 }: {
   data: ResultsResponse;
   names: NameLookup;
   preferred: MusicProviderId | null;
   /** When this (still open) week's ratings lock, if the results shown are last week's. */
   openWeekLocksAt: string | null;
+  /** Newer weeks that ended without results (fewer than 2 songs). */
+  skippedWeeks: number;
 }) {
   const [view, setView] = useState<'overall' | 'days'>('overall');
   const { results, round } = data;
@@ -148,12 +171,19 @@ function ResultsView({
           </Link>
         }
       />
-      {openWeekLocksAt !== null && (
+      {(openWeekLocksAt !== null || skippedWeeks > 0) && (
         <p className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-          These are last week’s results. This week’s unlock {formatLockTime(openWeekLocksAt)}.{' '}
-          <Link to="/rate" className="font-semibold text-blue hover:underline">
-            Keep rating
-          </Link>
+          {skippedWeeks > 0 &&
+            `${skippedWeeks === 1 ? 'The most recent finished week' : `The last ${skippedWeeks} finished weeks`} didn’t have enough songs for results, so these are from the week of ${formatShortDate(round.weekStart)}. `}
+          {openWeekLocksAt !== null && (
+            <>
+              {skippedWeeks === 0 && 'These are last week’s results. '}
+              This week’s unlock {formatLockTime(openWeekLocksAt)}.{' '}
+              <Link to="/rate" className="font-semibold text-blue hover:underline">
+                Keep rating
+              </Link>
+            </>
+          )}
         </p>
       )}
 
@@ -177,7 +207,7 @@ function ResultsView({
                 ) : (
                   winners.map((w) => (
                     <div key={w.recommendationId} className="mt-2">
-                      <p className="truncate font-semibold">{w.song.title}</p>
+                      <p className="line-clamp-2 font-semibold break-words">{w.song.title}</p>
                       <p className="truncate text-sm text-muted">{w.song.artist}</p>
                       <p className="mt-1 text-sm">
                         <span className="font-bold text-gold">
@@ -287,7 +317,7 @@ function ResultCard({
         </span>
         <AlbumArt url={result.song.albumArtUrl} hue={hueFor(result.recommendationId)} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">
+          <p className="line-clamp-2 font-semibold break-words">
             {result.song.title}
             {dayWinner && (
               <span className="ml-2 align-middle text-xs font-semibold text-gold">
@@ -303,7 +333,9 @@ function ResultCard({
               image={names.image(result.recommendedBy)}
               size="sm"
             />
-            Shared by {names.name(result.recommendedBy)} · {formatShortDate(result.submittedOn)}
+            {/* Mid-sentence, 'you' reads better lower-case. */}
+            Shared by {names.name(result.recommendedBy).replace(/^You$/, 'you')} ·{' '}
+            {formatShortDate(result.submittedOn)}
           </p>
         </div>
         <div className="shrink-0 text-right">

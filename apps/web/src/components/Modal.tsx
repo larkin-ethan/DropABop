@@ -1,4 +1,5 @@
-// A simple accessible dialog: dims the page, closes with Escape or the close button, and moves focus inside.
+// A simple accessible dialog: dims the page, closes with Escape or the close button, moves focus inside, and keeps
+// Tab inside it (so keyboard users can't wander onto the page behind).
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
@@ -18,7 +19,28 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     panel.current?.focus();
     function onKey(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || panel.current === null) return;
+      // Wrap Tab from the last control to the first (and Shift+Tab from the first to the last).
+      const focusable = Array.from(
+        panel.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+        ),
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (first === undefined || last === undefined) return;
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === panel.current)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     document.addEventListener('keydown', onKey);
     return () => {

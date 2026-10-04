@@ -2,7 +2,48 @@
 // They display exactly what the stats API returns: a value with its sample size, or "not enough data".
 
 import type { Stat } from '@dropabop/shared';
+import { useId, useState } from 'react';
 import { Avatar } from './ui';
+
+/**
+ * A stat's name with a "?" that shows how it's calculated (spec §18: definitions must be transparent). A tap or
+ * keyboard press opens the explanation underneath, so it works on phones (a hover tooltip doesn't).
+ */
+export function StatHeading({
+  label,
+  definition,
+  heading = false,
+}: {
+  label: string;
+  definition: string;
+  /** true: a card title (h2); false: a small label inside a card. */
+  heading?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-2">
+        {heading ? <h2 className="font-bold">{label}</h2> : <p className="text-sm text-muted">{label}</p>}
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          aria-label={`How ${label} is calculated`}
+          onClick={() => setOpen(!open)}
+          className="shrink-0 rounded-full border border-line px-1.5 text-xs text-muted hover:text-ink"
+        >
+          ?
+        </button>
+      </div>
+      {open && (
+        <p id={id} className="mt-1 text-xs text-muted">
+          {definition}
+        </p>
+      )}
+    </div>
+  );
+}
 
 /** Same shape as the API's Stat<T> (docs/API.md → Stats). */
 export type StatResult<T> = Stat<T>;
@@ -12,7 +53,7 @@ export interface StatCardProps {
   stat: StatResult<number>;
   /** What the sample is made of: "ratings", "songs"… */
   unit: string;
-  /** How the number is calculated, shown on hover/focus (spec §18: definitions must be transparent). */
+  /** How the number is calculated, shown when the "?" is tapped (spec §18: definitions must be transparent). */
   definition: string;
   format?: (value: number) => string;
 }
@@ -20,17 +61,7 @@ export interface StatCardProps {
 export function StatCard({ label, stat, unit, definition, format = (v) => v.toFixed(1) }: StatCardProps) {
   return (
     <div className="rounded-xl border border-line bg-surface-raised p-4">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-muted">{label}</p>
-        <span
-          className="cursor-help rounded-full border border-line px-1.5 text-xs text-muted"
-          title={definition}
-          tabIndex={0}
-          aria-label={`How ${label} is calculated: ${definition}`}
-        >
-          ?
-        </span>
-      </div>
+      <StatHeading label={label} definition={definition} />
       {stat.status === 'ok' ? (
         <>
           <p className="mt-2 text-3xl font-bold text-primary">{format(stat.value)}</p>

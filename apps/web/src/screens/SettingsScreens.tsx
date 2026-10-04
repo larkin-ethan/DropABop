@@ -17,7 +17,7 @@ import {
   type UpdatePartySettingsRequest,
   type Weekday,
 } from '@dropabop/shared';
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   useMe,
@@ -149,7 +149,13 @@ function PartySettings({
           isHost ? 'You’re the host: you can change these.' : 'Only the host can change these settings.'
         }
       />
-      <SettingsForm party={party} isHost={isHost} memberCount={members.length} />
+      {isHost ? (
+        // Keyed by party, so switching parties starts the form from that party's values. Saving a toggle doesn't
+        // reset the form, so unsaved edits elsewhere in it are kept.
+        <SettingsForm key={party.partyId} party={party} isHost={isHost} memberCount={members.length} />
+      ) : (
+        <SettingsSummary party={party} memberCount={members.length} />
+      )}
       <InviteCard party={party} isHost={isHost} />
       <MembersCard party={party} members={members} isHost={isHost} />
     </div>
@@ -173,16 +179,7 @@ function SettingsForm({
   const [closeDay, setCloseDay] = useState<Weekday>(party.settings.ratingCloseDay);
   const [closeTime, setCloseTime] = useState(party.settings.ratingCloseTime);
   const [saved, setSaved] = useState(false);
-
-  // If the party changes underneath (e.g. switching parties), start from its values.
-  useEffect(() => {
-    setName(party.name);
-    setMaxMembers(String(party.settings.maxMembers));
-    setTimezone(party.settings.timezone);
-    setShareDays(party.settings.shareDays);
-    setCloseDay(party.settings.ratingCloseDay);
-    setCloseTime(party.settings.ratingCloseTime);
-  }, [party]);
+  const [confirmingPause, setConfirmingPause] = useState(false);
 
   // The same rule the API enforces, shown before saving: ratings lock at 11:59 pm on the last sharing day at the earliest.
   const scheduleProblem = checkSchedule({ shareDays, ratingCloseDay: closeDay, ratingCloseTime: closeTime });
@@ -338,7 +335,8 @@ function SettingsForm({
             <Button
               variant="secondary"
               disabled={update.isPending}
-              onClick={() => save({ paused: !party.settings.paused })}
+              // Pausing affects everyone, so it asks first; resuming is harmless and happens straight away.
+              onClick={() => (party.settings.paused ? save({ paused: false }) : setConfirmingPause(true))}
             >
               <Icon name="pause" className="size-4" />
               {party.settings.paused ? 'Resume the party' : 'Pause the party'}
@@ -351,6 +349,59 @@ function SettingsForm({
           </p>
         )}
       </form>
+      <Modal open={confirmingPause} title="Pause the party?" onClose={() => setConfirmingPause(false)}>
+        <p className="text-muted">
+          No new weeks start until you resume, for everyone in the party. A week that’s already running
+          finishes normally. Good for holidays.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setConfirmingPause(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setConfirmingPause(false);
+              save({ paused: true });
+            }}
+          >
+            Pause the party
+          </Button>
+        </div>
+      </Modal>
+    </Card>
+  );
+}
+
+/** What members see: the party's settings as plain text (only the host can change them, D13). */
+function SettingsSummary({ party, memberCount }: { party: Party; memberCount: number }) {
+  const s = party.settings;
+  const rows: [string, string][] = [
+    ['Party name', party.name],
+    ['Members', `${memberCount} of up to ${s.maxMembers}`],
+    ['Timezone', s.timezone],
+    ['Sharing days', formatDayList(s.shareDays)],
+    ['Ratings lock', `${DAY_NAMES[s.ratingCloseDay]} at ${formatTimeOfDay(s.ratingCloseTime)}`],
+    [
+      'Who shared each song',
+      s.revealRecommenderDuringVoting ? 'Shown during the week' : 'Hidden until the results',
+    ],
+    ['Who rated what', s.showWhoRatedWhat ? 'Shown in the results' : 'Not shown (anonymous spreads)'],
+  ];
+  return (
+    <Card>
+      <dl className="grid gap-3 sm:grid-cols-[auto_1fr] sm:gap-x-6">
+        {rows.map(([label, value]) => (
+          <div key={label} className="contents">
+            <dt className="text-sm text-muted">{label}</dt>
+            <dd className="mb-2 font-medium break-words sm:mb-0">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {s.paused && (
+        <p className="mt-4 text-sm text-gold">
+          Paused: no new weeks start until the host resumes. Past results and stats stay available.
+        </p>
+      )}
     </Card>
   );
 }

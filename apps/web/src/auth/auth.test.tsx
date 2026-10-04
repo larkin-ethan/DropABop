@@ -222,6 +222,15 @@ describe('sign-in screens', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Verify email' }));
     expect(service.confirmSignUp).toHaveBeenCalledWith('new@example.com', '123456');
   });
+
+  it('after verifying, sign-in says the email is confirmed and fills it in', async () => {
+    renderApp('/verify', { auth: fakeAuth() });
+    await userEvent.type(await screen.findByLabelText('Email'), 'new@example.com');
+    await userEvent.type(screen.getByLabelText('Verification code'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Verify email' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Email confirmed! Sign in to continue.');
+    expect(screen.getByLabelText('Email')).toHaveValue('new@example.com');
+  });
 });
 
 describe('protected routes', () => {
@@ -253,7 +262,7 @@ describe('protected routes', () => {
       }),
     });
     renderApp('/', { auth: service });
-    // The sidebar has a labelled button; the mobile header has an icon-only one. Both sign out.
+    // The sidebar (desktop) and the Profile page have a Sign out button; phones use the Profile page.
     const buttons = await screen.findAllByRole('button', { name: 'Sign out' });
     await userEvent.click(buttons[0] as HTMLElement);
     expect(service.signOut).toHaveBeenCalledOnce();
