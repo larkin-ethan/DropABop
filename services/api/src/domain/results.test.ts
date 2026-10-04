@@ -12,7 +12,7 @@ const round: Round = {
   status: 'OPEN',
 };
 
-const DATES: Record<Weekday, string> = {
+const DATES: Partial<Record<Weekday, string>> = {
   MON: '2026-10-05',
   TUE: '2026-10-06',
   WED: '2026-10-07',
@@ -26,7 +26,7 @@ function rec(id: string, userId: string, weekday: Weekday): Recommendation {
     roundId: round.roundId,
     partyId: 'p1',
     userId,
-    submittedOn: DATES[weekday],
+    submittedOn: DATES[weekday] ?? '2026-10-05',
     weekday,
     song: {
       songId: `song-${id}`,
@@ -80,7 +80,7 @@ describe('canViewResults', () => {
     expect(canViewResults(round, new Date('2026-10-11T12:00:00Z'), 5)).toMatchObject({
       ok: false,
       code: 'RESULTS_NOT_READY',
-      message: 'Results unlock when the week ends on Sunday night.',
+      message: 'Results unlock when this week’s ratings lock.',
     });
   });
 

@@ -89,7 +89,7 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
 
   if (week.round === null) {
     const nextWeekStartsAt =
-      week.reason === 'between-weeks' ? getWeekWindow(party.settings.timezone, current).endsAt : null;
+      week.reason === 'between-weeks' ? getWeekWindow(party.settings, current).nextStartsAt : null;
     return ok({
       round: null,
       reason: week.reason,
@@ -105,7 +105,7 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
     listMySubmissionDates(data, round.roundId, userId),
     listMyWeekVotes(data, round.roundId, userId),
   ]);
-  const today = getSubmissionDay(round.timezone, current);
+  const today = getSubmissionDay(round, current);
   const sharedTodayIds =
     today === null ? [] : submissions.filter((s) => s.date === today.date).map((s) => s.userId);
   const ratableSongIds = new Set(songs.filter((s) => s.userId !== userId).map((s) => s.recommendationId));
@@ -114,7 +114,7 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
     round,
     status: getEffectiveWeekStatus(round, current, songs.length),
     reason: null,
-    /** null on Saturday and Sunday. */
+    /** null on days that aren't sharing days. */
     today,
     sharedToday: today !== null && myDates.includes(today.date),
     mySubmissionDates: myDates,

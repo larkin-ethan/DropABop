@@ -5,7 +5,9 @@ import {
   INVITE_CODE_PATTERN,
   MAX_PARTY_SIZE,
   MIN_PARTY_SIZE,
-  SUBMISSION_WEEKDAYS,
+  DEFAULT_SHARE_DAYS,
+  TIME_OF_DAY_PATTERN,
+  WEEKDAYS,
 } from './limits';
 
 describe('limits', () => {
@@ -15,8 +17,15 @@ describe('limits', () => {
     expect(DEFAULT_MAX_PARTY_SIZE).toBeLessThanOrEqual(MAX_PARTY_SIZE);
   });
 
-  it('only allows submissions Monday to Friday (D1)', () => {
-    expect(SUBMISSION_WEEKDAYS).toEqual(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+  it('new parties share Monday to Friday (D1), out of a Monday-first week', () => {
+    expect(DEFAULT_SHARE_DAYS).toEqual(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+    expect(WEEKDAYS).toEqual(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+  });
+
+  it('times of day are 24-hour HH:MM', () => {
+    for (const ok of ['00:00', '09:30', '23:59']) expect(TIME_OF_DAY_PATTERN.test(ok)).toBe(true);
+    for (const bad of ['24:00', '9:30', '12:60', '12:00 pm', ''])
+      expect(TIME_OF_DAY_PATTERN.test(bad)).toBe(false);
   });
 
   it('invite alphabet has no look-alike characters (D16)', () => {

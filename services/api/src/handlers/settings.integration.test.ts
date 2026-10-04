@@ -92,6 +92,34 @@ describe('PATCH /parties/{partyId}/settings', () => {
     });
   });
 
+  it('lets the host set the sharing days and lock time, but never a lock before the last sharing day', async () => {
+    const hostId = newId();
+    const party = await newParty(hostId);
+    expect(party.settings).toMatchObject({
+      shareDays: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+      ratingCloseDay: 'SUN',
+      ratingCloseTime: '23:59',
+    });
+
+    const result = await update(hostId, party, {
+      shareDays: ['SAT', 'TUE'],
+      ratingCloseDay: 'SAT',
+      ratingCloseTime: '20:30',
+    });
+    expect(result.statusCode).toBe(200);
+    expect((bodyOf(result) as { party: Party }).party.settings).toMatchObject({
+      shareDays: ['TUE', 'SAT'], // stored in week order
+      ratingCloseDay: 'SAT',
+      ratingCloseTime: '20:30',
+    });
+
+    // Each part is checked against the rest of the stored schedule.
+    expect((await update(hostId, party, { ratingCloseDay: 'FRI' })).statusCode).toBe(400);
+    expect((await update(hostId, party, { shareDays: ['SUN'] })).statusCode).toBe(400);
+    expect((await update(hostId, party, { shareDays: [] })).statusCode).toBe(400);
+    expect((await update(hostId, party, { ratingCloseTime: '8pm' })).statusCode).toBe(400);
+  });
+
   it('rejects invalid or unknown settings, and an empty update', async () => {
     const hostId = newId();
     const party = await newParty(hostId);

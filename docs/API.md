@@ -150,7 +150,11 @@ Leave (`memberId` = yourself) or, as host, remove someone. Past songs and rating
 
 Host only. Code: `services/api/src/handlers/settings.ts`. Body (`updatePartySettingsRequestSchema`, at least one
 field): `name`, `maxMembers` (2–50, not below the current member count), `timezone` (applies from next week),
-`paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`. The invite code and host can't be changed here.
+`paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`, `shareDays` (1–7 of `MON`…`SUN`, stored in week
+order), `ratingCloseDay` (`MON`…`SUN`), `ratingCloseTime` (`HH:MM`, 24-hour; ratings lock at the end of that
+minute). The lock day can't be before the last sharing day (checked against the stored settings, so partial updates
+are safe: `400 VALIDATION_FAILED`). Timezone and schedule changes apply from next week. Parties created before
+the schedule was editable read as Monday–Friday, Sunday 23:59. The invite code and host can't be changed here.
 `200`: `{ "party", "members", "isHost": true }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `400 VALIDATION_FAILED`.
 
 ### Weeks
@@ -170,7 +174,7 @@ Members only. The home screen's main call; poll it every 30–60 s while the app
              "startsAt": "…", "endsAt": "2026-10-12T05:00:00.000Z", "status": "OPEN" },
   "status": "OPEN",
   "reason": null,
-  "today": { "weekday": "WED", "date": "2026-10-07", "dayNumber": 3 },
+  "today": { "weekday": "WED", "date": "2026-10-07", "dayNumber": 3, "dayCount": 5 },
   "sharedToday": false,
   "mySubmissionDates": ["2026-10-05"],
   "sharedTodayCount": 3,
@@ -178,8 +182,12 @@ Members only. The home screen's main call; poll it every 30–60 s while the app
 }
 ```
 
-- `today` is `null` on Saturday and Sunday (rating still open, sharing closed).
-- `endsAt` is the exclusive end (next Monday 00:00 in the week's timezone); show it as "Sunday 11:59 pm".
+- `today` is `null` on days that aren't this week's sharing days (rating still open, sharing closed). `dayNumber` /
+  `dayCount`: "Day 3 of 5" among the week's sharing days. The round's `shareDays` lists them (missing on old weeks:
+  Monday–Friday).
+- `endsAt` is when ratings lock, exclusive (the minute after the host's lock time; next Monday 00:00 by default);
+  show it one minute earlier, e.g. "Sunday 11:59 pm".
+- After the lock and before next Monday, `reason` is `between-weeks` and `nextWeekStartsAt` is next Monday 00:00.
 - `sharedTodayCount` is how many people have shared today. *Who* has shared (`sharedTodayUserIds`) is included
   **only** when the party has `revealRecommenderDuringVoting` on: otherwise, comparing that list with the songs list
   over time would reveal whose song is whose (D10).

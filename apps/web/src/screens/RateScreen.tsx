@@ -1,6 +1,6 @@
 // Rate this week's songs (roadmap P8.5; spec §19 screen 5; mockup screen 12).
 // All of the week's songs grouped by day, anonymous while the week is open (D10). Ratings save as you tap and can be
-// changed until the week locks on Sunday night (D8). You can't rate your own songs (D6).
+// changed until the week's ratings lock (D8). You can't rate your own songs (D6).
 
 import type { CurrentWeekResponse, MusicProviderId, OpenWeekSongView } from '@dropabop/shared';
 import { useEffect, useRef, useState } from 'react';
@@ -14,7 +14,8 @@ import { ListenLinks, MyPickBadge } from '../components/SongRow';
 import { EmptyState } from '../components/States';
 import { AlbumArt, Card, ProgressBar, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
-import { DAY_NAMES, WEEKDAYS, formatLockTime, formatTimeLeft, hueFor } from '../lib/format';
+import { DAY_NAMES, formatLockTime, formatTimeLeft, hueFor } from '../lib/format';
+import { WEEKDAYS } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';

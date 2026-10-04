@@ -1,8 +1,8 @@
 // Invite codes, joining, and who may manage a party (spec §8, §24, §26; decisions D13–D17).
 
 import { randomBytes } from 'node:crypto';
-import type { Party, PartyMember } from '@dropabop/shared';
-import { INVITE_CODE_ALPHABET } from '@dropabop/shared';
+import type { Party, PartyMember, PartySettings } from '@dropabop/shared';
+import { INVITE_CODE_ALPHABET, checkSchedule } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 
 /** Returns `count` cryptographically secure random bytes. Swappable in tests. */
@@ -113,4 +113,13 @@ export function canSetMaxMembers(newMax: number, currentMemberCount: number): Ru
     return deny('VALIDATION_FAILED', MESSAGES.maxBelowMembers(currentMemberCount));
   }
   return { ok: true };
+}
+
+/**
+ * The party's schedule after a change (D1, D2): ratings may not lock before the last sharing day.
+ * `schedule` is the current settings with the requested changes applied, since a request may change only one part.
+ */
+export function canSetSchedule(schedule: Pick<PartySettings, 'shareDays' | 'ratingCloseDay'>): RuleResult {
+  const problem = checkSchedule(schedule);
+  return problem === null ? { ok: true } : deny('VALIDATION_FAILED', problem);
 }

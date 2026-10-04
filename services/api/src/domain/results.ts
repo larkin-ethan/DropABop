@@ -13,7 +13,7 @@ import type {
   Vote,
   WeekResults,
 } from '@dropabop/shared';
-import { MAX_RATING, MIN_RATING, SUBMISSION_WEEKDAYS } from '@dropabop/shared';
+import { MAX_RATING, MIN_RATING, shareDaysOf } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 import { getEffectiveWeekStatus } from './week';
 
@@ -75,7 +75,7 @@ export function countableVotes(votes: Vote[], round: Pick<Round, 'roundId' | 'en
 }
 
 export interface CalculateWeekResultsInput {
-  round: Pick<Round, 'roundId' | 'endsAt'>;
+  round: Pick<Round, 'roundId' | 'endsAt' | 'shareDays'>;
   recommendations: Recommendation[];
   votes: Vote[];
   viewerId: string;
@@ -136,7 +136,7 @@ export function calculateWeekResults(input: CalculateWeekResultsInput): WeekResu
 
   const songs = assignRanks(unranked);
 
-  const days: DayResult[] = SUBMISSION_WEEKDAYS.map((weekday) => {
+  const days: DayResult[] = shareDaysOf(input.round).map((weekday) => {
     const daySongs = songs.filter((s) => s.weekday === weekday); // already best-first
     const topAverage = daySongs[0]?.averageRating ?? null;
     return {

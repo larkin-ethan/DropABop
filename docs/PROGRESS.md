@@ -44,6 +44,13 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P8.13 done (Ethan's request)** — The host can choose the sharing days and the day + time ratings
+  lock (Ethan chose: just these two, applying from next week). `packages/shared/src/schedule.ts` (defaults for old
+  parties/weeks, checkSchedule: lock not before the last sharing day), settings schema + handler (merged-settings
+  check), `week.ts` (lock minute → `endsAt`, between-weeks after an early lock until Monday, rounds store
+  `shareDays`), results Bop of the Day per sharing day, settings form (day chips, lock day + time), copy no longer
+  says "weekend"/"Sunday night". Verified: `npm run verify`, integration 188/188 (DynamoDB Local), e2e 19/19,
+  settings screenshot at 320 px checked. Not deployed to dev yet (needs Ethan's approval at the prompt).
 - 2026-10-04 — **P8.12 done** — `e2e/screens.spec.ts` (part of `npm run e2e`): 17 screens × 320/375/390/430/768/
   1024/1440 px; fails on sideways scroll, an unnamed button/link/field, or an image without alt; checks the first Tab
   lands on a visible element; saves full-page screenshots to `e2e/screenshots/` (git-ignored). Verified: 17/17 pass;

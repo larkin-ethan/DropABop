@@ -3,19 +3,30 @@
 
 import type { Weekday } from '@dropabop/shared';
 
-export const WEEKDAYS: Weekday[] = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-
 export const DAY_NAMES: Record<Weekday, string> = {
   MON: 'Monday',
   TUE: 'Tuesday',
   WED: 'Wednesday',
   THU: 'Thursday',
   FRI: 'Friday',
+  SAT: 'Saturday',
+  SUN: 'Sunday',
 };
 
+/** "Monday to Friday" for a run of 3+ days in a row, otherwise "Monday, Wednesday and Friday". */
+export function formatDayList(days: Weekday[]): string {
+  const names = days.map((day) => DAY_NAMES[day]);
+  const allDays = Object.keys(DAY_NAMES) as Weekday[];
+  const positions = days.map((day) => allDays.indexOf(day));
+  const consecutive = positions.every((p, i) => i === 0 || p === (positions[i - 1] ?? 0) + 1);
+  if (names.length >= 3 && consecutive) return `${names[0]} to ${names[names.length - 1]}`;
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
 /**
- * When ratings lock, in the viewer's own timezone. The API gives the exclusive end (next Monday 00:00 in the party's
- * timezone); people expect "Sunday 11:59 pm", so show one minute earlier.
+ * When ratings lock, in the viewer's own timezone. The API gives the exclusive end (the minute after the host's lock
+ * time, e.g. next Monday 00:00); people expect the lock time itself ("Sunday 11:59 pm"), so show one minute earlier.
  */
 export function formatLockTime(endsAt: string, timeZone?: string): string {
   const lastMinute = new Date(new Date(endsAt).getTime() - 60_000);

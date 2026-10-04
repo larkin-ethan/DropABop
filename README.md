@@ -1,8 +1,9 @@
 # Drop a Bop
 
-A private social music app for small groups (up to about 20 friends). Every weekday (Monday–Friday), each member of a
-party **shares one song**. All week, everyone listens and **rates the week's songs 1–10** (songs stay anonymous, and
-ratings stay hidden). When Sunday ends, ratings lock and the group sees the **weekly results**: the ranking, each
+A private social music app for small groups (up to about 20 friends). On each sharing day (Monday–Friday unless the host
+picks other days), each member of a party **shares one song**. All week, everyone listens and **rates the week's songs
+1–10** (songs stay anonymous, and ratings stay hidden). When the week's lock time arrives (Sunday 11:59 pm unless the
+host changes it), ratings lock and the group sees the **weekly results**: the ranking, each
 day's **Bop of the Day**, and stats on everyone's taste.
 
 It runs on AWS serverless services at (or very near) **$0/month** at this scale.
@@ -24,13 +25,15 @@ It runs on AWS serverless services at (or very near) **$0/month** at this scale.
 
 ## What the app does
 
+- **Host settings:** sharing days, when ratings lock, size limit, timezone, pause, and the two privacy switches;
+  schedule changes apply from the next week.
 - **Parties:** private and invite-only (a link or a code like `SONG-7K4P`). Anyone can create one; up to 5 per
   person.
-- **Each weekday:** share one song (search Apple Music's catalog, or paste a link from Apple Music, Spotify, or
+- **Each sharing day:** share one song (search Apple Music's catalog, or paste a link from Apple Music, Spotify, or
   YouTube Music). You can't change it afterwards.
 - **All week:** listen through "Apple Music / Spotify / YouTube Music" links and rate others' songs 1–10. You can
-  change a rating until Sunday 11:59 pm (in the party's timezone). You never rate your own song.
-- **After Sunday:** results unlock: every song ranked, each day's Bop of the Day, rating spreads, and your rating next
+  change a rating until ratings lock (Sunday 11:59 pm in the party's timezone by default). You never rate your own song.
+- **After the lock:** results unlock: every song ranked, each day's Bop of the Day, rating spreads, and your rating next
   to the group's. Who shared each song is revealed then (or during the week, if the host turns that on).
 - **Stats & leaderboards** from finished weeks, each showing what it's based on (or "Not enough data yet").
 - **Profiles:** display name, avatar colour or photo, and a preferred music app.

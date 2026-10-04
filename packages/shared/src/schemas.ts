@@ -19,6 +19,8 @@ import {
   PARTY_NAME_MAX_LENGTH,
   PROVIDER_SONG_ID_MAX_LENGTH,
   SEARCH_QUERY_MAX_LENGTH,
+  TIME_OF_DAY_PATTERN,
+  WEEKDAYS,
 } from './limits';
 
 // Don't let zod generate code at runtime. The website's Content Security Policy forbids it (P9.2), and zod would
@@ -132,6 +134,21 @@ export const createPartyRequestSchema = z.strictObject({
   maxMembers: maxMembersSchema.optional(),
 });
 
+const weekdaySchema = z.enum(WEEKDAYS, { error: 'Please pick a day of the week.' });
+
+/** D1: at least one sharing day, each day once. Whether ratings lock after the last one is checked with the rest of the schedule (checkSchedule). */
+export const shareDaysSchema = z
+  .array(weekdaySchema)
+  .min(1, { error: 'Pick at least one sharing day.' })
+  .max(WEEKDAYS.length)
+  .refine((days) => new Set(days).size === days.length, {
+    error: 'Each sharing day can only be picked once.',
+  });
+
+export const timeOfDaySchema = z
+  .string()
+  .regex(TIME_OF_DAY_PATTERN, { error: 'Please enter a time like 23:59.' });
+
 /** PATCH /parties/{partyId}/settings (host only). At least one field must be present. */
 export const updatePartySettingsRequestSchema = z
   .strictObject({
@@ -141,6 +158,9 @@ export const updatePartySettingsRequestSchema = z
     paused: z.boolean(),
     revealRecommenderDuringVoting: z.boolean(),
     showWhoRatedWhat: z.boolean(),
+    shareDays: shareDaysSchema,
+    ratingCloseDay: weekdaySchema,
+    ratingCloseTime: timeOfDaySchema,
   })
   .partial()
   .refine((body) => Object.keys(body).length > 0, { error: 'Nothing to update.' });

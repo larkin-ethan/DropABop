@@ -1,7 +1,8 @@
 // Week and day rules (decisions D1–D5, ADR-0003, ADR-0004).
 //
-// Every party runs on weeks: Monday 00:00 to the following Monday 00:00 in the party's timezone.
-// Members share one song per day Monday–Friday; anyone can rate the week's songs until the week ends.
+// Every party runs on weeks that start Monday 00:00 in the party's timezone. Members share one song on each of
+// the host's sharing days (default Monday–Friday); anyone can rate the week's songs until ratings lock at the host's
+// chosen day and time (default Sunday 11:59 pm). After that the week is over until the next Monday.
 //
 // Everything here is derived from (timezone, current time). Nothing is scheduled. Handlers must use
 // these functions instead of doing their own date maths or trusting a date sent by the client.
@@ -10,8 +11,8 @@
 // and its weeks start on Monday (ISO weeks), which is exactly our week.
 
 import { DateTime } from 'luxon';
-import type { IsoDate, IsoDateTime, Round, RoundStatus, Weekday } from '@dropabop/shared';
-import { SUBMISSION_WEEKDAYS } from '@dropabop/shared';
+import type { IsoDate, IsoDateTime, PartySettings, Round, RoundStatus, Weekday } from '@dropabop/shared';
+import { WEEKDAYS, shareDaysOf } from '@dropabop/shared';
 
 /** A round needs at least this many songs to have results (D2). */
 export const MIN_SONGS_FOR_RESULTS = 2;
@@ -22,19 +23,25 @@ export interface WeekWindow {
   /** Monday 00:00 in the party's timezone, as a UTC ISO timestamp. */
   startsAt: IsoDateTime;
   /**
-   * The following Monday 00:00 in the party's timezone (exclusive). The week is open while
-   * now < endsAt, so ratings sent at Sunday 23:59:59.999 count and ones at Monday 00:00 don't.
-   * The UI shows this to people as "Sunday 11:59 pm".
+   * When ratings lock (exclusive): the end of the rating-close minute. With the default "Sunday 23:59" that's the
+   * following Monday 00:00, so ratings sent at Sunday 23:59:59.999 count and ones at Monday 00:00 don't.
    */
   endsAt: IsoDateTime;
+  /** The following Monday 00:00, when the next week can start. */
+  nextStartsAt: IsoDateTime;
 }
+
+/** The parts of a party's settings that decide its weeks. */
+export type WeekSchedule = Pick<PartySettings, 'timezone' | 'ratingCloseDay' | 'ratingCloseTime'>;
 
 export interface SubmissionDay {
   weekday: Weekday;
   /** Today's date in the party's timezone (YYYY-MM-DD). */
   date: IsoDate;
-  /** 1 for Monday … 5 for Friday ("Day 3 of 5"). */
+  /** Which sharing day this is: 1 for the week's first ("Day 3 of 5"). */
   dayNumber: number;
+  /** How many sharing days the week has. */
+  dayCount: number;
 }
 
 /** Current time as seen in the party's timezone. Throws if the timezone is invalid (validated at input). */
@@ -63,14 +70,20 @@ function toIsoDate(dateTime: DateTime): IsoDate {
   return isoDate;
 }
 
-/** The week that `now` falls in, for a party in `timezone`. */
-export function getWeekWindow(timezone: string, now: Date): WeekWindow {
-  const monday = inZone(timezone, now).startOf('week'); // Monday 00:00 local
+/** The week that `now` falls in, for a party with this schedule. */
+export function getWeekWindow(schedule: WeekSchedule, now: Date): WeekWindow {
+  const monday = inZone(schedule.timezone, now).startOf('week'); // Monday 00:00 local
   const nextMonday = monday.plus({ weeks: 1 }); // calendar-aware: DST weeks are 167 or 169 hours
+  const [hour, minute] = schedule.ratingCloseTime.split(':').map(Number);
+  // Wall-clock arithmetic (days, then the time of day) so daylight-saving changes don't shift the lock time.
+  const closeMinute = monday
+    .plus({ days: WEEKDAYS.indexOf(schedule.ratingCloseDay) })
+    .set({ hour, minute, second: 0, millisecond: 0 });
   return {
     weekStart: toIsoDate(monday),
     startsAt: toIsoDateTime(monday),
-    endsAt: toIsoDateTime(nextMonday),
+    endsAt: toIsoDateTime(closeMinute.plus({ minutes: 1 })), // locks at the *end* of the chosen minute
+    nextStartsAt: toIsoDateTime(nextMonday),
   };
 }
 
@@ -84,19 +97,29 @@ export function getRoundId(partyId: string, weekStart: IsoDate): string {
 }
 
 /**
- * Which submission day it is right now, or null on Saturday and Sunday (D1).
+ * Which sharing day it is right now, or null if today isn't one of the week's sharing days (D1).
  * One song per member per returned `date`.
  *
- * Pass the current round's `timezone` (not the party's latest setting) so days don't shift mid-week.
+ * Pass the current round (not the party's latest settings) so a mid-week change to the timezone or the sharing
+ * days doesn't shift anything until next week.
  */
-export function getSubmissionDay(timezone: string, now: Date): SubmissionDay | null {
-  const local = inZone(timezone, now);
+export function getSubmissionDay(
+  round: Pick<Round, 'timezone' | 'shareDays'>,
+  now: Date,
+): SubmissionDay | null {
+  const local = inZone(round.timezone, now);
   // Luxon weekday: 1 = Monday … 7 = Sunday.
-  const weekday = SUBMISSION_WEEKDAYS[local.weekday - 1];
-  if (weekday === undefined) {
-    return null; // weekend
+  const weekday = WEEKDAYS[local.weekday - 1];
+  const shareDays = shareDaysOf(round);
+  if (weekday === undefined || !shareDays.includes(weekday)) {
+    return null;
   }
-  return { weekday, date: toIsoDate(local), dayNumber: local.weekday };
+  return {
+    weekday,
+    date: toIsoDate(local),
+    dayNumber: shareDays.indexOf(weekday) + 1,
+    dayCount: shareDays.length,
+  };
 }
 
 /** True while ratings and (weekday) submissions are accepted for this round. */
@@ -144,8 +167,8 @@ export type WeekPlan =
   /** No open round: create this one with a conditional put (exactly one concurrent request wins). */
   | { action: 'create'; round: Round }
   /**
-   * No current week. `paused`: the host paused the party. `between-weeks`: the last week has ended
-   * but the next one hasn't started yet (only happens briefly after a timezone change).
+   * No current week. `paused`: the host paused the party. `between-weeks`: this week's ratings have locked and
+   * the next week starts on Monday (or, briefly after a timezone change, the next week hasn't started yet).
    */
   | { action: 'none'; reason: 'paused' | 'between-weeks'; lastRound: Round | null };
 
@@ -159,9 +182,14 @@ export type WeekPlan =
  * - A new week starts only after the previous one has ended, and only for a later Monday, so weeks never
  *   overlap and never reuse a week id, even across timezone changes.
  * - Paused parties start no new weeks.
+ * - Once this week's lock time has passed, no week runs until next Monday (e.g. ratings lock Friday 9 pm → the
+ *   weekend is quiet). A party first used after its lock time waits for Monday too.
  */
 export function planCurrentWeek(
-  party: { partyId: string; settings: { timezone: string; paused: boolean } },
+  party: {
+    partyId: string;
+    settings: WeekSchedule & Pick<PartySettings, 'paused' | 'shareDays'>;
+  },
   latestRound: Round | null,
   now: Date,
 ): WeekPlan {
@@ -172,8 +200,11 @@ export function planCurrentWeek(
     return { action: 'none', reason: 'paused', lastRound: latestRound };
   }
 
-  const window = getWeekWindow(party.settings.timezone, now);
+  const window = getWeekWindow(party.settings, now);
 
+  if (now.getTime() >= new Date(window.endsAt).getTime()) {
+    return { action: 'none', reason: 'between-weeks', lastRound: latestRound };
+  }
   if (latestRound !== null && window.weekStart <= latestRound.weekStart) {
     // Moving the timezone west can make "this week" in the new zone the same Monday as the week that
     // just ended. Wait for the next Monday rather than reopening it.
@@ -196,6 +227,7 @@ export function planCurrentWeek(
       timezone: party.settings.timezone,
       startsAt,
       endsAt: window.endsAt,
+      shareDays: shareDaysOf(party.settings),
       status: 'OPEN',
     },
   };

@@ -175,8 +175,10 @@ export interface InviteCodeResponse {
 export interface SubmissionDay {
   weekday: Weekday;
   date: IsoDate;
-  /** 1 = Monday … 5 = Friday. */
+  /** Which sharing day this is (1 = the week's first sharing day), for "Day 3 of 5". */
   dayNumber: number;
+  /** How many sharing days this week has. */
+  dayCount: number;
 }
 
 export type CurrentWeekResponse =
@@ -184,7 +186,7 @@ export type CurrentWeekResponse =
       round: Round;
       status: Round['status'];
       reason: null;
-      /** null on Saturday and Sunday (rating still open, sharing closed). */
+      /** null on days that aren't sharing days (rating still open, sharing closed). */
       today: SubmissionDay | null;
       sharedToday: boolean;
       mySubmissionDates: IsoDate[];

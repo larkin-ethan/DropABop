@@ -329,6 +329,10 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [x] **P8.11 — Profile / Account** (§19.12) — display name, avatar color, preferred music app (D22), sign out.
 - [x] **P8.12 — Responsive & accessibility pass** (§21) (manual pass 2026-10-03: contrast AA fixes; automated 2026-10-04: `e2e/screens.spec.ts`, 17 screens × 7 widths) — check every screen at all 7 widths (screenshots via
   Playwright), keyboard navigation, color contrast AA, no horizontal scroll at 320px.
+- [x] **P8.13 — Host-editable schedule** (Ethan, 2026-10-04; D1, D2) — the host picks the sharing days and the day +
+  time ratings lock (not before the last sharing day); changes apply from next week. *Done when:* settings saves and
+  validates them (API + form), weeks/results/home/share follow the week's own days and lock time, old parties keep
+  Mon–Fri / Sunday 11:59 pm, unit + integration + screen tests.
 
 ---
 

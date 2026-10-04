@@ -7,10 +7,10 @@ import { BigLogo, Logo, buttonClassName } from '../components/ui';
 /** The weekly flow in plain words (spec §27: explain without overwhelming). */
 const STEPS: { title: string; text: string }[] = [
   { title: 'Join a party', text: 'Use the invite link or code a friend sends you. Parties are private.' },
-  { title: 'Drop a bop every weekday', text: 'Monday to Friday, share one song you love.' },
+  { title: 'Drop a bop every sharing day', text: 'Monday to Friday by default: share one song you love.' },
   {
     title: 'Listen and rate',
-    text: 'Rate everyone else’s songs from 1 to 10 any time before Sunday night. Songs are anonymous by default.',
+    text: 'Rate everyone else’s songs from 1 to 10 until the week’s ratings lock. Songs are anonymous by default.',
   },
   {
     title: 'See the results',

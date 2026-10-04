@@ -1,5 +1,5 @@
 // P10.3: the journey against the real dev stack (see dev-stack.config.ts). Two people: the host (test user 1) and a
-// friend (test user 2). On weekdays a song is shared and rated; on weekends the test checks sharing is closed.
+// friend (test user 2). On weekdays a song is shared and rated; on non-sharing days the test checks sharing is closed.
 // Ends with the friend leaving, so the test can run again (people may be in at most 5 parties).
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -78,7 +78,7 @@ test('host and friend: invite → join → share → rate (weekdays) → leave',
 
   // Share today's song as the host (weekdays only; the server's clock decides).
   await hostPage.goto('/share');
-  const weekend = hostPage.getByText('Sharing is closed on weekends');
+  const weekend = hostPage.getByText('Today isn’t a sharing day');
   const alreadyShared = hostPage.getByText('You’ve shared today’s song');
   const search = hostPage.getByLabel('Search for a song, artist, or album');
   await expect(weekend.or(alreadyShared).or(search).first()).toBeVisible({ timeout: 20_000 });

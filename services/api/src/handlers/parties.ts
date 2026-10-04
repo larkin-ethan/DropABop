@@ -2,7 +2,14 @@
 
 import type { PartiesResponse, PartyResponse } from '@dropabop/shared';
 import type { Party, PartyMember } from '@dropabop/shared';
-import { DEFAULT_MAX_PARTY_SIZE, MAX_PARTIES_PER_USER, createPartyRequestSchema } from '@dropabop/shared';
+import {
+  DEFAULT_MAX_PARTY_SIZE,
+  DEFAULT_RATING_CLOSE_DAY,
+  DEFAULT_RATING_CLOSE_TIME,
+  DEFAULT_SHARE_DAYS,
+  MAX_PARTIES_PER_USER,
+  createPartyRequestSchema,
+} from '@dropabop/shared';
 import type { DataContext } from '../data/context';
 import {
   InviteCodeTakenError,
@@ -78,6 +85,9 @@ export const createPartyHandlerFn: HandlerFn = async (event, { data, now, newId 
         paused: false,
         revealRecommenderDuringVoting: false,
         showWhoRatedWhat: false,
+        shareDays: [...DEFAULT_SHARE_DAYS],
+        ratingCloseDay: DEFAULT_RATING_CLOSE_DAY,
+        ratingCloseTime: DEFAULT_RATING_CLOSE_TIME,
       },
       createdAt,
     };

@@ -6,6 +6,7 @@ import {
   parseAppleMusicSongUrl,
   parseSpotifyTrackUrl,
   parseYouTubeUrl,
+  shareDaysOf,
   spotifyLinkSchema,
   youtubeLinkSchema,
   type CurrentWeekResponse,
@@ -30,7 +31,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { TextField } from '../components/TextField';
 import { AlbumArt, Button, Card, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
-import { DAY_NAMES, hueFor } from '../lib/format';
+import { DAY_NAMES, formatDayList, formatLockTime, hueFor } from '../lib/format';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
 
@@ -95,8 +96,8 @@ export function ShareScreen() {
             return (
               <Card>
                 <EmptyState
-                  title="Sharing is closed on weekends"
-                  message="It opens again Monday. Meanwhile, catch up on this week’s songs before Sunday night."
+                  title="Today isn’t a sharing day"
+                  message={`This week’s sharing days are ${formatDayList(shareDaysOf(data.round))}. Meanwhile, catch up on this week’s songs before ratings lock ${formatLockTime(data.round.endsAt)}.`}
                   action={
                     <Link to="/rate" className={buttonClassName('secondary')}>
                       Rate this week’s songs
@@ -119,6 +120,9 @@ function AlreadyShared({ week }: { week: OpenWeek }) {
   const me = useMe();
   const today = week.today;
   const mine = songs.data?.songs.find((s) => s.isMine && s.submittedOn === today?.date);
+  // The week's next sharing day after today (shareDaysOf is in week order).
+  const shareDays = shareDaysOf(week.round);
+  const nextShareDay = today === null ? undefined : shareDays[shareDays.indexOf(today.weekday) + 1];
   return (
     <Card>
       <p className="inline-flex items-center gap-1.5 font-semibold text-success">
@@ -134,9 +138,9 @@ function AlreadyShared({ week }: { week: OpenWeek }) {
         </ul>
       )}
       <p className="mt-3 text-muted">
-        {today?.weekday === 'FRI'
-          ? 'Next chance to share is Monday.'
-          : 'Come back tomorrow to share another.'}
+        {nextShareDay === undefined
+          ? 'That was this week’s last sharing day. Next week brings more.'
+          : `Next chance to share is ${DAY_NAMES[nextShareDay]}.`}
       </p>
       <Link to="/rate" className={buttonClassName('secondary', 'mt-4')}>
         <Icon name="star" className="size-4" /> Rate this week’s songs

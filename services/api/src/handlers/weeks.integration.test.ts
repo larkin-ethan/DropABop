@@ -79,7 +79,7 @@ describe('GET /parties/{partyId}/rounds/current', () => {
       endsAt: '2026-10-12T05:00:00.000Z',
     });
     expect(body.status).toBe('OPEN');
-    expect(body.today).toEqual({ weekday: 'WED', date: '2026-10-07', dayNumber: 3 });
+    expect(body.today).toEqual({ weekday: 'WED', date: '2026-10-07', dayNumber: 3, dayCount: 5 });
     expect(body.sharedToday).toBe(false);
     expect(body.progress).toEqual({ songCount: 0, ratableCount: 0, ratedCount: 0 });
   });

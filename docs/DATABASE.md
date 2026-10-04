@@ -24,9 +24,9 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 |---|---|---|---|
 | User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, createdAt |
 | "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt |
-| Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings, createdAt |
+| Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime; missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
-| Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt, status |
+| Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, status |
 | Song shared (recommendation) | `PARTY#<partyId>` | `REC#<week>#<recommendationId>` | userId, submittedOn, weekday, song (embedded), createdAt |
 | "Already shared today" marker | `PARTY#<partyId>` | `SUBMITTED#<week>#<userId>#<date>` | recommendationId |
 | Rating (vote) | `PARTY#<partyId>` | `VOTE#<week>#<userId>#<recommendationId>` | rating, updatedAt |

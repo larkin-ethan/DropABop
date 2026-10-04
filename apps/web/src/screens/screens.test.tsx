@@ -35,8 +35,18 @@ describe('Home (P8.3)', () => {
         s.today = null;
       },
     });
-    expect(await screen.findByText('Weekend · catch-up time')).toBeInTheDocument();
-    expect(screen.getByText(/Sharing opens again Monday/)).toBeInTheDocument();
+    expect(await screen.findByText('No sharing today · catch-up time')).toBeInTheDocument();
+    expect(screen.getByText(/Today isn’t a sharing day \(this week: Monday to Friday\)/)).toBeInTheDocument();
+  });
+
+  it('counts sharing days from the week’s own schedule (D1)', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.round.shareDays = ['MON', 'WED', 'FRI'];
+        s.today = { weekday: 'WED', date: '2026-10-07', dayNumber: 2, dayCount: 3 };
+      },
+    });
+    expect(await screen.findByText('Wednesday · Day 2 of 3')).toBeInTheDocument();
   });
 
   it('shows the paused state with a link to the last results', async () => {
@@ -238,7 +248,8 @@ describe('Share today’s song (P8.4)', () => {
         s.today = null;
       },
     });
-    expect(await screen.findByText('Sharing is closed on weekends')).toBeInTheDocument();
+    expect(await screen.findByText('Today isn’t a sharing day')).toBeInTheDocument();
+    expect(screen.getByText(/sharing days are Monday to Friday/)).toBeInTheDocument();
   });
 
   it('can find a song from a pasted Apple Music link', async () => {
@@ -298,7 +309,7 @@ describe('Weekly results and history (P8.6, P8.7)', () => {
     expect(await screen.findByRole('heading', { name: 'Week complete!' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Bop of the Day/ })).toBeInTheDocument();
     expect(screen.getAllByLabelText('Rank 1').length).toBeGreaterThan(0);
-    expect(screen.getByText(/This week’s unlock on Sunday night/)).toBeInTheDocument();
+    expect(screen.getByText(/This week’s unlock Sunday 11:59 pm/)).toBeInTheDocument();
   });
 
   it('switches to the per-day view and shows a rating spread', async () => {
@@ -311,7 +322,7 @@ describe('Weekly results and history (P8.6, P8.7)', () => {
   it('explains that the current week’s results aren’t ready', async () => {
     renderApp('/results/p1.2026-10-05');
     expect(await screen.findByText('Not ready yet')).toBeInTheDocument();
-    expect(screen.getByText(/unlock when the week ends/)).toBeInTheDocument();
+    expect(screen.getByText(/unlock when this week’s ratings lock/)).toBeInTheDocument();
   });
 
   it('lists past weeks, linking finished ones to their results', async () => {
@@ -354,11 +365,48 @@ describe('Stats and leaderboard (P8.8, P8.9)', () => {
 describe('Party settings and profile (P8.10, P8.11)', () => {
   it('lets the host change settings and explains the timezone', async () => {
     const { state } = renderApp('/settings');
-    expect(await screen.findByText(/Days run midnight to midnight in/)).toBeInTheDocument();
+    expect(await screen.findByText(/days run midnight to midnight in/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('switch', { name: /Show who rated what/ }));
     await waitFor(() => expect(state.parties[0]?.settings.showWhoRatedWhat).toBe(true));
     await userEvent.click(screen.getByRole('button', { name: 'Pause the party' }));
     await waitFor(() => expect(state.parties[0]?.settings.paused).toBe(true));
+  });
+
+  it('lets the host choose the sharing days and when ratings lock (D1, D2)', async () => {
+    const { state } = renderApp('/settings');
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Friday' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Saturday' }));
+    await userEvent.selectOptions(screen.getByLabelText('Ratings lock on'), 'Saturday');
+    const time = screen.getByLabelText('At');
+    await userEvent.clear(time);
+    await userEvent.type(time, '21:00');
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() =>
+      expect(state.parties[0]?.settings).toMatchObject({
+        shareDays: ['MON', 'TUE', 'WED', 'THU', 'SAT'],
+        ratingCloseDay: 'SAT',
+        ratingCloseTime: '21:00',
+      }),
+    );
+  });
+
+  it('won’t let ratings lock before the last sharing day', async () => {
+    const { state } = renderApp('/settings');
+    await userEvent.selectOptions(await screen.findByLabelText('Ratings lock on'), 'Wednesday');
+    expect(screen.getByRole('alert')).toHaveTextContent('Ratings can’t lock before the last sharing day');
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(state.parties[0]?.settings.ratingCloseDay).toBe('SUN');
+  });
+
+  it('shows members the schedule without letting them change it', async () => {
+    renderApp('/settings', {
+      setup: (s) => {
+        s.parties[0]!.hostUserId = 'someone-else';
+        s.members = s.members.map((m, i) => (i === 0 ? { ...m, role: 'member' } : m));
+      },
+    });
+    expect(await screen.findByRole('checkbox', { name: 'Monday' })).toBeDisabled();
+    expect(screen.getByLabelText('Ratings lock on')).toBeDisabled();
   });
 
   it('after removing someone, offers a new invite link (D17)', async () => {

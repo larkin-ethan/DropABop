@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Party, PartyMember } from '@dropabop/shared';
 import { INVITE_CODE_ALPHABET, INVITE_CODE_PATTERN, inviteCodeSchema } from '@dropabop/shared';
 import {
+  canSetSchedule,
   canJoinParty,
   canManageParty,
   canRemoveMember,
@@ -24,6 +25,9 @@ const party: Party = {
     paused: false,
     revealRecommenderDuringVoting: false,
     showWhoRatedWhat: false,
+    shareDays: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+    ratingCloseDay: 'SUN',
+    ratingCloseTime: '23:59',
   },
   createdAt: '2026-09-01T00:00:00.000Z',
 };
@@ -193,6 +197,19 @@ describe('canSetMaxMembers', () => {
       ok: false,
       code: 'VALIDATION_FAILED',
       message: 'This party already has 5 members, so the limit can’t be lower than 5.',
+    });
+  });
+});
+
+describe('canSetSchedule (D1, D2)', () => {
+  it('allows ratings to lock on or after the last sharing day', () => {
+    expect(canSetSchedule({ shareDays: ['MON', 'TUE'], ratingCloseDay: 'TUE' })).toEqual({ ok: true });
+  });
+
+  it('refuses a lock day before the last sharing day', () => {
+    expect(canSetSchedule({ shareDays: ['MON', 'SAT'], ratingCloseDay: 'FRI' })).toMatchObject({
+      ok: false,
+      code: 'VALIDATION_FAILED',
     });
   });
 });

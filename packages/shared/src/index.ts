@@ -6,4 +6,5 @@ export * from './types';
 export * from './errors';
 export * from './schemas';
 export * from './links';
+export * from './schedule';
 export * from './api-types';

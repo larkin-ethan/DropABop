@@ -125,7 +125,7 @@ describe('GET /rounds/{roundId}/results', () => {
     const result = await results(a, round.roundId);
     expect(result.statusCode).toBe(403);
     expect(bodyOf(result)).toEqual({
-      error: { code: 'RESULTS_NOT_READY', message: 'Results unlock when the week ends on Sunday night.' },
+      error: { code: 'RESULTS_NOT_READY', message: 'Results unlock when this week’s ratings lock.' },
     });
   });
 

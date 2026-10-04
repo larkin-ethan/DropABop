@@ -7,11 +7,15 @@ import {
   DEFAULT_DISPLAY_NAME,
   MAX_PARTY_SIZE,
   MUSIC_PROVIDERS,
+  WEEKDAYS,
+  checkSchedule,
   displayNameSchema,
+  sortWeekdays,
   type MusicProviderId,
   type Party,
   type PartyMember,
   type UpdatePartySettingsRequest,
+  type Weekday,
 } from '@dropabop/shared';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
@@ -31,6 +35,7 @@ import { TextField } from '../components/TextField';
 import { Avatar, Button, Card } from '../components/ui';
 import { AvatarImageError, toAvatarDataUrl } from '../lib/avatar-image';
 import { errorMessage } from '../lib/errors';
+import { DAY_NAMES } from '../lib/format';
 import { PROVIDER_NAMES } from '../lib/music-links';
 import { inviteLink } from '../lib/pending-invite';
 import { useCurrentParty } from '../party/CurrentParty';
@@ -164,6 +169,9 @@ function SettingsForm({
   const [name, setName] = useState(party.name);
   const [maxMembers, setMaxMembers] = useState(String(party.settings.maxMembers));
   const [timezone, setTimezone] = useState(party.settings.timezone);
+  const [shareDays, setShareDays] = useState<Weekday[]>(party.settings.shareDays);
+  const [closeDay, setCloseDay] = useState<Weekday>(party.settings.ratingCloseDay);
+  const [closeTime, setCloseTime] = useState(party.settings.ratingCloseTime);
   const [saved, setSaved] = useState(false);
 
   // If the party changes underneath (e.g. switching parties), start from its values.
@@ -171,7 +179,17 @@ function SettingsForm({
     setName(party.name);
     setMaxMembers(String(party.settings.maxMembers));
     setTimezone(party.settings.timezone);
+    setShareDays(party.settings.shareDays);
+    setCloseDay(party.settings.ratingCloseDay);
+    setCloseTime(party.settings.ratingCloseTime);
   }, [party]);
+
+  // The same rule the API enforces, shown before saving: ratings can't lock before the last sharing day.
+  const scheduleProblem = checkSchedule({ shareDays, ratingCloseDay: closeDay });
+
+  function toggleShareDay(day: Weekday, on: boolean) {
+    setShareDays(sortWeekdays(on ? [...shareDays, day] : shareDays.filter((d) => d !== day)));
+  }
 
   function save(changes: UpdatePartySettingsRequest) {
     setSaved(false);
@@ -184,6 +202,10 @@ function SettingsForm({
     if (name.trim() !== party.name) changes.name = name.trim();
     if (Number(maxMembers) !== party.settings.maxMembers) changes.maxMembers = Number(maxMembers);
     if (timezone.trim() !== party.settings.timezone) changes.timezone = timezone.trim();
+    if (shareDays.join() !== party.settings.shareDays.join()) changes.shareDays = shareDays;
+    if (closeDay !== party.settings.ratingCloseDay) changes.ratingCloseDay = closeDay;
+    if (closeTime !== party.settings.ratingCloseTime) changes.ratingCloseTime = closeTime;
+    if (scheduleProblem !== null) return; // shown under the schedule; nothing to send yet
     if (Object.keys(changes).length === 0) {
       setSaved(true);
       return;
@@ -222,10 +244,67 @@ function SettingsForm({
             hint="A change applies from next week."
           />
         </div>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-medium">Sharing days</legend>
+          <p className="text-xs text-muted">Everyone shares one song on each of these days.</p>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAYS.map((day) => (
+              <label key={day} className={readOnly ? '' : 'cursor-pointer'}>
+                <input
+                  type="checkbox"
+                  className="peer sr-only"
+                  checked={shareDays.includes(day)}
+                  disabled={readOnly}
+                  onChange={(e) => toggleShareDay(day, e.target.checked)}
+                  aria-label={DAY_NAMES[day]}
+                />
+                <span
+                  aria-hidden="true"
+                  className="inline-block min-w-12 rounded-full border border-line bg-surface-raised px-3 py-1.5 text-center text-sm text-muted peer-checked:border-primary peer-checked:bg-primary peer-checked:font-semibold peer-checked:text-primary-ink peer-focus-visible:ring-2 peer-focus-visible:ring-blue"
+                >
+                  {DAY_NAMES[day].slice(0, 3)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="rating-close-day" className="text-sm font-medium">
+              Ratings lock on
+            </label>
+            <select
+              id="rating-close-day"
+              value={closeDay}
+              disabled={readOnly}
+              onChange={(e) => setCloseDay(e.target.value as Weekday)}
+              className="rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 text-ink focus:border-blue focus:outline-none"
+            >
+              {WEEKDAYS.map((day) => (
+                <option key={day} value={day}>
+                  {DAY_NAMES[day]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <TextField
+            label="At"
+            type="time"
+            value={closeTime}
+            readOnly={readOnly}
+            required
+            onChange={(e) => setCloseTime(e.target.value)}
+            hint="Ratings lock at the end of this minute; then the results come out."
+          />
+        </div>
+        {scheduleProblem !== null && <Alert>{scheduleProblem}</Alert>}
+
         <p className="rounded-xl border border-line bg-surface-raised px-3 py-2 text-sm text-muted">
-          Days run midnight to midnight in{' '}
-          <span className="font-semibold text-ink">{party.settings.timezone}</span>; ratings lock Sunday 11:59
-          pm. A timezone change applies from the next week; the current week keeps its timezone.
+          Weeks start Monday, and days run midnight to midnight in{' '}
+          <span className="font-semibold text-ink">{party.settings.timezone}</span>. Changes to the timezone,
+          sharing days, or lock time apply from next week; this week keeps the rules it started with.
         </p>
 
         <div className="divide-y divide-line border-y border-line">

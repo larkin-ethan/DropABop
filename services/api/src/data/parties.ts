@@ -2,6 +2,7 @@
 
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import type { MemberRole, Party, PartyMember, PartySettings } from '@dropabop/shared';
+import { withScheduleDefaults } from '@dropabop/shared';
 import { MESSAGES } from '../domain/messages';
 import type { DataContext } from './context';
 import { queryByPrefix, transactWrite, withoutKeys } from './context';
@@ -24,11 +25,17 @@ export class InviteCodeTakenError extends Error {
   }
 }
 
+/** A stored party, with the original schedule filled in for parties created before it was editable. */
+function readParty(item: Record<string, unknown>): Party {
+  const party = withoutKeys<Party>(item);
+  return { ...party, settings: withScheduleDefaults(party.settings) };
+}
+
 export async function getParty(ctx: DataContext, partyId: string): Promise<Party | null> {
   const { Item } = await ctx.db.send(
     new GetCommand({ TableName: ctx.tableName, Key: keys.partyMeta(partyId) }),
   );
-  return Item === undefined ? null : withoutKeys<Party>(Item);
+  return Item === undefined ? null : readParty(Item);
 }
 
 export async function getMembership(
@@ -243,6 +250,9 @@ const SETTINGS_FIELDS: (keyof PartySettings)[] = [
   'paused',
   'revealRecommenderDuringVoting',
   'showWhoRatedWhat',
+  'shareDays',
+  'ratingCloseDay',
+  'ratingCloseTime',
 ];
 
 export interface PartyChanges {
@@ -294,7 +304,7 @@ export async function updateParty(ctx: DataContext, partyId: string, changes: Pa
         ReturnValues: 'ALL_NEW',
       }),
     );
-    updated = withoutKeys<Party>(result.Attributes ?? {});
+    updated = readParty(result.Attributes ?? {});
   } catch (error) {
     if (isConditionalCheckFailed(error) && changes.settings?.maxMembers !== undefined) {
       const current = await getParty(ctx, partyId);

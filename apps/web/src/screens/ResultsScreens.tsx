@@ -13,7 +13,14 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { RatingDistribution } from '../components/Stats';
 import { AlbumArt, Avatar, Button, Card, buttonClassName } from '../components/ui';
 import { errorCode, errorMessage } from '../lib/errors';
-import { DAY_NAMES, formatAverage, formatShortDate, formatWeekLabel, hueFor } from '../lib/format';
+import {
+  DAY_NAMES,
+  formatAverage,
+  formatLockTime,
+  formatShortDate,
+  formatWeekLabel,
+  hueFor,
+} from '../lib/format';
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useCurrentParty } from '../party/CurrentParty';
 
@@ -51,7 +58,7 @@ export function LatestResultsScreen() {
                   title="No results yet"
                   message={
                     thisWeek
-                      ? 'Results unlock when this week ends on Sunday night. Keep rating!'
+                      ? `Results unlock when ratings lock ${formatLockTime(thisWeek.endsAt)}. Keep rating!`
                       : 'Results appear here after your party’s first week ends.'
                   }
                   action={
@@ -66,7 +73,7 @@ export function LatestResultsScreen() {
             </div>
           );
         }
-        return <WeekResults roundId={latest.roundId} openWeekNote={thisWeek !== undefined} />;
+        return <WeekResults roundId={latest.roundId} openWeekLocksAt={thisWeek?.endsAt ?? null} />;
       }}
     </QueryBoundary>
   );
@@ -78,10 +85,10 @@ export function LatestResultsScreen() {
 
 export function ResultsScreen() {
   const { roundId = '' } = useParams();
-  return <WeekResults roundId={roundId} openWeekNote={false} />;
+  return <WeekResults roundId={roundId} openWeekLocksAt={null} />;
 }
 
-function WeekResults({ roundId, openWeekNote }: { roundId: string; openWeekNote: boolean }) {
+function WeekResults({ roundId, openWeekLocksAt }: { roundId: string; openWeekLocksAt: string | null }) {
   const results = useResults(roundId);
   const me = useMe();
 
@@ -107,7 +114,7 @@ function WeekResults({ roundId, openWeekNote }: { roundId: string; openWeekNote:
       data={data}
       names={names}
       preferred={me.data?.user.preferredProvider ?? null}
-      openWeekNote={openWeekNote}
+      openWeekLocksAt={openWeekLocksAt}
     />
   );
 }
@@ -116,12 +123,13 @@ function ResultsView({
   data,
   names,
   preferred,
-  openWeekNote,
+  openWeekLocksAt,
 }: {
   data: ResultsResponse;
   names: NameLookup;
   preferred: MusicProviderId | null;
-  openWeekNote: boolean;
+  /** When this (still open) week's ratings lock, if the results shown are last week's. */
+  openWeekLocksAt: string | null;
 }) {
   const [view, setView] = useState<'overall' | 'days'>('overall');
   const { results, round } = data;
@@ -140,16 +148,16 @@ function ResultsView({
           </Link>
         }
       />
-      {openWeekNote && (
+      {openWeekLocksAt !== null && (
         <p className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-          These are last week’s results. This week’s unlock on Sunday night.{' '}
+          These are last week’s results. This week’s unlock {formatLockTime(openWeekLocksAt)}.{' '}
           <Link to="/rate" className="font-semibold text-blue hover:underline">
             Keep rating
           </Link>
         </p>
       )}
 
-      {/* Bop of the Day, Monday to Friday (D12) */}
+      {/* Bop of the Day for each sharing day (D12) */}
       <section aria-labelledby="bop-of-the-day">
         <h2 id="bop-of-the-day" className="mb-3 flex items-center gap-2 text-lg font-bold">
           <Icon name="crown" className="size-5 text-gold" /> Bop of the Day

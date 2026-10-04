@@ -44,8 +44,8 @@ export function canSubmitRecommendation(
   if (!isWeekOpen(ctx.currentRound, ctx.now)) {
     return deny('WEEK_CLOSED', MESSAGES.WEEK_CLOSED_SUBMIT);
   }
-  // The round's own timezone, so a mid-week timezone change can't shift which day it is.
-  const day = getSubmissionDay(ctx.currentRound.timezone, ctx.now);
+  // The round's own timezone and days, so a mid-week settings change can't shift which day it is.
+  const day = getSubmissionDay(ctx.currentRound, ctx.now);
   if (day === null) {
     return deny('WEEKEND', MESSAGES.WEEKEND);
   }

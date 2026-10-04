@@ -30,9 +30,12 @@ import { AuthLayout } from './AuthScreens';
 export function OnboardingSteps() {
   const steps = [
     ['Join or start a party', 'Parties are private and invite-only.'],
-    ['Drop a bop every weekday', 'Monday to Friday, share one song you love.'],
+    [
+      'Drop a bop every sharing day',
+      'Monday to Friday unless your host changes it: share one song you love.',
+    ],
     ['Listen to everyone’s picks', 'Open them in Apple Music, Spotify, or YouTube Music.'],
-    ['Rate them 1–10', 'Any time before Sunday 11:59 pm. You can change a rating until then.'],
+    ['Rate them 1–10', 'Any time before ratings lock (Sunday 11:59 pm unless your host changes it).'],
     ['See the results', 'The week’s ranking, each day’s Bop of the Day, and your stats.'],
   ];
   return (
@@ -354,7 +357,7 @@ export function CreatePartyScreen() {
             list="timezones"
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            hint="Days run midnight to midnight here, and ratings lock Sunday 11:59 pm."
+            hint="Days run midnight to midnight here. Sharing days and when ratings lock can be changed in party settings."
           />
           <datalist id="timezones">
             {timezones.map((tz) => (

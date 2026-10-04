@@ -22,6 +22,7 @@ import type {
   Weekday,
   WeekSongsResponse,
 } from '@dropabop/shared';
+import { DEFAULT_SHARE_DAYS, checkSchedule, shareDaysOf, sortWeekdays } from '@dropabop/shared';
 import { ApiError, type ApiClient } from '../api/client';
 import { sampleMembers, sampleSongs, type SongView } from './sample-data';
 
@@ -32,7 +33,7 @@ export interface PreviewState {
   parties: Party[];
   members: PartyMember[];
   round: Round;
-  today: { weekday: Weekday; date: string; dayNumber: number } | null;
+  today: { weekday: Weekday; date: string; dayNumber: number; dayCount: number } | null;
   songs: SongView[];
   pastRound: Round;
   pastResults: SongResult[];
@@ -72,6 +73,9 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       paused: false,
       revealRecommenderDuringVoting: false,
       showWhoRatedWhat: false,
+      shareDays: [...DEFAULT_SHARE_DAYS],
+      ratingCloseDay: 'SUN',
+      ratingCloseTime: '23:59',
     },
     createdAt: '2026-09-01T12:00:00.000Z',
   };
@@ -122,9 +126,10 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       timezone: 'America/Chicago',
       startsAt: '2026-10-05T05:00:00.000Z',
       endsAt,
+      shareDays: [...DEFAULT_SHARE_DAYS],
       status: 'OPEN',
     },
-    today: { weekday: 'WED', date: '2026-10-07', dayNumber: 3 },
+    today: { weekday: 'WED', date: '2026-10-07', dayNumber: 3, dayCount: 5 },
     songs: sampleSongs.map((s) => ({ ...s })),
     pastRound: {
       roundId: 'p1.2026-09-28',
@@ -183,7 +188,7 @@ function weekResults(state: PreviewState): ResultsResponse {
     distribution: Array.from({ length: 10 }, (_, i) => (average !== null && i === average - 1 ? 1 : 0)),
     myRating: song.myRating,
   }));
-  const days = (['MON', 'TUE', 'WED', 'THU', 'FRI'] as Weekday[]).map((weekday) => {
+  const days = shareDaysOf(state.round).map((weekday) => {
     const ofDay = songs.filter((r) => r.weekday === weekday);
     const rated = ofDay.filter((r) => r.averageRating !== null);
     return {
@@ -352,6 +357,11 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     if (is('PATCH', 'parties', ':id', 'settings')) {
       const { name, ...settings } = body as { name?: string } & Partial<Party['settings']>;
       const p = party();
+      // Same schedule rule as the API (D1, D2). Like the API, a change applies from next week: the sample week keeps
+      // its own days.
+      if (settings.shareDays !== undefined) settings.shareDays = sortWeekdays(settings.shareDays);
+      const problem = checkSchedule({ ...p.settings, ...settings });
+      if (problem !== null) throw new ApiError(400, 'VALIDATION_FAILED', problem);
       state.parties[0] = { ...p, name: name ?? p.name, settings: { ...p.settings, ...settings } };
       return partyResponse();
     }
@@ -526,12 +536,12 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     if (is('GET', 'rounds', ':id', 'results')) {
       if (parts[1] === state.round.roundId) {
         if (!state.weekClosed) {
-          throw new ApiError(403, 'RESULTS_NOT_READY', 'Results unlock when the week ends on Sunday night.');
+          throw new ApiError(403, 'RESULTS_NOT_READY', 'Results unlock when this week’s ratings lock.');
         }
         return weekResults(state);
       }
       if (parts[1] !== state.pastRound.roundId) notFound();
-      const days = (['MON', 'TUE', 'WED', 'THU', 'FRI'] as Weekday[]).map((weekday) => {
+      const days = shareDaysOf(state.pastRound).map((weekday) => {
         const songIds = state.pastResults.filter((r) => r.weekday === weekday).map((r) => r.recommendationId);
         return { weekday, songIds, winnerIds: songIds.slice(0, 1) };
       });

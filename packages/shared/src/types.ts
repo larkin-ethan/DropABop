@@ -2,14 +2,14 @@
 // These describe the app's data. API responses may hide some fields (for example, who recommended
 // a song while the week is open, per D10); those response shapes are defined alongside each endpoint.
 
-import type { MEMBER_ROLES, MUSIC_PROVIDERS, ROUND_STATUSES, SUBMISSION_WEEKDAYS } from './limits';
+import type { MEMBER_ROLES, MUSIC_PROVIDERS, ROUND_STATUSES, WEEKDAYS } from './limits';
 
 /** Calendar date in the party's timezone, formatted YYYY-MM-DD. */
 export type IsoDate = string;
 /** Instant in time, ISO 8601 with timezone (e.g. 2026-10-05T05:00:00.000Z). */
 export type IsoDateTime = string;
 
-export type Weekday = (typeof SUBMISSION_WEEKDAYS)[number];
+export type Weekday = (typeof WEEKDAYS)[number];
 export type RoundStatus = (typeof ROUND_STATUSES)[number];
 export type MusicProviderId = (typeof MUSIC_PROVIDERS)[number];
 export type MemberRole = (typeof MEMBER_ROLES)[number];
@@ -41,6 +41,14 @@ export interface PartySettings {
   revealRecommenderDuringVoting: boolean;
   /** D11: default false (results show anonymous distributions). */
   showWhoRatedWhat: boolean;
+  /** D1: the days members share a song, in week order. Default Monday–Friday. */
+  shareDays: Weekday[];
+  /**
+   * D2: ratings lock at the end of this day + minute ("HH:MM", 24-hour, party timezone). Never before the last
+   * sharing day (checkSchedule). Default Sunday 23:59. Schedule changes apply from the next week.
+   */
+  ratingCloseDay: Weekday;
+  ratingCloseTime: string;
 }
 
 export interface Party {
@@ -80,10 +88,15 @@ export interface Round {
   /** Monday 00:00 in the round's timezone. */
   startsAt: IsoDateTime;
   /**
-   * The following Monday 00:00 (exclusive). The week is open while now < endsAt; ratings lock at this
-   * instant. Shown to people as "Sunday 11:59 pm".
+   * When ratings lock (exclusive): the end of the party's rating-close minute, e.g. the following Monday 00:00 for
+   * the default "Sunday 11:59 pm". The week is open while now < endsAt. Fixed when the week is created.
    */
   endsAt: IsoDateTime;
+  /**
+   * The party's sharing days when this week was created, so a mid-week change applies from next week.
+   * Missing on weeks created before the host could choose days: those used Monday–Friday (scheduleOf).
+   */
+  shareDays?: Weekday[];
   /**
    * Stored status. Never read this directly to decide what's allowed: the effective status comes
    * from the current time (getEffectiveWeekStatus, ADR-0003).

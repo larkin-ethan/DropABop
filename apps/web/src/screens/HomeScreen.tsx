@@ -15,7 +15,8 @@ import { PageHeader, QueryBoundary } from '../components/Page';
 import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
 import { EmptyState } from '../components/States';
 import { Avatar, Card, ProgressBar, buttonClassName } from '../components/ui';
-import { DAY_NAMES, WEEKDAYS, formatLockTime, formatTimeLeft } from '../lib/format';
+import { DAY_NAMES, formatDayList, formatLockTime, formatTimeLeft } from '../lib/format';
+import { WEEKDAYS, shareDaysOf } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
 import { OnboardingSteps } from './OnboardingScreens';
@@ -157,7 +158,9 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow={
-          today ? `${DAY_NAMES[today.weekday]} · Day ${today.dayNumber} of 5` : 'Weekend · catch-up time'
+          today
+            ? `${DAY_NAMES[today.weekday]} · Day ${today.dayNumber} of ${today.dayCount}`
+            : 'No sharing today · catch-up time'
         }
         title="This week’s songs"
         actions={
@@ -243,7 +246,8 @@ function TodayStatus({ week, songs }: { week: OpenWeek; songs: OpenWeekSongView[
     return (
       <div className="mt-4 flex flex-col items-start gap-3">
         <p className="text-lg">
-          Sharing opens again Monday. Catch up on this week’s songs before Sunday night.
+          Today isn’t a sharing day (this week: {formatDayList(shareDaysOf(week.round))}). Catch up on this
+          week’s songs before ratings lock {formatLockTime(week.round.endsAt)}.
         </p>
         <Link to="/rate" className={buttonClassName('secondary')}>
           <Icon name="star" className="size-4" /> Catch up on this week’s songs
@@ -315,7 +319,7 @@ function MembersToday({ week, members }: { week: OpenWeek; members: PartyMember[
   );
 }
 
-/** Today's songs first, then the rest of the week, Monday to Friday (roadmap P8.3). */
+/** Today's songs first, then the rest of the week in day order (roadmap P8.3). */
 function SongsByDay({
   songs,
   today,

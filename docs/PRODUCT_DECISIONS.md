@@ -9,21 +9,27 @@ Each item notes the spec section it refines.
 The spec's single-song "round" is replaced by a **weekly round with daily songs**. ADR-0004 records
 this deliberate change to spec §13–§15.
 
-- **D1 — One song per member per day, Monday–Friday.** Each member may submit **one song per day** on
-  Mon, Tue, Wed, Thu, and Fri (up to 5 songs per member per week). Days are optional: skipping a day is fine.
+- **D1 — One song per member per sharing day (default Monday–Friday).** Each member may submit **one song per
+  sharing day**. New parties share Mon, Tue, Wed, Thu, and Fri; **the host can pick any days** (at least one) in
+  party settings (Ethan, 2026-10-04). Days are optional: skipping a day is fine.
   - A "day" runs midnight to midnight in the **party's timezone** (IANA name; defaults to the host's browser
     timezone when the party is created; host can change it). A timezone change **takes effect from the next
     week**; the current week keeps the timezone it started with, so days and the lock time never shift mid-week.
-  - No backfilling: a missed day can't be filled in later. No submissions on Saturday or Sunday.
+  - No backfilling: a missed day can't be filled in later. No submissions on days that aren't sharing days.
+  - A change to the sharing days, like a timezone change, **takes effect from the next week** (Ethan, 2026-10-04):
+    each week stores the days it started with.
   - A second submission on the same day returns: *"You've already shared your song for today."*
   - A submitted song can't be edited or swapped (spec §14). Pick carefully.
-- **D2 — Weekly round.** A round is one calendar week, **Monday 00:00 → Sunday 23:59:59** (party timezone).
-  It has two states:
-  - `OPEN` (Mon–Sun): songs can be submitted on weekdays, and **any song from this week can be rated at any
-    time**, including songs submitted earlier in the week. A song can be rated as soon as it's submitted.
-    Saturday and Sunday are catch-up days for listening and rating.
-  - `CLOSED` (after Sunday 23:59:59): all ratings are **locked forever** and the week's results are revealed.
-  - There's no early close: the week always ends on time, so everyone gets the full weekend to catch up.
+- **D2 — Weekly round.** A round starts **Monday 00:00** (party timezone) and runs until **ratings lock**: by
+  default the end of **Sunday 23:59**, but **the host can choose the day and minute** (Ethan, 2026-10-04), as long
+  as it isn't before the last sharing day (locking partway through the last sharing day is allowed; sharing that
+  day stops at the lock). The new lock time applies from the next week. It has two states:
+  - `OPEN` (Monday 00:00 → lock): songs can be submitted on sharing days, and **any song from this week can be
+    rated at any time**, including songs submitted earlier in the week. Non-sharing days before the lock are
+    catch-up days for listening and rating.
+  - `CLOSED` (after the lock): all ratings are **locked forever** and the week's results are revealed. If the
+    lock is before Sunday night, nothing runs until the next Monday (the API reports "between weeks").
+  - There's no early close: the week always ends at the lock time it started with.
   - If the week ends with **fewer than 2 songs**, it closes as "Not enough songs this week" (no results,
     excluded from stats).
   - The host can **pause** the party (no new weeks start until resumed), e.g. for holidays. Pausing during an

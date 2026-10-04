@@ -49,7 +49,7 @@ describe('canSubmitRecommendation (spec §14, D1)', () => {
   it('allows a member on a weekday and returns the server-decided day', () => {
     expect(canSubmitRecommendation(submitCtx())).toEqual({
       ok: true,
-      day: { weekday: 'WED', date: '2026-10-07', dayNumber: 3 },
+      day: { weekday: 'WED', date: '2026-10-07', dayNumber: 3, dayCount: 5 },
     });
   });
 
@@ -107,7 +107,7 @@ describe('canSubmitRecommendation (spec §14, D1)', () => {
     expect(canSubmitRecommendation(submitCtx({ currentRound: null }))).toMatchObject({
       ok: false,
       code: 'WEEK_CLOSED',
-      message: 'The next week hasn’t started yet. Check back on Monday.',
+      message: 'This week’s ratings are locked. The next week starts on Monday.',
     });
   });
 

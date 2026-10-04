@@ -20,8 +20,20 @@ export const SEARCH_QUERY_MAX_LENGTH = 100;
 /** Provider track ids are short; the cap just stops oversized input. */
 export const PROVIDER_SONG_ID_MAX_LENGTH = 200;
 
-/** D1: members share one song per day on these weekdays only. */
-export const SUBMISSION_WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'] as const;
+/** Every day of the week, in week order. Weeks start Monday 00:00 in the party's timezone (D2). */
+export const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
+
+/** D1: members share one song per sharing day. The host picks the days; new parties start with Monday–Friday. */
+export const DEFAULT_SHARE_DAYS: readonly (typeof WEEKDAYS)[number][] = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+
+/**
+ * D2: ratings lock at the end of this minute, in the party's timezone (the host can change it). The default,
+ * Sunday 23:59, means the week's ratings close exactly at midnight going into Monday.
+ */
+export const DEFAULT_RATING_CLOSE_DAY: (typeof WEEKDAYS)[number] = 'SUN';
+export const DEFAULT_RATING_CLOSE_TIME = '23:59';
+/** 24-hour "HH:MM". */
+export const TIME_OF_DAY_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
  * D2: a week is OPEN for submitting (weekdays) and rating (all week), then CLOSED.
