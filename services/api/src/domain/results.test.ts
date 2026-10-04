@@ -185,7 +185,7 @@ describe('calculateWeekResults (spec §16, D11, D12)', () => {
     ]);
   });
 
-  it('gives every weekday a slot, with each day’s Song of the Day (ties → several winners)', () => {
+  it('gives every weekday a slot, with each day’s Bop of the Day (ties → several winners)', () => {
     expect(results.days).toEqual([
       { weekday: 'MON', songIds: ['mon-a', 'mon-b'], winnerIds: ['mon-a', 'mon-b'] },
       { weekday: 'TUE', songIds: ['tue-a'], winnerIds: ['tue-a'] },

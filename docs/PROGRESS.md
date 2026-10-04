@@ -3,8 +3,7 @@
 ## Current focus
 
 Phase 4 is done except **P4.3**'s weekday check: on a weekday run `node scripts/smoke-dev.mjs` so a song is shared
-and rated, then tick P4.3. Open question: keep "Song of the Day" as the name
-of each day's winner, or rename it? Next roadmap work after Phase 4: P8 screens (P8.1 onward) and P9.
+and rated, then tick P4.3. Next roadmap work after Phase 4: P8 screens (P8.1 onward) and P9.
 
 ## Blocked / Questions for Ethan
 
@@ -35,6 +34,8 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-03 — **Daily winner renamed "Bop of the Day"** (Ethan; D12, D24, SPEC note) in docs, API comments, tests.
 
 - 2026-10-03 — **Old dev stack removed** — Ethan ran `sam delete` for `sotd-dev`, then deleted its retained table and
   user pool. Verified (us-east-2): tables, user pools, stacks, and log groups now list only `dropabop-dev` resources

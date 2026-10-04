@@ -1,8 +1,8 @@
 # Drop a Bop — Master Build Specification
 
 > **Renamed 2026-10-03 (Ethan):** the app was called "Song of the Day"; it is now **Drop a Bop** (`dropabop` in code
-> and AWS names). Where this spec says "Song of the Day" it means the app. The daily winner in the weekly results is
-> still called "Song of the Day" (PRODUCT_DECISIONS D12, D24).
+> and AWS names). Where this spec says "Song of the Day" it means the app. Each day's winner in the weekly results is
+> the "Bop of the Day" (PRODUCT_DECISIONS D12, D24).
 
 > **Source of truth.** This is the original product and engineering specification.
 > If any other document disagrees with this one, this one wins, unless an ADR in

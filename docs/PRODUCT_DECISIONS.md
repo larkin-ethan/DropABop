@@ -59,7 +59,7 @@ this deliberate change to spec §13–§15.
 ## Results (§16)
 
 - **D12 — Weekly results** appear when the week closes: every song from the week ranked by average rating,
-  highest first, plus a per-day view (Monday's songs, Tuesday's songs, …) and a "Song of the Day" winner for
+  highest first, plus a per-day view (Monday's songs, Tuesday's songs, …) and a "Bop of the Day" winner for
   each day (that day's highest average). Ties share a rank (1, 1, 3). Songs with 0 ratings rank last and show
   "No ratings".
 - Averages shown to 1 decimal place, and ranking uses that displayed value, so two songs that both show 8.3
@@ -103,8 +103,8 @@ this deliberate change to spec §13–§15.
 - **D23 — Sign-in methods.** v1 uses email + password via Cognito only. "Continue with Google" from the mockup is
   deferred (needs a Google OAuth app and Cognito federation setup).
 - **D24 — Name (2026-10-03).** The app is called **Drop a Bop**; `dropabop` in package, stack, and AWS resource
-  names. It replaces "Song of the Day" / `sotd` everywhere except the name of each day's winner in the weekly
-  results (D12), which stays "Song of the Day" unless Ethan renames it.
+  names. It replaces "Song of the Day" / `sotd` everywhere. Each day's winner in the weekly results (D12) is the
+  **"Bop of the Day"** (Ethan, 2026-10-03).
 
 ## Statistics definitions (§17, §18)
 

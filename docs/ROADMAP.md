@@ -87,7 +87,7 @@ This is where correctness lives; handlers later just call these.
 - [x] **P2.3 — Results calculation**
   - *Spec:* §16 · *Decisions:* D9–D12
   - *Do:* `calculateWeekResults(round, recommendations, votes, viewerId, settings)` → the whole week ranked, plus
-    per-day groups and each day's "Song of the Day" winner. Each song has average, count, distribution (1–10
+    per-day groups and each day's "Bop of the Day" winner. Each song has average, count, distribution (1–10
     buckets), and viewer's rating; recommender and individual ratings appear **only if settings allow**.
   - *Done when:* tests cover ties (overall and for a day's winner), a day with no songs, zero-rating songs,
     visibility settings on/off, and that hidden fields are absent (not just empty) from the output.
@@ -314,7 +314,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [ ] **P8.5 — Rate This Week's Songs** (§19.5) — all of the week's songs grouped by day (anonymous per D10),
   play/open buttons, RatingControl, "Unrated" filter, progress ("12 of 31 rated"), change a rating any time until the
   week ends, clear "ratings lock Sunday 11:59 pm" notice.
-- [ ] **P8.6 — Weekly Results** (§16, §19.6) — overall ranking, each day's "Song of the Day" winner, per-day view,
+- [ ] **P8.6 — Weekly Results** (§16, §19.6) — overall ranking, each day's "Bop of the Day" winner, per-day view,
   averages, distribution chart, your rating vs group, reveal per settings.
 - [ ] **P8.7 — History** (§19.11) — past weeks list → weekly results.
 - [ ] **P8.8 — Personal Stats** (§17, §19.7) — every stat with "Based on N" or "Not enough data yet".

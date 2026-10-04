@@ -73,7 +73,7 @@ Descriptions of the original look, kept for reference:
 | 12 | Voting / Party View | P8.5 | "Round 3 of 5 · Voting Phase" → **"This week's songs"**, grouped by day with an Unrated filter. The 1–10 grid RatingControl stays as drawn. Hide recommender names (D10). |
 | 14 | Vote Submitted | P8.5 | Becomes a lightweight "Rating saved ✓ · you can change it until Sunday 11:59 pm" confirmation (toast or inline). "View Results" → "Results unlock Sunday night". |
 | 15 | Waiting for Everyone | P8.3 / P8.5 | **Must not show other people's scores** (the mockup shows "8/10, 7/10"). That breaks D9. Show progress only: how many have shared today (names only if recommenders are revealed), and your own "12 of 31 rated". |
-| 16 | Results / End of Day ("Round Complete!", Today's Winner) | P8.6 | Becomes **Weekly Results** ("Week Complete!"): the crown card shows each day's **Song of the Day** winner, then the full weekly ranking. |
+| 16 | Results / End of Day ("Round Complete!", Today's Winner) | P8.6 | Becomes **Weekly Results** ("Week Complete!"): the crown card shows each day's **Bop of the Day** winner, then the full weekly ranking. |
 | 17 | Detailed Results (Overview / Ratings / Voters tabs) | P8.6 | As drawn. The "Voters" tab and per-person "Vote Breakdown" only appear if `showWhoRatedWhat` is on (D11); otherwise show anonymous counts. |
 | 18 | Expanded (personal) stats | P8.8 | As drawn. Each figure shows "Based on N" or "Not enough data yet". |
 | 19 | Leaderboard stats (group) | P8.9 | As drawn, with definitions in tooltips. |

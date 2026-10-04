@@ -12,7 +12,7 @@ import { getAuthenticatedUser } from '../http/request';
 import { loadRoundForMember } from './weeks';
 
 /**
- * The week's results, once the week has ended (spec §16, D9–D12): every song ranked, each day's Song of the Day,
+ * The week's results, once the week has ended (spec §16, D9–D12): every song ranked, each day's Bop of the Day,
  * rating distributions, and your own ratings. Who-rated-what only if the party allows it (D11).
  */
 export const getResultsFn: HandlerFn = async (event, { data, now }) => {

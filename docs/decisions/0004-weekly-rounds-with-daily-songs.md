@@ -23,7 +23,7 @@ This deliberately changes spec §13–§15:
 | "Exactly one recommendation per round" (§14) | Exactly one recommendation per member **per weekday** (Mon–Fri) |
 | Recommendation phase, then voting phase (§13) | No separate phases: the week is `OPEN` for both submitting (weekdays) and rating (all 7 days), then `CLOSED` |
 | "Once the round closes, votes become immutable" (§15) | Once the **week** closes, ratings are immutable |
-| Results at end of round (§16) | Weekly results, plus a per-day "Song of the Day" winner |
+| Results at end of round (§16) | Weekly results, plus a per-day "Bop of the Day" winner |
 
 Everything else in §14–§15 still applies: server-side enforcement, membership checks, 1–10 integer ratings,
 no duplicate ratings, friendly error messages, and votes can be changed only while open.

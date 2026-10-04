@@ -266,7 +266,7 @@ are ignored.
 ```
 
 - Ranks: equal displayed averages share a rank (1, 1, 3); unrated songs last (D12). `distribution[0]` = number of 1s.
-- `winnerIds` = that day's Song of the Day (several if tied; empty if none rated).
+- `winnerIds` = that day's Bop of the Day (several if tied; empty if none rated).
 - `ratings: [{ userId, rating }]` is added to each song only when the party's `showWhoRatedWhat` is on (D11).
 - `members` gives names for current members; a `recommendedBy` not in the list has left the party.
 

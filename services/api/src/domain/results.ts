@@ -90,7 +90,7 @@ export interface DayResult {
   weekday: Weekday;
   /** recommendationIds for that day, best first. Empty if nobody shared a song that day. */
   songIds: string[];
-  /** The day's "Song of the Day": highest average among rated songs. Several if tied; empty if none rated. */
+  /** The day's "Bop of the Day": highest average among rated songs. Several if tied; empty if none rated. */
   winnerIds: string[];
 }
 

@@ -129,7 +129,7 @@ describe('GET /rounds/{roundId}/results', () => {
     });
   });
 
-  it('ranks the week, picks each day’s Song of the Day, and reveals recommenders', async () => {
+  it('ranks the week, picks each day’s Bop of the Day, and reveals recommenders', async () => {
     const { round, a, b, c, aMon, bMon, bTue } = await playWeek();
     deps.setNow(AFTER_WEEK);
     const result = await results(c, round.roundId);
