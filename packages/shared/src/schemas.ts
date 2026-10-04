@@ -20,6 +20,10 @@ import {
   SEARCH_QUERY_MAX_LENGTH,
 } from './limits';
 
+// Don't let zod generate code at runtime. The website's Content Security Policy forbids it (P9.2), and zod would
+// otherwise probe for it on every page load and log a CSP violation. The difference in speed is negligible here.
+z.config({ jitless: true });
+
 // ---------- Building blocks ----------
 
 export const displayNameSchema = z

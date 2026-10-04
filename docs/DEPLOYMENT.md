@@ -220,7 +220,7 @@ emails go. It's deliberately not in `samconfig.toml` because the repo is public,
 stage's other settings (a command-line `--parameter-overrides` replaces the file's):
 
 ```bash
-sam deploy --config-env dev --profile dropabop-dev --parameter-overrides Stage=dev FrontendOrigin=http://localhost:5173 CreateBudget=true AlertEmail=you@example.com
+sam deploy --config-env dev --profile dropabop-dev --parameter-overrides Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true AlertEmail=you@example.com
 ```
 
 Later deploys reuse the stack's stored value automatically. Then click the confirmation link in the email from

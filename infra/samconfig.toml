@@ -26,7 +26,7 @@ capabilities = "CAPABILITY_IAM" # the stack creates one IAM role per function
 confirm_changeset = true # always show what will change and ask first
 # AlertEmail is deliberately not here (public repo): the stack keeps it from the first deploy (DEPLOYMENT.md §4a).
 # CreateBudget: the account's $5 budget lives in this stack (one per account).
-parameter_overrides = "Stage=dev FrontendOrigin=http://localhost:5173 CreateBudget=true"
+parameter_overrides = "Stage=dev DevOrigin=http://localhost:5173 CreateBudget=true"
 
 # ---- prod: the real app. Only Ethan deploys it (CLAUDE.md). ----
 [prod.global.parameters]
@@ -41,6 +41,5 @@ resolve_s3 = true
 s3_prefix = "dropabop-prod"
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
-# FrontendOrigin is set once the website's CloudFront address exists (P9.2). Until then a prod deploy stops and
-# asks for it, which is what we want.
+# Prod allows only its own CloudFront site to call the API (no DevOrigin).
 parameter_overrides = "Stage=prod"

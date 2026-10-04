@@ -121,12 +121,64 @@ describe('infra/template.yaml', () => {
     }
   });
 
-  it('allows browsers to call the API only from the configured website origin', () => {
+  it('allows browsers to call the API only from the website (and the local dev site in dev)', () => {
     const api = template.Resources.HttpApi?.Properties as {
-      CorsConfiguration: { AllowOrigins: string[]; AllowCredentials?: boolean };
+      CorsConfiguration: { AllowOrigins: unknown; AllowCredentials?: boolean };
     };
-    expect(api.CorsConfiguration.AllowOrigins).toEqual(['FrontendOrigin']);
+    // `!If [HasDevOrigin, [site, DevOrigin], [site]]` reads as a plain list once the YAML tags are dropped.
+    const origins = JSON.stringify(api.CorsConfiguration.AllowOrigins);
+    expect(origins).toContain('https://${WebDistribution.DomainName}');
+    expect(origins).toContain('DevOrigin');
+    expect(origins).not.toContain('"*"');
     expect(api.CorsConfiguration.AllowCredentials).toBeUndefined();
+  });
+
+  it('serves the website from a private bucket, HTTPS only, with security headers (P9.2)', () => {
+    const bucket = template.Resources.WebBucket?.Properties as {
+      PublicAccessBlockConfiguration: Record<string, boolean>;
+    };
+    expect(Object.values(bucket.PublicAccessBlockConfiguration)).toEqual([true, true, true, true]);
+
+    const policy = template.Resources.WebBucketPolicy?.Properties as {
+      PolicyDocument: {
+        Statement: { Effect: string; Action: string; Principal: unknown; Condition?: unknown }[];
+      };
+    };
+    const allows = policy.PolicyDocument.Statement.filter((st) => st.Effect === 'Allow');
+    expect(allows).toHaveLength(1);
+    expect(allows[0]?.Action).toBe('s3:GetObject');
+    expect(JSON.stringify(allows[0]?.Condition)).toContain('AWS:SourceArn');
+
+    const distribution = template.Resources.WebDistribution?.Properties as {
+      DistributionConfig: {
+        DefaultCacheBehavior: { ViewerProtocolPolicy: string; ResponseHeadersPolicyId: string };
+      };
+    };
+    expect(distribution.DistributionConfig.DefaultCacheBehavior.ViewerProtocolPolicy).toBe(
+      'redirect-to-https',
+    );
+    expect(distribution.DistributionConfig.DefaultCacheBehavior.ResponseHeadersPolicyId).toBe(
+      'WebSecurityHeaders',
+    );
+
+    const headers = template.Resources.WebSecurityHeaders?.Properties as {
+      ResponseHeadersPolicyConfig: {
+        SecurityHeadersConfig: {
+          ContentSecurityPolicy: { ContentSecurityPolicy: string };
+          StrictTransportSecurity: unknown;
+          ContentTypeOptions: unknown;
+          ReferrerPolicy: unknown;
+        };
+      };
+    };
+    const security = headers.ResponseHeadersPolicyConfig.SecurityHeadersConfig;
+    expect(security.StrictTransportSecurity).toBeDefined();
+    expect(security.ContentTypeOptions).toBeDefined();
+    expect(security.ReferrerPolicy).toBeDefined();
+    const csp = security.ContentSecurityPolicy.ContentSecurityPolicy;
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("script-src 'self';");
+    expect(csp).not.toContain('unsafe-eval');
   });
 
   it('sends every alarm to the alert topic, and keeps the alert email out of the repo', () => {

@@ -15,13 +15,13 @@ Parameters:
     Type: String
     AllowedValues: [dev, prod]
     Description: Which copy of the app this stack is. Prod turns on backups and deletion protection.
-  FrontendOrigin:
+  DevOrigin:
     Type: String
-    # One origin, no path or trailing slash, e.g. http://localhost:5173 or https://d111111abcdef8.cloudfront.net
-    AllowedPattern: '^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$'
-    Description: The website's origin. The only origin browsers may call the API from (CORS).
-    # Prod must use the https CloudFront origin (P9.2). CloudFormation Rules can't check a prefix, so this is a
-    # review item rather than an automatic check.
+    Default: ''
+    # Dev only: the local website (http://localhost:5173) may also call the API. Empty in prod, where only the
+    # CloudFront site may (CORS). One origin, no path or trailing slash.
+    AllowedPattern: '^(https?://[a-zA-Z0-9.-]+(:[0-9]+)?)?$'
+    Description: Extra origin allowed to call the API besides the CloudFront site (local development). Empty for none.
 
   AlertEmail:
     Type: String
@@ -41,6 +41,7 @@ Parameters:
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
   ShouldCreateBudget: !Equals [!Ref CreateBudget, 'true']
+  HasDevOrigin: !Not [!Equals [!Ref DevOrigin, '']]
 
 Globals:
   Function:
@@ -172,8 +173,11 @@ Resources:
             AuthorizationScopes:
               - aws.cognito.signin.user.admin
       CorsConfiguration:
-        AllowOrigins:
-          - !Ref FrontendOrigin
+        # Browsers may call the API only from the website (CloudFront), plus the local dev site in dev (spec §31).
+        AllowOrigins: !If
+          - HasDevOrigin
+          - [!Sub 'https://${WebDistribution.DomainName}', !Ref DevOrigin]
+          - [!Sub 'https://${WebDistribution.DomainName}']
         AllowMethods: [GET, POST, PUT, PATCH, DELETE]
         AllowHeaders: [authorization, content-type]
         MaxAge: 600
@@ -873,6 +877,139 @@ Resources:
             - SubscriptionType: EMAIL
               Address: !Ref AlertEmail
 
+  # ---------------------------------------------------------------------------------------------------------------
+  # Website hosting (spec §3, roadmap P9.2): the built React app in a private S3 bucket, served only through
+  # CloudFront over HTTPS. Nobody can read the bucket directly (Origin Access Control signs CloudFront's requests).
+  # Cost: CloudFront's always-free 1 TB and 10 million requests a month; S3 holds a few MB (fractions of a cent).
+  # ---------------------------------------------------------------------------------------------------------------
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced # no ACLs at all; access is only by policy
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: app
+          Value: dropabop
+
+  WebOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub dropabop-${Stage}-web
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Only this distribution may read the files, and only read (spec §31: least privilege).
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CloudFrontReadsTheSite
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${WebBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}'
+          # Refuse any request that isn't over HTTPS (the actions this bucket ever sees: read, upload, delete, list).
+          - Sid: HttpsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: [s3:GetObject, s3:PutObject, s3:DeleteObject, s3:ListBucket]
+            Resource:
+              - !GetAtt WebBucket.Arn
+              - !Sub '${WebBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  # Security headers on every response (spec §31). The CSP lets the page load only its own files, album art from
+  # Apple's image server, and talk only to Cognito and API Gateway in this region. (The API's exact address can't
+  # be named here without a circular reference: the API's CORS names this site.)
+  WebSecurityHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub dropabop-${Stage}-security-headers
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000 # 2 years
+            IncludeSubdomains: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: !Sub >-
+              default-src 'self';
+              script-src 'self';
+              style-src 'self' 'unsafe-inline';
+              img-src 'self' data: https://*.mzstatic.com;
+              connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com;
+              font-src 'self';
+              object-src 'none';
+              base-uri 'self';
+              form-action 'self';
+              frame-ancestors 'none'
+
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Drop a Bop website (${Stage})
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100 # North America and Europe edges only: the cheapest option
+        DefaultRootObject: index.html
+        Origins:
+          - Id: website
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt WebOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: '' # not used: Origin Access Control replaces it
+        DefaultCacheBehavior:
+          TargetOriginId: website
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          # AWS managed "CachingOptimized" policy. index.html is uploaded with no-cache, so new releases show at once.
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref WebSecurityHeaders
+        # A single-page app: links like /join/SONG-7K4P aren't files, so S3 answers 403; serve the app instead and
+        # let it show the right screen.
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
 Outputs:
   # Public values for the website's environment file (apps/web/.env.example). None of these are secrets.
   ApiUrl:
@@ -887,6 +1024,15 @@ Outputs:
   Region:
     Description: VITE_AWS_REGION
     Value: !Ref AWS::Region
+  WebsiteUrl:
+    Description: The website (CloudFront)
+    Value: !Sub https://${WebDistribution.DomainName}
+  WebBucketName:
+    Description: Where scripts/deploy-web.sh uploads the built website
+    Value: !Ref WebBucket
+  WebDistributionId:
+    Description: For clearing CloudFront's cache after a release
+    Value: !Ref WebDistribution
   TableName:
     Description: The DynamoDB table (for the AWS console; the API reads it from TABLE_NAME)
     Value: !Ref Table
