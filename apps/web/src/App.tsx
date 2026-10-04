@@ -1,5 +1,5 @@
 // Routes. Sign-in screens are public; everything else needs a signed-in user (RequireAuth).
-// Until the screens are wired to the API (P8), they render sample data, and preview mode says so clearly.
+// Until the screens are wired to the API (P8), they render sample data, and a banner says so clearly.
 
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from './auth/AuthContext';
@@ -20,16 +20,22 @@ function ComingSoon({ title, task }: { title: string; task: string }) {
   );
 }
 
-function PreviewBanner() {
+/**
+ * Shown on screens that still render sample data, signed in or not, so nobody mistakes it for their party.
+ * Removed screen by screen as Phase 8 connects them to the API (Home: P8.3).
+ */
+function SampleDataBanner({ preview }: { preview: boolean }) {
   return (
     <div className="mb-5 rounded-xl border border-gold/40 bg-gold/10 px-4 py-2.5 text-sm text-gold">
-      Preview with sample data. Not connected to the real app yet.
+      {preview
+        ? 'Preview with sample data. Not connected to the real app yet.'
+        : 'You’re signed in. The songs below are sample data until this screen is connected to your party.'}
     </div>
   );
 }
 
 /** Sends signed-out visitors to sign in, then brings them back to where they were going. */
-function RequireAuth({ preview }: { preview: boolean }) {
+function RequireAuth() {
   const { status } = useAuth();
   const location = useLocation();
   if (status === 'loading') {
@@ -44,7 +50,6 @@ function RequireAuth({ preview }: { preview: boolean }) {
   }
   return (
     <AppShell partyName={sampleParty.name}>
-      {preview && <PreviewBanner />}
       <Outlet />
     </AppShell>
   );
@@ -58,21 +63,24 @@ export function App({ preview = false }: { preview?: boolean }) {
       <Route path="/verify" element={<VerifyEmailScreen />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
 
-      <Route element={<RequireAuth preview={preview} />}>
+      <Route element={<RequireAuth />}>
         <Route
           path="/"
           element={
-            <HomeScreen
-              partyName={sampleParty.name}
-              today={sampleCurrentWeek.today}
-              sharedToday={sampleCurrentWeek.sharedToday}
-              sharedTodayCount={sampleCurrentWeek.sharedTodayCount}
-              memberCount={sampleMembers.length}
-              progress={sampleCurrentWeek.progress}
-              lockLabel="Ratings lock Sunday 11:59 pm"
-              songs={sampleSongs}
-              members={sampleMembers}
-            />
+            <>
+              <SampleDataBanner preview={preview} />
+              <HomeScreen
+                partyName={sampleParty.name}
+                today={sampleCurrentWeek.today}
+                sharedToday={sampleCurrentWeek.sharedToday}
+                sharedTodayCount={sampleCurrentWeek.sharedTodayCount}
+                memberCount={sampleMembers.length}
+                progress={sampleCurrentWeek.progress}
+                lockLabel="Ratings lock Sunday 11:59 pm"
+                songs={sampleSongs}
+                members={sampleMembers}
+              />
+            </>
           }
         />
         <Route path="/share" element={<ComingSoon title="Share today’s song" task="P8.4" />} />

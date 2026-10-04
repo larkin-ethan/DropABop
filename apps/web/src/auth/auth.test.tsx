@@ -217,5 +217,7 @@ describe('protected routes', () => {
       </AuthProvider>,
     );
     expect(await screen.findByRole('heading', { name: 'This week’s songs' })).toBeInTheDocument();
+    // Home still shows sample songs (until P8.3), so it must say so even when really signed in.
+    expect(screen.getByText(/sample data until this screen is connected/)).toBeInTheDocument();
   });
 });
