@@ -6,9 +6,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getConfig } from '../config';
-import { createDemoState, createPreviewApi } from '../preview/preview-api';
+import { closeWeek, createDemoState, createPreviewApi } from '../preview/preview-api';
 import { ApiProvider } from './ApiContext';
-import { createApiClient } from './client';
+import { createApiClient, type ApiClient } from './client';
 
 export function ConnectedApi({ preview, children }: { preview: boolean; children: ReactNode }) {
   const { service, refresh } = useAuth();
@@ -18,7 +18,7 @@ export function ConnectedApi({ preview, children }: { preview: boolean; children
       // Only in the dev server's explicit sample mode; in production builds this is false, so the bundler drops the
       // preview API and its sample data.
       preview && import.meta.env.DEV && import.meta.env.MODE === 'sample'
-        ? createPreviewApi(createDemoState())
+        ? createSampleApi()
         : createApiClient({
             baseUrl: getConfig().apiUrl,
             auth: service,
@@ -30,4 +30,23 @@ export function ConnectedApi({ preview, children }: { preview: boolean; children
     [preview, service, queryClient, refresh],
   );
   return <ApiProvider client={client}>{children}</ApiProvider>;
+}
+
+/**
+ * The sample world for the dev server's sample mode, plus a hook the end-to-end tests use to end the week
+ * (`window.__dropabopSample.closeWeek()`). Never part of a production build.
+ */
+let sample: ApiClient | undefined;
+
+function createSampleApi(): ApiClient {
+  // One sample world per page load. React's development mode calls useMemo twice, and the test hook must reach the
+  // same world the screens use.
+  if (sample === undefined) {
+    const state = createDemoState();
+    (window as unknown as { __dropabopSample?: { closeWeek: () => void } }).__dropabopSample = {
+      closeWeek: () => closeWeek(state),
+    };
+    sample = createPreviewApi(state);
+  }
+  return sample;
 }

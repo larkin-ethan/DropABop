@@ -59,3 +59,33 @@ jobs:
 
       - name: Integration tests
         run: npm run test:integration
+
+  # End-to-end: a real browser drives the website in sample mode (no AWS). Playwright's Chromium is installed here
+  # on GitHub's runner; locally the tests use your own Chrome.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run e2e
+
+      - name: Keep the trace if something failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

@@ -41,6 +41,7 @@ npm run verify
 | `npm run guardrails` | Project rule checks: forbidden AWS services, secrets, unsafe auth patterns, DB scans. |
 | `npm run dev` | The website on http://localhost:5173, talking to the dev stack. Needs `apps/web/.env.development.local` (see DEPLOYMENT.md); without it the page fails loudly instead of quietly showing sample data. |
 | `npm run dev -w @dropabop/web -- --mode sample --port 5174` | The website with **sample data** (no AWS, no sign-in): every screen backed by the in-memory pretend API in `apps/web/src/preview/preview-api.ts`. A yellow banner says it's a preview. Also in `.claude/launch.json` as `web-sample`. |
+| `npm run e2e` | End-to-end test (Playwright): a real browser walks join → share → rate → week ends → results in sample mode, at 375 px and 1440 px. Uses your installed Google Chrome; starts its own dev server on port 5175. |
 | `node scripts/smoke-dev.mjs` | Calls every API endpoint on the deployed dev stack with two throwaway users (after `aws login --profile dropabop-dev`). |
 
 ### How the website gets its data

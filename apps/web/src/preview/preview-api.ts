@@ -38,6 +38,8 @@ export interface PreviewState {
   pastResults: SongResult[];
   /** A party you're not in yet, joinable with its code (for trying the invite flow). */
   otherParty: Party;
+  /** Set by closeWeek(): the current week has ended (ratings locked, results out). */
+  weekClosed: boolean;
   catalog: Song[];
 }
 
@@ -134,6 +136,7 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       status: 'CLOSED',
     },
     pastResults: pastSongs,
+    weekClosed: false,
     otherParty: {
       ...party,
       partyId: 'p2',
@@ -149,6 +152,60 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       catalogSong('1004', 'Here Comes the Sun', 'The Beatles', 'Abbey Road'),
       catalogSong('1005', 'Motion Sickness', 'Phoebe Bridgers', 'Stranger in the Alps'),
     ],
+  };
+}
+
+/**
+ * Sample mode's "jump to after Sunday night" (end-to-end tests): the current week ends, ratings lock, and its
+ * results are worked out from the songs and your ratings (the only ratings the sample world knows).
+ */
+export function closeWeek(state: PreviewState): void {
+  state.weekClosed = true;
+}
+
+function weekResults(state: PreviewState): ResultsResponse {
+  const others = state.members.filter((m) => m.userId !== ME);
+  const scored = state.songs.map((song, index) => ({
+    song,
+    average: song.isMine ? null : song.myRating,
+    recommendedBy: song.isMine ? ME : (others[index % others.length]?.userId ?? ME),
+  }));
+  scored.sort((a, b) => (b.average ?? -1) - (a.average ?? -1));
+  const songs: SongResult[] = scored.map(({ song, average, recommendedBy }, index) => ({
+    recommendationId: song.recommendationId,
+    rank: index + 1,
+    weekday: song.weekday,
+    submittedOn: song.submittedOn,
+    song: song.song,
+    recommendedBy,
+    averageRating: average,
+    ratingCount: average === null ? 0 : 1,
+    distribution: Array.from({ length: 10 }, (_, i) => (average !== null && i === average - 1 ? 1 : 0)),
+    myRating: song.myRating,
+  }));
+  const days = (['MON', 'TUE', 'WED', 'THU', 'FRI'] as Weekday[]).map((weekday) => {
+    const ofDay = songs.filter((r) => r.weekday === weekday);
+    const rated = ofDay.filter((r) => r.averageRating !== null);
+    return {
+      weekday,
+      songIds: ofDay.map((r) => r.recommendationId),
+      winnerIds: rated.slice(0, 1).map((r) => r.recommendationId),
+    };
+  });
+  return {
+    round: { ...state.round, status: 'CLOSED' },
+    results: {
+      roundId: state.round.roundId,
+      songs,
+      days,
+      totalRatings: songs.filter((r) => r.ratingCount > 0).length,
+    },
+    members: state.members.map((m) => ({
+      userId: m.userId,
+      displayName: m.displayName,
+      avatarColor: m.avatarColor,
+      avatarImage: m.avatarImage ?? null,
+    })),
   };
 }
 
@@ -194,6 +251,14 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
 
   function currentWeek(): CurrentWeekResponse {
     const p = party();
+    if (state.weekClosed) {
+      return {
+        round: null,
+        reason: 'between-weeks',
+        nextWeekStartsAt: state.round.endsAt,
+        lastRoundId: state.round.roundId,
+      };
+    }
     if (p.settings.paused) {
       return { round: null, reason: 'paused', nextWeekStartsAt: null, lastRoundId: state.pastRound.roundId };
     }
@@ -331,6 +396,7 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     if (is('GET', 'parties', ':id', 'rounds', 'current')) return currentWeek();
     if (is('GET', 'parties', ':id', 'rounds')) {
       const response: RoundsResponse = { rounds: [state.round, state.pastRound], nextCursor: null };
+      if (state.weekClosed) response.rounds[0] = { ...state.round, status: 'CLOSED' };
       return params.get('cursor') ? { rounds: [], nextCursor: null } : response;
     }
     if (is('GET', 'parties', ':id', 'stats')) {
@@ -437,6 +503,8 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return { song: view };
     }
     if (is('PUT', 'rounds', ':id', 'votes', ':rec')) {
+      if (state.weekClosed)
+        throw new ApiError(409, 'WEEK_CLOSED', 'This week has ended, so ratings are locked.');
       const target = state.songs.find((s) => s.recommendationId === parts[3]) ?? notFound();
       if (target.isMine) throw new ApiError(403, 'OWN_SONG', 'You can’t rate your own song.');
       const rating = (body as { rating: number }).rating;
@@ -454,7 +522,10 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     }
     if (is('GET', 'rounds', ':id', 'results')) {
       if (parts[1] === state.round.roundId) {
-        throw new ApiError(403, 'RESULTS_NOT_READY', 'Results unlock when the week ends on Sunday night.');
+        if (!state.weekClosed) {
+          throw new ApiError(403, 'RESULTS_NOT_READY', 'Results unlock when the week ends on Sunday night.');
+        }
+        return weekResults(state);
       }
       if (parts[1] !== state.pastRound.roundId) notFound();
       const days = (['MON', 'TUE', 'WED', 'THU', 'FRI'] as Weekday[]).map((weekday) => {

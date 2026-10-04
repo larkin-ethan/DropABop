@@ -348,8 +348,8 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 10 — End-to-end tests
 
-- [ ] **P10.1 — Playwright setup** — runs against `npm run dev` with a mocked API (MSW) for CI.
-- [ ] **P10.2 — Critical journey** (§34) — sign up → join party → share today's song → rate others' songs → (clock
+- [x] **P10.1 — Playwright setup** — runs against `npm run dev` with a mocked API (MSW) for CI.
+- [x] **P10.2 — Critical journey** (§34) — sign up → join party → share today's song → rate others' songs → (clock
   moved past Sunday) ratings locked → view weekly results, at 375px and 1440px.
 - [ ] **P10.3 — Dev-stack smoke test** — same journey against the deployed dev stack with two test users
   (credentials created in this task and stored only in a git-ignored local file). Manual trigger only.

@@ -42,6 +42,15 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-04 — **P10.1 + P10.2 done** — Playwright 1.63 (dev dep; no browser download: locally it uses the installed
+  Google Chrome, CI installs Chromium). Instead of MSW (roadmap suggestion) the e2e test runs the website in sample
+  mode, reusing the in-memory preview API every screen already works with (no new dependency). Sample mode gained
+  `window.__dropabopSample.closeWeek()` (dev-only stand-in for the server clock passing Sunday night; results
+  computed from the sample songs and your ratings). `e2e/journey.spec.ts`: join a party from an invite link → share
+  today's song (search, confirm) → rate a song → week closes → results show it → Rate shows nothing to rate; no
+  horizontal overflow; at 375 px and 1440 px. Found and fixed: React dev mode built the sample world twice, so the
+  hook reached the wrong copy (now one world per page load). CI job `e2e` added. Verified: `npm run e2e` 2/2 passed;
+  `npm run verify` exit 0. Sign-up/sign-in are covered against real Cognito by P10.3 / `scripts/smoke-dev.mjs`.
 - 2026-10-04 — **P9.4 done** — API Gateway access log (`/dropabop/<stage>/api-access`, same retention) so requests
   rejected before our code (missing/bad token, throttling) are logged with the reason; no IP or headers. Verified live:
   401s show "missing: token not provided" / "invalid_token…", a 429 shows the route and user id; app log lines carry
