@@ -134,7 +134,7 @@ If the minimum sample isn't met, show "Not enough data yet" — never a number.
 |---|---|---|
 | Song average | Mean of all ratings the song received | 1 rating |
 | Average rating given | Mean of all ratings a user gave | 5 ratings |
-| Average score received (= Average Recommendation Score) | Mean of the song averages of songs the user recommended | 3 recommendations |
+| Average score received (= Average Recommendation Score) | Mean of the song averages of songs the user recommended | 3 rated songs |
 | Generosity | User's average rating given − party's average rating given (positive = generous) | 10 ratings |
 | Most generous voter / Toughest critic | Highest / lowest Generosity in the party | 10 ratings each |
 | Highest-rated song / Crowd favorite | Highest song average (crowd favorite also requires ratings from ≥ 75% of that week's active raters — people who rated at least one song that week — not counting the recommender) | 3 ratings |
@@ -143,9 +143,9 @@ If the minimum sample isn't met, show "Not enough data yet" — never a number.
 | Everyone agreed | Lowest standard deviation of ratings | 4 ratings |
 | Dark horse | Song whose average beats its recommender's average from earlier songs by the most (positive only) | song has 3 ratings; recommender has ≥ 3 earlier rated songs |
 | Musical twin | Other member with the smallest mean absolute difference in ratings on songs you both rated | 5 shared songs |
-| Most consistent | Lowest standard deviation of a user's song averages | 3 recommendations |
+| Most consistent | Lowest standard deviation of a user's song averages | 3 rated songs |
 | Most surprising | Recommender with the most songs that beat their own earlier average by ≥ 1.0 point | 1 such song |
-| Most popular | Most ratings ≥ 8 received across all recommendations | 3 recommendations |
+| Most popular | Most ratings ≥ 8 received across all recommendations | 3 songs shared |
 | Favorite artists | Artists the user rated highest on average | 2 songs by the artist |
 
 Standard deviation = population standard deviation. Genres are shown only if a provider supplies them.

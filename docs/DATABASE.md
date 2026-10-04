@@ -118,8 +118,9 @@ DynamoDB conditions can't compare against "the current time", so the lock is enf
    ends, rating requests are rejected with "This week has ended, so ratings are locked."
 2. **When counting**, results and stats ignore any rating whose server-set `updatedAt` is at or after `endsAt`
    (`countableVotes`, `buildStatsData`). `updatedAt` is read from the server clock at write time, separately from the
-   check in step 1. A request that passes the check at 23:59:59.999 but is written a few milliseconds after midnight
-   can't add a late rating.
+   check in step 1, and if that write time is already past the lock the request is refused instead of written, so a
+   change that straddles the lock can't replace an earlier on-time rating. Ratings stamped late by any other route still
+   don't count.
 
    Known edge: because a rating change overwrites the previous rating, a *change* that lands in that millisecond
    window removes the member's earlier on-time rating rather than leaving it. The window is milliseconds wide and the

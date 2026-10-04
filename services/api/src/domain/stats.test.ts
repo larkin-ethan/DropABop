@@ -554,4 +554,20 @@ describe('recommendationScoreLeaderboard and rankEntries', () => {
     );
     expect(entries.map((e) => e.rank)).toEqual([1, 2, 2, 4]);
   });
+
+  it('values that show the same number tie (8.33 and 8.25 both show 8.3), like weekly results (D12)', () => {
+    const entries = rankEntries(
+      [
+        { id: 'b', value: 8.25, sampleSize: 4 },
+        { id: 'a', value: 25 / 3, sampleSize: 3 },
+        { id: 'c', value: 8.2, sampleSize: 3 },
+      ],
+      'highest',
+    );
+    expect(entries.map((e) => [e.id, e.rank])).toEqual([
+      ['a', 1],
+      ['b', 1],
+      ['c', 3],
+    ]);
+  });
 });
