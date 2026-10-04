@@ -358,7 +358,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 11 — CI/CD & production
 
-- [ ] **P11.1 — GitHub → AWS via OIDC** (§35) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
+- [x] **P11.1 — GitHub → AWS via OIDC** (§35) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
   frontend buckets (in a small separate `infra/bootstrap.yaml`). **No long-lived access keys.**
 - [ ] **P11.2 — Deploy workflow** — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
   invalidation. Prod job exists but requires a manual approval (GitHub Environment `production` with Ethan as reviewer).
