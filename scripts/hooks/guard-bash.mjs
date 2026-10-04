@@ -31,7 +31,8 @@ process.stdin.on('end', () => {
     },
     {
       pattern: /\baws\s+iam\s+create-access-key\b|\baws\s+configure\s+set\b.*secret/,
-      reason: 'Long-lived AWS access keys are not used in this project (SSO for people, OIDC for CI).',
+      reason:
+        'Long-lived AWS access keys are not used in this project (people sign in with `aws login`; deploys run from that sign-in, ADR-0009).',
     },
     {
       pattern:

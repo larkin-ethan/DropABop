@@ -1,6 +1,6 @@
 ---
 name: aws-change
-description: Required process before adding or changing any AWS resource, service, IAM permission, or setting that could affect cost or security in Drop a Bop (infra/template.yaml, bootstrap, CI deploy roles). Use whenever a task touches infra or someone proposes a new AWS service.
+description: Required process before adding or changing any AWS resource, service, IAM permission, or setting that could affect cost or security in Drop a Bop (infra/template.yaml, deploy scripts). Use whenever a task touches infra or someone proposes a new AWS service.
 ---
 
 # AWS change process

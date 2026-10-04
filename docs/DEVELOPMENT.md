@@ -71,11 +71,11 @@ To run it against your own dev stack instead, deploy the stack (DEPLOYMENT.md), 
 apps/web/            React frontend (Vite)
 services/api/        Lambda handlers, domain rules, data access, music providers
 packages/shared/     Types + validation schemas used by both web and api (@dropabop/shared)
-infra/               AWS SAM template (template.yaml, samconfig.toml) + bootstrap.yaml (GitHub deploy roles)
+infra/               AWS SAM template (template.yaml, samconfig.toml)
 e2e/                 Playwright browser tests (sample mode, and the dev-stack journey)
 docs/                Spec, roadmap, decisions, reference docs
-scripts/             guardrails.sh, Claude Code hooks, deploy-web.sh, smoke-dev.mjs
-.github/workflows/   ci.yml (checks on every pull request), deploy.yml (dev → prod deploys)
+scripts/             guardrails.sh, Claude Code hooks, deploy.sh, deploy-web.sh, smoke-dev.mjs
+.github/workflows/   ci.yml (checks on every pull request; deploys are scripts/deploy.sh, ADR-0009)
 .claude/             Claude Code settings, skills, and reviewer agent
 ```
 
@@ -122,5 +122,5 @@ localhost** (`assertLocalEndpoint` in `services/api/src/data/client.ts`). Local 
 ## The AWS region
 
 Everything is in **us-east-2 (Ohio)**. If you deploy to another region, change it in all of these:
-`infra/samconfig.toml`, `.github/workflows/deploy.yml` (`AWS_REGION`), `scripts/deploy-web.sh` (`REGION`),
+`infra/samconfig.toml`, `scripts/deploy-web.sh` (`REGION`),
 `scripts/smoke-dev.mjs`, and the `VITE_AWS_REGION` value in `apps/web/.env.development.local`.
