@@ -37,6 +37,19 @@ invite link (D17, P8.10); party limit lowered to 5 per person (D15).
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-03 — **Phase 8 review fixes** — Spec review of the screens: no privacy leak, security issue, or API behaviour
+  change found. MUST FIX done: when a party reveals recommenders (D10), Home and Rate now show "Shared by …" and the
+  Home / Rate / Share texts no longer promise anonymity (the Share confirm step tells the sharer people will see it's
+  theirs); preview API mirrors the real API's D10 rules. SHOULD FIXes done: auto-join after signing up / logging in
+  from an invite link (P8.2 "sign up then auto-join"; opening a link while already signed in still asks); a rating
+  tapped just before leaving the page is still saved; malformed links can't crash a screen (safe decode) and a
+  top-level error boundary shows a friendly message; the sample preview needs an explicit `--mode sample`, so a build
+  missing its settings fails loudly instead of serving fake data. NICE: Sign out on Profile, failed rating rolls back
+  only that song, timezone note says changes apply next week, sign-out forgets the remembered party, Stats uses the
+  shared `Stat<T>`. Process note: P8.2–P8.11 went into one commit (`ed8461b`) rather than one per task, and their
+  boxes are ticked before Ethan's real-stack walkthrough; ROADMAP.md says so above the Phase 8 list. Verified:
+  `npm run verify` exit 0 (403 tests + 1 skipped; 7 new screen tests).
+
 - 2026-10-03 — **P8.2–P8.11 (+ P8.12 manual pass)** — Every screen wired to the API: Home/Today (open week, weekend,
   paused, between weeks, not-in-a-party onboarding, "what should we call you?" for new accounts, 45 s polling,
   countdown in local time, today's songs first, ✓ per member only when the party reveals recommenders: D10), join by

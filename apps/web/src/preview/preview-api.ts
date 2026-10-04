@@ -36,6 +36,8 @@ export interface PreviewState {
   songs: SongView[];
   pastRound: Round;
   pastResults: SongResult[];
+  /** A party you're not in yet, joinable with its code (for trying the invite flow). */
+  otherParty: Party;
   catalog: Song[];
 }
 
@@ -132,6 +134,14 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       status: 'CLOSED',
     },
     pastResults: pastSongs,
+    otherParty: {
+      ...party,
+      partyId: 'p2',
+      name: 'Road Trip Crew',
+      hostUserId: 'u3',
+      inviteCode: 'SONG-2ABC',
+      memberCount: 3,
+    },
     catalog: [
       catalogSong('1001', 'Midnight City', 'M83', 'Hurry Up, We’re Dreaming'),
       catalogSong('1002', 'Mr. Blue Sky', 'Electric Light Orchestra', 'Out of the Blue'),
@@ -272,25 +282,33 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return undefined;
     }
     if (is('GET', 'invites', ':code')) {
-      if (parts[1]?.toUpperCase() !== party().inviteCode) {
+      const code = parts[1]?.toUpperCase();
+      const target = [...state.parties, state.otherParty].find((p) => p.inviteCode === code);
+      if (target === undefined) {
         throw new ApiError(
           400,
           'INVALID_INVITE',
           'That invite code isn’t valid. Ask the host for a new link.',
         );
       }
+      const joined = state.parties.some((p) => p.partyId === target.partyId);
       const response: InvitePreviewResponse = {
-        partyId: party().partyId,
-        partyName: party().name,
-        memberCount: state.members.length,
-        maxMembers: party().settings.maxMembers,
+        partyId: target.partyId,
+        partyName: target.name,
+        memberCount: joined ? state.members.length : target.memberCount,
+        maxMembers: target.settings.maxMembers,
         isFull: false,
-        alreadyMember: true,
+        alreadyMember: joined,
       };
       return response;
     }
     if (is('POST', 'parties', ':id', 'join')) {
-      throw new ApiError(409, 'ALREADY_MEMBER', 'You’re already in this party.');
+      if (state.parties.some((p) => p.partyId === parts[1])) {
+        throw new ApiError(409, 'ALREADY_MEMBER', 'You’re already in this party.');
+      }
+      if (parts[1] !== state.otherParty.partyId) notFound();
+      state.parties = [...state.parties, state.otherParty];
+      return { party: state.otherParty, members: state.members.slice(0, 1), isHost: false };
     }
     if (is('GET', 'parties', ':id', 'rounds', 'current')) return currentWeek();
     if (is('GET', 'parties', ':id', 'rounds')) {
@@ -365,7 +383,17 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     }
     if (is('GET', 'rounds', ':id', 'recommendations')) {
       if (parts[1] !== state.round.roundId) notFound();
-      const response: WeekSongsResponse = { round: state.round, songs: state.songs };
+      // Like the real API (D10): who shared each song only for your own songs, or when the party reveals them.
+      const reveal = party().settings.revealRecommenderDuringVoting;
+      const others = state.members.filter((m) => m.userId !== ME);
+      const songs = state.songs.map((song, index) => {
+        if (song.isMine) return { ...song, recommendedBy: ME };
+        const { recommendedBy: _hidden, ...anonymous } = song;
+        return reveal
+          ? { ...anonymous, recommendedBy: others[index % others.length]?.userId ?? ME }
+          : anonymous;
+      });
+      const response: WeekSongsResponse = { round: state.round, songs };
       return response;
     }
     if (is('POST', 'rounds', ':id', 'recommendations')) {

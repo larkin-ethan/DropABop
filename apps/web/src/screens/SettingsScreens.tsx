@@ -23,6 +23,7 @@ import {
   useUpdateProfile,
   useUpdateSettings,
 } from '../api/hooks';
+import { SignOutButton } from '../components/AppShell';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { PageHeader, QueryBoundary } from '../components/Page';
@@ -223,7 +224,7 @@ function SettingsForm({
         <p className="rounded-xl border border-line bg-surface-raised px-3 py-2 text-sm text-muted">
           Days run midnight to midnight in{' '}
           <span className="font-semibold text-ink">{party.settings.timezone}</span>; ratings lock Sunday 11:59
-          pm.
+          pm. A timezone change applies from the next week; the current week keeps its timezone.
         </p>
 
         <div className="divide-y divide-line border-y border-line">
@@ -455,6 +456,9 @@ export function ProfileScreen() {
       <QueryBoundary isPending={me.isPending} error={me.error} onRetry={() => void me.refetch()}>
         {() => (me.data ? <ProfileForm user={me.data.user} /> : null)}
       </QueryBoundary>
+      <div className="mt-6 flex justify-center">
+        <SignOutButton />
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { useAuth } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingState } from './components/States';
 import { takePendingInvite } from './lib/pending-invite';
 import { CurrentPartyProvider } from './party/CurrentParty';
@@ -38,7 +39,7 @@ function RequireAuth({ preview }: { preview: boolean }) {
     if (status !== 'signedIn') return;
     const code = takePendingInvite();
     if (code !== null) {
-      void navigate(`/join/${encodeURIComponent(code)}`, { replace: true });
+      void navigate(`/join/${encodeURIComponent(code)}`, { replace: true, state: { autoJoin: true } });
     }
   }, [status, navigate]);
 
@@ -74,35 +75,37 @@ function WelcomeRoute() {
 
 export function App({ preview = false }: { preview?: boolean }) {
   return (
-    <CurrentPartyProvider>
-      <Routes>
-        <Route path="/welcome" element={<WelcomeRoute />} />
-        <Route path="/sign-in" element={<SignInScreen />} />
-        <Route path="/sign-up" element={<SignUpScreen />} />
-        <Route path="/verify" element={<VerifyEmailScreen />} />
-        <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
-        {/* Works signed out too: sign up or log in, then come back and join (P8.2). */}
-        <Route path="/join/:code" element={<JoinByLinkScreen />} />
+    <ErrorBoundary>
+      <CurrentPartyProvider>
+        <Routes>
+          <Route path="/welcome" element={<WelcomeRoute />} />
+          <Route path="/sign-in" element={<SignInScreen />} />
+          <Route path="/sign-up" element={<SignUpScreen />} />
+          <Route path="/verify" element={<VerifyEmailScreen />} />
+          <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+          {/* Works signed out too: sign up or log in, then come back and join (P8.2). */}
+          <Route path="/join/:code" element={<JoinByLinkScreen />} />
 
-        <Route element={<RequireAuth preview={preview} />}>
-          <Route path="/" element={<HomeScreen />} />
-          <Route path="/join" element={<JoinWithCodeScreen />} />
-          <Route path="/parties/new" element={<CreatePartyScreen />} />
-          <Route path="/share" element={<ShareScreen />} />
-          <Route path="/rate" element={<RateScreen />} />
-          <Route path="/results" element={<LatestResultsScreen />} />
-          <Route path="/results/:roundId" element={<ResultsScreen />} />
-          <Route path="/history" element={<HistoryScreen />} />
-          <Route path="/stats" element={<PersonalStatsScreen />} />
-          <Route path="/stats/group" element={<GroupStatsScreen />} />
-          <Route path="/leaderboard" element={<LeaderboardScreen />} />
-          <Route path="/settings" element={<PartySettingsScreen />} />
-          <Route path="/profile" element={<ProfileScreen />} />
-          {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
-        </Route>
+          <Route element={<RequireAuth preview={preview} />}>
+            <Route path="/" element={<HomeScreen />} />
+            <Route path="/join" element={<JoinWithCodeScreen />} />
+            <Route path="/parties/new" element={<CreatePartyScreen />} />
+            <Route path="/share" element={<ShareScreen />} />
+            <Route path="/rate" element={<RateScreen />} />
+            <Route path="/results" element={<LatestResultsScreen />} />
+            <Route path="/results/:roundId" element={<ResultsScreen />} />
+            <Route path="/history" element={<HistoryScreen />} />
+            <Route path="/stats" element={<PersonalStatsScreen />} />
+            <Route path="/stats/group" element={<GroupStatsScreen />} />
+            <Route path="/leaderboard" element={<LeaderboardScreen />} />
+            <Route path="/settings" element={<PartySettingsScreen />} />
+            <Route path="/profile" element={<ProfileScreen />} />
+            {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </CurrentPartyProvider>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </CurrentPartyProvider>
+    </ErrorBoundary>
   );
 }

@@ -298,6 +298,10 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
 
 ## Phase 8 — Screens
 
+> **Status 2026-10-03:** P8.1–P8.11 are built and ticked on the strength of screen tests (against the in-memory
+> preview API) and a browser review in sample mode at 7 widths. Still to do before calling Phase 8 finished: Ethan's
+> walkthrough of every screen against the real dev stack (agreed: "we will check them all at the end").
+
 Each screen matches its mockup screen in `docs/design/README.md` (screen map), **with the adaptations listed
 there**. Behaviour always follows PRODUCT_DECISIONS. Compare a screenshot of your screen with the mockup before
 ticking the box. Each screen also needs loading, empty, and error states; works at 320/375/390/430/768/1024/1440; uses TanStack Query

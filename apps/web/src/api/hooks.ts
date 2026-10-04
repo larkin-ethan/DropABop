@@ -255,7 +255,7 @@ export function useResolveSong() {
   });
 }
 
-/** Saves a rating and shows it straight away; if the save fails, the old rating comes back. */
+/** Saves a rating and shows it straight away; if the save fails, that song's old rating comes back. */
 export function useCastVote(roundId: string, partyId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -273,10 +273,21 @@ export function useCastVote(roundId: string, partyId: string) {
           ),
         });
       }
-      return { previous };
+      const before = previous?.songs.find((s) => s.recommendationId === recommendationId)?.myRating ?? null;
+      return { before };
     },
-    onError: (_error, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(keys.weekSongs(roundId), context.previous);
+    onError: (_error, { recommendationId }, context) => {
+      // Put back only this song's rating, so other ratings saved meanwhile aren't undone.
+      queryClient.setQueryData<WeekSongsResponse>(keys.weekSongs(roundId), (current) =>
+        current === undefined
+          ? current
+          : {
+              ...current,
+              songs: current.songs.map((s) =>
+                s.recommendationId === recommendationId ? { ...s, myRating: context?.before ?? null } : s,
+              ),
+            },
+      );
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: keys.weekSongs(roundId) });

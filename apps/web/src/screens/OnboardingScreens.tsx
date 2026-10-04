@@ -6,8 +6,8 @@ import {
   MIN_PARTY_SIZE,
   createPartyRequestSchema,
 } from '@dropabop/shared';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useCreateParty, useInvitePreview, useJoinParty } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { Icon } from '../components/Icon';
@@ -16,7 +16,13 @@ import { LoadingState } from '../components/States';
 import { TextField } from '../components/TextField';
 import { Button, Card, buttonClassName } from '../components/ui';
 import { errorCode, errorMessage } from '../lib/errors';
-import { inviteLink, normalizeInviteInput, rememberInvite, takePendingInvite } from '../lib/pending-invite';
+import {
+  inviteLink,
+  normalizeInviteInput,
+  peekPendingInvite,
+  rememberInvite,
+  takePendingInvite,
+} from '../lib/pending-invite';
 import { useCurrentParty } from '../party/CurrentParty';
 import { AuthLayout } from './AuthScreens';
 
@@ -152,10 +158,30 @@ function JoinPreview({ code }: { code: string }) {
   const { select } = useCurrentParty();
   const navigate = useNavigate();
 
+  const location = useLocation();
+  // Came here by signing up or logging in from an invite link (roadmap P8.2: "sign up then auto-join")?
+  const [autoJoin] = useState(
+    () =>
+      (location.state as { autoJoin?: boolean } | null)?.autoJoin === true || peekPendingInvite() === code,
+  );
+  const autoJoinStarted = useRef(false);
+
   // Arriving here is the end of the invite flow: forget any remembered code so it doesn't redirect again later.
   useEffect(() => {
     takePendingInvite();
   }, []);
+
+  // Join straight away for people who just signed up or logged in from the invite (once).
+  const invite = preview.data;
+  useEffect(() => {
+    if (!autoJoin || autoJoinStarted.current || invite === undefined || invite.alreadyMember || invite.isFull)
+      return;
+    autoJoinStarted.current = true;
+    join.mutate(
+      { partyId: invite.partyId, inviteCode: code },
+      { onSuccess: () => goToParty(invite.partyId) },
+    );
+  });
 
   function goToParty(partyId: string) {
     select(partyId);

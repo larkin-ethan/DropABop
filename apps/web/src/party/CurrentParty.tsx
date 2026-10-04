@@ -24,6 +24,15 @@ function writeStored(partyId: string) {
   }
 }
 
+/** On sign-out: the next person on this device starts with their own first party. */
+export function forgetCurrentParty() {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing to forget.
+  }
+}
+
 interface CurrentPartyState {
   /** null while loading, or when the person isn't in any party yet. */
   partyId: string | null;

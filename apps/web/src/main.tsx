@@ -11,18 +11,14 @@ import { getConfig } from './config';
 import './index.css';
 
 /**
- * Real sign-in when the AWS settings are present. In local development without them, fall back to the sample-data
- * preview (clearly labelled). A production build without settings fails loudly instead of pretending to work.
+ * The sample-data preview runs only when explicitly asked for (`--mode sample` on the dev server). Otherwise the app
+ * needs its AWS settings and fails loudly without them, so a misconfigured build can never quietly serve fake data.
  */
 function chooseAuthService(): { service: AuthService; preview: boolean } {
-  try {
-    return { service: createAmplifyAuthService(getConfig()), preview: false };
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      return { service: previewAuthService, preview: true };
-    }
-    throw error;
+  if (import.meta.env.DEV && import.meta.env.MODE === 'sample') {
+    return { service: previewAuthService, preview: true };
   }
+  return { service: createAmplifyAuthService(getConfig()), preview: false };
 }
 
 const { service, preview } = chooseAuthService();

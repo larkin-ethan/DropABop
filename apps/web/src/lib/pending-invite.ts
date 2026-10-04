@@ -11,6 +11,15 @@ export function rememberInvite(code: string): void {
   }
 }
 
+/** The remembered code, without forgetting it. */
+export function peekPendingInvite(): string | null {
+  try {
+    return window.sessionStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function takePendingInvite(): string | null {
   try {
     const code = window.sessionStorage.getItem(KEY);
@@ -26,9 +35,18 @@ export function inviteLink(code: string): string {
   return `${window.location.origin}/join/${encodeURIComponent(code)}`;
 }
 
+/** decodeURIComponent that never throws (a malformed "%ZZ" just stays as typed). */
+export function safeDecode(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
 /** "song-7k4p" or a pasted link → "SONG-7K4P". */
 export function normalizeInviteInput(input: string): string {
   const trimmed = input.trim();
   const fromLink = /\/join\/([^/?#\s]+)/.exec(trimmed)?.[1];
-  return decodeURIComponent(fromLink ?? trimmed).toUpperCase();
+  return safeDecode(fromLink ?? trimmed).toUpperCase();
 }

@@ -1,12 +1,11 @@
 // Stat cards, leaderboards, and the rating distribution chart (spec §17–§18; mockup screens 17–21).
 // They display exactly what the stats API returns: a value with its sample size, or "not enough data".
 
+import type { Stat } from '@dropabop/shared';
 import { Avatar } from './ui';
 
 /** Same shape as the API's Stat<T> (docs/API.md → Stats). */
-export type StatResult<T> =
-  | { status: 'ok'; value: T; sampleSize: number }
-  | { status: 'not-enough-data'; sampleSize: number; required: number };
+export type StatResult<T> = Stat<T>;
 
 export interface StatCardProps {
   label: string;

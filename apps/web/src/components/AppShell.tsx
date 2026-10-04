@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
 import { useMe } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
-import { useCurrentParty } from '../party/CurrentParty';
+import { forgetCurrentParty, useCurrentParty } from '../party/CurrentParty';
 import { Icon, type IconName } from './Icon';
 import { Avatar, Logo } from './ui';
 
@@ -30,7 +30,7 @@ const NAV: NavItem[] = [
 ];
 
 /** Signs out, forgets every cached answer (the next person on this device starts clean), and goes to the welcome page. */
-function SignOutButton({ compact = false }: { compact?: boolean }) {
+export function SignOutButton({ compact = false }: { compact?: boolean }) {
   const { service, refresh } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -44,6 +44,7 @@ function SignOutButton({ compact = false }: { compact?: boolean }) {
       // Even if Cognito couldn't be reached, local tokens are cleared; re-check and go to the welcome page
       // (not "sign in to see this page again", which is what the route guard would show).
       queryClient.clear();
+      forgetCurrentParty();
       await refresh();
       setBusy(false);
       void navigate('/welcome', { replace: true });

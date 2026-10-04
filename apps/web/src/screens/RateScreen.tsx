@@ -5,6 +5,7 @@
 import type { CurrentWeekResponse, MusicProviderId, OpenWeekSongView } from '@dropabop/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
+import { safeDecode } from '../lib/pending-invite';
 import { useCastVote, useCurrentWeek, useMe, useWeekSongs } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
@@ -16,6 +17,7 @@ import { errorMessage } from '../lib/errors';
 import { DAY_NAMES, WEEKDAYS, formatLockTime, formatTimeLeft, hueFor } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
+import { useSharerNames } from '../party/useSharerNames';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
 
@@ -93,6 +95,7 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
   const onlyUnrated = params.get('show') === 'unrated';
   const location = useLocation();
   const locked = new Date(week.round.endsAt).getTime() <= now.getTime();
+  const sharers = useSharerNames(partyId);
 
   const all = songs.data?.songs ?? [];
   const ratable = all.filter((s) => !s.isMine);
@@ -102,14 +105,18 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
   // Arriving from Home's "Rate" button on one song (#recommendationId): scroll it into view.
   useEffect(() => {
     if (location.hash === '' || songs.data === undefined) return;
-    document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ block: 'center' });
+    document.getElementById(safeDecode(location.hash.slice(1)))?.scrollIntoView({ block: 'center' });
   }, [location.hash, songs.data]);
 
   return (
     <div>
       <PageHeader
         title="Rate this week’s songs"
-        description="Rate everyone else’s songs from 1 to 10. Your ratings are private until the week’s results."
+        description={
+          sharers.reveal
+            ? 'Rate everyone else’s songs from 1 to 10. Your ratings are private until the week’s results.'
+            : 'Rate everyone else’s songs from 1 to 10. Ratings, and who shared what, stay private until the week’s results.'
+        }
       />
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
         <Icon name="clock" className="size-5 shrink-0" />
@@ -208,6 +215,7 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
                           item={s}
                           preferred={me.data?.user.preferredProvider ?? null}
                           disabled={locked}
+                          sharedBy={sharers.sharedBy(s)}
                           onRate={(rating) => vote.mutate({ recommendationId: s.recommendationId, rating })}
                         />
                       ))}
@@ -227,7 +235,9 @@ function RateCard({
   preferred,
   disabled,
   onRate,
+  sharedBy,
 }: {
+  sharedBy: string | null;
   item: OpenWeekSongView;
   preferred: MusicProviderId | null;
   disabled: boolean;
@@ -240,10 +250,22 @@ function RateCard({
   // Save once the person pauses: arrow keys move one step per press, and saving every step could let an older
   // request land last.
   const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const pending = useRef<number | null>(null);
+  const save = useRef(onRate);
+  save.current = onRate;
+  function flush() {
+    window.clearTimeout(timer.current);
+    if (pending.current !== null) {
+      save.current(pending.current);
+      pending.current = null;
+    }
+  }
+  // Leaving the page (or switching filters) mid-pause still saves the rating the control is showing.
+  useEffect(() => flush, []);
   function scheduleSave(rating: number) {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => onRate(rating), SAVE_DELAY_MS);
+    pending.current = rating;
+    timer.current = window.setTimeout(flush, SAVE_DELAY_MS);
   }
 
   return (
@@ -256,6 +278,7 @@ function RateCard({
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{item.song.title}</p>
           <p className="truncate text-sm text-muted">{item.song.artist}</p>
+          {sharedBy && <p className="mt-0.5 text-xs text-muted">{sharedBy}</p>}
           <div className="mt-1.5">
             <ListenLinks song={item.song} preferred={preferred} />
           </div>

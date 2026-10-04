@@ -29,12 +29,14 @@ import { AlbumArt, Button, Card, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
 import { DAY_NAMES, hueFor } from '../lib/format';
 import { useCurrentParty } from '../party/CurrentParty';
+import { useSharerNames } from '../party/useSharerNames';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
 
 export function ShareScreen() {
   const { partyId, status, retry } = useCurrentParty();
   const week = useCurrentWeek(partyId);
+  const { reveal } = useSharerNames(partyId);
 
   if (status === 'ready' && partyId === null) {
     return (
@@ -55,7 +57,11 @@ export function ShareScreen() {
     <div>
       <PageHeader
         title="Share today’s song"
-        description="Pick one song for today. Everyone rates it anonymously."
+        description={
+          reveal
+            ? 'Pick one song for today. This party shows who shared each song.'
+            : 'Pick one song for today. Nobody sees it’s yours until the week’s results.'
+        }
       />
       <QueryBoundary
         isPending={status === 'loading' || week.isPending}
@@ -98,7 +104,7 @@ export function ShareScreen() {
             );
           }
           if (data.sharedToday) return <AlreadyShared week={data} />;
-          return <SongPicker week={data} partyId={partyId} />;
+          return <SongPicker week={data} partyId={partyId} reveal={reveal} />;
         }}
       </QueryBoundary>
     </div>
@@ -146,7 +152,7 @@ function useDebounced(value: string, delayMs = 400): string {
   return debounced;
 }
 
-function SongPicker({ week, partyId }: { week: OpenWeek; partyId: string }) {
+function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string; reveal: boolean }) {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<'search' | 'paste'>('search');
   const [chosen, setChosen] = useState<Song | null>(null);
@@ -208,6 +214,7 @@ function SongPicker({ week, partyId }: { week: OpenWeek; partyId: string }) {
         song={chosen}
         roundId={week.round.roundId}
         partyId={partyId}
+        reveal={reveal}
         onCancel={() => setChosen(null)}
       />
     </div>
@@ -307,11 +314,14 @@ function ConfirmShare({
   song,
   roundId,
   partyId,
+  reveal,
   onCancel,
 }: {
   song: Song | null;
   roundId: string;
   partyId: string;
+  /** D10: whether the party shows who shared each song during the week. */
+  reveal: boolean;
   onCancel: () => void;
 }) {
   const share = useShareSong(roundId, partyId);
@@ -383,7 +393,10 @@ function ConfirmShare({
             </div>
           </details>
           <p className="rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold">
-            You can’t change it after sharing. Your name stays hidden until the week’s results.
+            You can’t change it after sharing.{' '}
+            {reveal
+              ? 'This party shows who shared each song, so people will see it’s yours.'
+              : 'Your name stays hidden until the week’s results.'}
           </p>
           {(linkError ?? share.error) && (
             <p

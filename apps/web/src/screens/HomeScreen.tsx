@@ -19,6 +19,7 @@ import { DAY_NAMES, WEEKDAYS, formatLockTime, formatTimeLeft } from '../lib/form
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
 import { OnboardingSteps } from './OnboardingScreens';
+import { useSharerNames } from '../party/useSharerNames';
 import { ProfileForm } from './SettingsScreens';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
@@ -150,6 +151,7 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
   const { today, progress } = week;
   const unrated = progress.ratableCount - progress.ratedCount;
   const members = party.data?.members ?? [];
+  const sharers = useSharerNames(partyId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -209,7 +211,11 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold">Songs so far</h2>
-          <p className="text-sm text-muted">Who shared what is revealed with the results</p>
+          <p className="text-sm text-muted">
+            {sharers.reveal
+              ? 'This party shows who shared each song'
+              : 'Who shared what is revealed with the results'}
+          </p>
         </div>
         <QueryBoundary
           isPending={songs.isPending}
@@ -219,6 +225,7 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
         >
           {() => (
             <SongsByDay
+              sharedBy={sharers.sharedBy}
               songs={songs.data?.songs ?? []}
               today={today?.weekday ?? null}
               preferred={preferred}
@@ -313,7 +320,9 @@ function SongsByDay({
   songs,
   today,
   preferred,
+  sharedBy,
 }: {
+  sharedBy: (song: OpenWeekSongView) => string | null;
   songs: OpenWeekSongView[];
   today: Weekday | null;
   preferred: Parameters<typeof SongRow>[0]['preferred'];
@@ -351,6 +360,7 @@ function SongsByDay({
                   id={s.recommendationId}
                   song={s.song}
                   preferred={preferred}
+                  detail={sharedBy(s) ?? undefined}
                   right={
                     s.isMine ? (
                       <MyPickBadge />

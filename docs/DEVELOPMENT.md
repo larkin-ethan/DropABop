@@ -39,7 +39,7 @@ npm run verify
 | `npm run typecheck` | TypeScript in every workspace (no output files; it only checks). |
 | `npm run format` | Auto-format with Prettier. Run this if `format:check` fails. |
 | `npm run guardrails` | Project rule checks: forbidden AWS services, secrets, unsafe auth patterns, DB scans. |
-| `npm run dev` | The website on http://localhost:5173, talking to the dev stack (needs `apps/web/.env.development.local`, see DEPLOYMENT.md). |
+| `npm run dev` | The website on http://localhost:5173, talking to the dev stack. Needs `apps/web/.env.development.local` (see DEPLOYMENT.md); without it the page fails loudly instead of quietly showing sample data. |
 | `npm run dev -w @dropabop/web -- --mode sample --port 5174` | The website with **sample data** (no AWS, no sign-in): every screen backed by the in-memory pretend API in `apps/web/src/preview/preview-api.ts`. A yellow banner says it's a preview. Also in `.claude/launch.json` as `web-sample`. |
 | `node scripts/smoke-dev.mjs` | Calls every API endpoint on the deployed dev stack with two throwaway users (after `aws login --profile dropabop-dev`). |
 

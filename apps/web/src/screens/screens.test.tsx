@@ -90,6 +90,23 @@ describe('Home (P8.3)', () => {
     expect(await screen.findByLabelText('Ethan Larkin has shared today')).toBeInTheDocument();
   });
 
+  it('keeps songs anonymous by default (D10)', async () => {
+    renderApp('/');
+    await screen.findByText('Heat Waves');
+    expect(screen.queryByText(/^Shared by /)).not.toBeInTheDocument();
+    expect(screen.getByText('Who shared what is revealed with the results')).toBeInTheDocument();
+  });
+
+  it('shows who shared each song when the party reveals it (D10)', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+      },
+    });
+    expect((await screen.findAllByText(/^Shared by /)).length).toBeGreaterThan(0);
+    expect(screen.getByText('This party shows who shared each song')).toBeInTheDocument();
+  });
+
   it('shows a friendly error with Try again when the week can’t load', async () => {
     const failing: ApiClient = {
       get: (path) =>
@@ -148,6 +165,18 @@ describe('Share today’s song (P8.4)', () => {
     expect(state.songs.some((s) => s.song.title === 'Dancing Queen')).toBe(false);
   });
 
+  it('tells the sharer the truth about anonymity in the confirm step (D10)', async () => {
+    renderApp('/share', {
+      setup: (s) => {
+        s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
+        s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+      },
+    });
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'abba');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Dancing Queen' }));
+    expect(await screen.findByText(/people will see it’s yours/)).toBeInTheDocument();
+  });
+
   it('says so when you’ve already shared today', async () => {
     renderApp('/share');
     expect(await screen.findByText('You’ve shared today’s song')).toBeInTheDocument();
@@ -189,6 +218,14 @@ describe('Rate this week’s songs (P8.5)', () => {
       }),
     );
     await waitFor(() => expect(state.songs.find((s) => s.recommendationId === 'r10')?.myRating).toBe(9));
+  });
+
+  it('still saves a rating when you leave the page right after tapping it', async () => {
+    const { state } = renderApp('/rate');
+    const group = await screen.findByRole('radiogroup', { name: /Rate Heat Waves/ });
+    await userEvent.click(within(group).getByRole('radio', { name: '6 out of 10' }));
+    await userEvent.click(screen.getAllByRole('link', { name: 'Home' })[0] as HTMLElement); // within the 0.4 s pause
+    await waitFor(() => expect(state.songs.find((s) => s.recommendationId === 'r10')?.myRating).toBe(6));
   });
 
   it('doesn’t let you rate your own song (D6)', async () => {
@@ -340,6 +377,24 @@ describe('Joining and creating parties (P8.2)', () => {
     renderApp('/');
     await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/join/SONG-7K4P'));
     expect(window.sessionStorage.getItem('dropabop.pendingInvite')).toBeNull();
+  });
+
+  it('joins automatically after signing in from an invite link (P8.2)', async () => {
+    window.sessionStorage.setItem('dropabop.pendingInvite', 'SONG-2ABC');
+    const { state } = renderApp('/');
+    await waitFor(() => expect(state.parties.some((p) => p.partyId === 'p2')).toBe(true));
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent(/^\/$/));
+  });
+
+  it('opening an invite link while signed in still asks before joining', async () => {
+    const { state } = renderApp('/join/SONG-2ABC');
+    await userEvent.click(await screen.findByRole('button', { name: 'Join party' }));
+    await waitFor(() => expect(state.parties.some((p) => p.partyId === 'p2')).toBe(true));
+  });
+
+  it('doesn’t crash on a malformed link', async () => {
+    renderApp('/join/%25ZZ');
+    expect(await screen.findByRole('alert')).toHaveTextContent('That invite code isn’t valid');
   });
 
   it('says clearly when a code is wrong', async () => {
