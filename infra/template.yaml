@@ -38,6 +38,15 @@ Parameters:
     # Off only while an AWS account waits for CloudFront verification (new accounts: AWS Support must verify the
     # account before CloudFront can be used). Prod always hosts the website.
     Description: Create the website bucket and CloudFront distribution.
+  ExternalSiteOrigin:
+    Type: String
+    Default: ''
+    # Temporary website host while HostWebsite is off (ADR-0010: Cloudflare Pages until AWS verifies the account for
+    # CloudFront). The API accepts browser calls from this origin, and the code email uses its logo. HTTPS only, one
+    # origin with no path or trailing slash, e.g. https://dropabop.pages.dev.
+    AllowedPattern: '^(https://[a-z0-9.-]+)?$'
+    ConstraintDescription: must be an https origin with no path, e.g. https://dropabop.pages.dev
+    Description: Website origin when the site is hosted outside AWS (HostWebsite=false). Empty for none.
   CreateBudget:
     Type: String
     AllowedValues: ['true', 'false']
@@ -50,6 +59,7 @@ Conditions:
   ShouldCreateBudget: !Equals [!Ref CreateBudget, 'true']
   HasDevOrigin: !Not [!Equals [!Ref DevOrigin, '']]
   ShouldHostWebsite: !Equals [!Ref HostWebsite, 'true']
+  HasExternalSite: !Not [!Equals [!Ref ExternalSiteOrigin, '']]
 
 Rules:
   # Prod must accept browser calls only from its own website (P9.3 security review): refuse to deploy otherwise.
@@ -61,8 +71,15 @@ Rules:
   ProdHostsWebsite:
     RuleCondition: !Equals [!Ref Stage, prod]
     Assertions:
-      - Assert: !Equals [!Ref HostWebsite, 'true']
-        AssertDescription: Prod always hosts the website.
+      - Assert: !Or
+          - !Equals [!Ref HostWebsite, 'true']
+          - !Not [!Equals [!Ref ExternalSiteOrigin, '']]
+        AssertDescription: Prod needs a website, on CloudFront (HostWebsite=true) or elsewhere (ExternalSiteOrigin, ADR-0010).
+  ExternalSiteOnlyWithoutCloudFront:
+    RuleCondition: !Equals [!Ref HostWebsite, 'true']
+    Assertions:
+      - Assert: !Equals [!Ref ExternalSiteOrigin, '']
+        AssertDescription: ExternalSiteOrigin is only for when CloudFront isn't hosting the website (ADR-0010).
 
 Globals:
   Function:
@@ -154,11 +171,15 @@ Resources:
         DefaultEmailOption: CONFIRM_WITH_CODE
         EmailSubject: Your Drop a Bop code
         # Branded HTML (Cognito allows HTML here, up to 20,000 characters; the same template is used for password-reset
-        # codes). The logo image needs a public address, so it's included once the website is hosted (CloudFront).
+        # codes). The logo image needs a public address, so it's included once the website is hosted (CloudFront, or the
+        # temporary external host, ADR-0010).
         EmailMessage: !If
           - ShouldHostWebsite
           - !Sub '<div style="background:#011420;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#e6f1ff;text-align:center"><div style="max-width:420px;margin:0 auto;background:#01192b;border:1px solid #0d3352;border-radius:16px;padding:28px 24px"><img src="https://${WebDistribution.DomainName}/logo.png" width="96" height="96" alt="Drop a Bop" style="display:block;margin:0 auto 16px;border:0"><p style="margin:0 0 4px;font-size:22px;font-weight:bold;color:#e6f1ff">Drop a <span style="color:#c084fc">Bop</span></p><p style="margin:0 0 20px;color:#8ba3bf;font-size:14px">One song a day. One group. Endless good vibes.</p><p style="margin:0 0 8px;font-size:15px">Your code is</p><p style="margin:0 0 20px;font-size:32px;letter-spacing:6px;font-weight:bold;color:#00e7d0">{####}</p><p style="margin:0;color:#8ba3bf;font-size:13px">Enter it in Drop a Bop to continue. If you didn&#39;t ask for it, you can ignore this email.</p></div></div>'
-          - '<div style="background:#011420;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#e6f1ff;text-align:center"><div style="max-width:420px;margin:0 auto;background:#01192b;border:1px solid #0d3352;border-radius:16px;padding:28px 24px"><p style="margin:0 0 4px;font-size:22px;font-weight:bold;color:#e6f1ff">Drop a <span style="color:#c084fc">Bop</span></p><p style="margin:0 0 20px;color:#8ba3bf;font-size:14px">One song a day. One group. Endless good vibes.</p><p style="margin:0 0 8px;font-size:15px">Your code is</p><p style="margin:0 0 20px;font-size:32px;letter-spacing:6px;font-weight:bold;color:#00e7d0">{####}</p><p style="margin:0;color:#8ba3bf;font-size:13px">Enter it in Drop a Bop to continue. If you didn&#39;t ask for it, you can ignore this email.</p></div></div>'
+          - !If
+            - HasExternalSite
+            - !Sub '<div style="background:#011420;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#e6f1ff;text-align:center"><div style="max-width:420px;margin:0 auto;background:#01192b;border:1px solid #0d3352;border-radius:16px;padding:28px 24px"><img src="${ExternalSiteOrigin}/logo.png" width="96" height="96" alt="Drop a Bop" style="display:block;margin:0 auto 16px;border:0"><p style="margin:0 0 4px;font-size:22px;font-weight:bold;color:#e6f1ff">Drop a <span style="color:#c084fc">Bop</span></p><p style="margin:0 0 20px;color:#8ba3bf;font-size:14px">One song a day. One group. Endless good vibes.</p><p style="margin:0 0 8px;font-size:15px">Your code is</p><p style="margin:0 0 20px;font-size:32px;letter-spacing:6px;font-weight:bold;color:#00e7d0">{####}</p><p style="margin:0;color:#8ba3bf;font-size:13px">Enter it in Drop a Bop to continue. If you didn&#39;t ask for it, you can ignore this email.</p></div></div>'
+            - '<div style="background:#011420;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#e6f1ff;text-align:center"><div style="max-width:420px;margin:0 auto;background:#01192b;border:1px solid #0d3352;border-radius:16px;padding:28px 24px"><p style="margin:0 0 4px;font-size:22px;font-weight:bold;color:#e6f1ff">Drop a <span style="color:#c084fc">Bop</span></p><p style="margin:0 0 20px;color:#8ba3bf;font-size:14px">One song a day. One group. Endless good vibes.</p><p style="margin:0 0 8px;font-size:15px">Your code is</p><p style="margin:0 0 20px;font-size:32px;letter-spacing:6px;font-weight:bold;color:#00e7d0">{####}</p><p style="margin:0;color:#8ba3bf;font-size:13px">Enter it in Drop a Bop to continue. If you didn&#39;t ask for it, you can ignore this email.</p></div></div>'
       # Uses Cognito's built-in email sender (no extra service). Its daily sending limit is plenty for one group.
       DeletionProtection: !If [IsProd, ACTIVE, INACTIVE]
 
@@ -209,14 +230,21 @@ Resources:
         DestinationArn: !GetAtt ApiAccessLogGroup.Arn
         Format: '{"requestId":"$context.requestId","route":"$context.routeKey","status":"$context.status","latencyMs":"$context.responseLatency","userId":"$context.authorizer.claims.sub","authError":"$context.authorizer.error","error":"$context.error.message","integrationError":"$context.integrationErrorMessage"}'
       CorsConfiguration:
-        # Browsers may call the API only from the website (CloudFront), plus the local dev site in dev (spec §31).
+        # Browsers may call the API only from the website (CloudFront, or the temporary external host while CloudFront
+        # is off, ADR-0010), plus the local dev site in dev (spec §31).
         AllowOrigins: !If
           - ShouldHostWebsite
           - !If
             - HasDevOrigin
             - [!Sub 'https://${WebDistribution.DomainName}', !Ref DevOrigin]
             - [!Sub 'https://${WebDistribution.DomainName}']
-          - [!Ref DevOrigin] # no website yet: only the local dev site
+          - !If
+            - HasExternalSite
+            - !If
+              - HasDevOrigin
+              - [!Ref ExternalSiteOrigin, !Ref DevOrigin]
+              - [!Ref ExternalSiteOrigin]
+            - [!Ref DevOrigin] # no website yet: only the local dev site
         AllowMethods: [GET, POST, PUT, PATCH, DELETE]
         AllowHeaders: [authorization, content-type]
         MaxAge: 600
@@ -1079,6 +1107,10 @@ Outputs:
     Condition: ShouldHostWebsite
     Description: The website (CloudFront)
     Value: !Sub https://${WebDistribution.DomainName}
+  ExternalWebsiteUrl:
+    Condition: HasExternalSite
+    Description: The website on the temporary external host (Cloudflare Pages, ADR-0010); scripts/deploy-web.sh publishes there
+    Value: !Ref ExternalSiteOrigin
   WebBucketName:
     Condition: ShouldHostWebsite
     Description: Where scripts/deploy-web.sh uploads the built website

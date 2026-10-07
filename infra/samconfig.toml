@@ -42,5 +42,6 @@ resolve_s3 = true
 s3_prefix = "dropabop-prod"
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
-# Prod allows only its own CloudFront site to call the API (no DevOrigin).
-parameter_overrides = "Stage=prod"
+# Prod allows only its own website to call the API (no DevOrigin). Until AWS verifies the account for CloudFront, the
+# website is on Cloudflare Pages (ADR-0010): when it's verified, replace this line with "Stage=prod" and deploy.
+parameter_overrides = "Stage=prod HostWebsite=false ExternalSiteOrigin=https://dropabop.pages.dev"

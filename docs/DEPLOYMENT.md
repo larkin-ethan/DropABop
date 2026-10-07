@@ -270,6 +270,33 @@ website retries once). Normal accounts get 1,000.
 1. Console → **Service Quotas** (https://console.aws.amazon.com/servicequotas/home) → region **US East (Ohio)**.
 2. **AWS Lambda** → **Concurrent executions** → **Request increase at account level** → **1000**.
 
+## 4d. Temporary website host: Cloudflare Pages (ADR-0010)
+
+While AWS hasn't verified the account for CloudFront (§4c), the prod website runs on Cloudflare Pages. The API,
+sign-in and data stay on AWS. One-time setup, in the DropABop folder:
+
+1. Create a free account at https://dash.cloudflare.com/sign-up (any plan prompt: choose **Free**).
+2. Sign Cloudflare's command-line tool in (a browser window opens; approve it):
+
+   ```bash
+   npx wrangler@4 login
+   ```
+
+3. Create the site, with `main` as its live branch:
+
+   ```bash
+   npx wrangler@4 pages project create dropabop --production-branch main
+   ```
+
+   It prints the address. If it isn't exactly `https://dropabop.pages.dev`, put the real one in
+   `ExternalSiteOrigin=…` on the prod line of `infra/samconfig.toml` (and commit it).
+
+After that, `bash scripts/deploy.sh prod` deploys the prod stack and uploads the website to Cloudflare (§6).
+
+**Moving to CloudFront later:** once AWS verifies the account, change the prod line in `infra/samconfig.toml` to
+`parameter_overrides = "Stage=prod"`, run `bash scripts/deploy.sh prod`, and send the group the new address (the
+stack output `WebsiteUrl`). Accounts and data don't change. Then delete the Cloudflare project in its dashboard.
+
 ## 5. Shutting things down
 
 Deleting is a **human-only** action in this project (the AI assistant is blocked from it). The table and user pool are kept
@@ -344,8 +371,8 @@ doesn't host it).
 
    Then confirm the "AWS Notification - Subscription Confirmation" email for prod, as you did for dev.
 
-**Before the first prod deploy:** prod hosts the website on CloudFront, so wait until AWS has verified the account
-for CloudFront (§4c); until then the prod deploy fails and rolls back.
+**Before the first prod deploy:** do the Cloudflare setup in §4d (prod's website is on Cloudflare Pages until AWS
+verifies the account for CloudFront, ADR-0010).
 
 **Leftover from the GitHub attempt (2026-10-04):** an empty stack `dropabop-github-deploy` in `ROLLBACK_COMPLETE`.
 It has no resources and costs nothing; delete it in the CloudFormation console when convenient.

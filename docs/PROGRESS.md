@@ -43,6 +43,16 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-07 — **Temporary website host: Cloudflare Pages (ADR-0010, Ethan's choice)** — AWS still hasn't verified
+  CloudFront. GitHub Pages rejected (its limits page says not for password pages; would share larkin-ethan.github.io
+  with Ethan's site). Added `ExternalSiteOrigin` (CORS + email logo; prod rule: CloudFront or external site), build
+  writes `_headers` (CloudFront's security policy with the exact API), `deploy-web.sh` uploads to Cloudflare with
+  `npx wrangler@4` when there's no CloudFront bucket, prod samconfig `HostWebsite=false
+  ExternalSiteOrigin=https://dropabop.pages.dev`, DEPLOYMENT §4d setup steps. Verified: `sam validate --lint`, template
+  tests 14/14, a test build's `_headers` and no `404.html` (SPA fallback), `npm run verify`. Not yet run: the Cloudflare
+  upload itself (needs Ethan's account). Also moved 74 iCloud conflict copies ("… 2.md" etc., stale snapshots from
+  Oct 4) out of the repo to a backup; they were breaking the format check.
+
 - 2026-10-07 — **P10.3 done** — `npm run e2e:dev` passed on a sharing day (Wednesday): invite → join → the friend
   rates the host's song in the real website → leave. The host had already shared today (the smoke run uses the same
   test user), so the test took its "already shared" path; sharing through the website on dev was checked by Ethan by

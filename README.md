@@ -50,7 +50,7 @@ The rules in detail: [docs/PRODUCT_DECISIONS.md](docs/PRODUCT_DECISIONS.md). The
 | Shared rules | Types and zod validation schemas used by both (`packages/shared`) |
 | Data | DynamoDB, one table ([docs/DATABASE.md](docs/DATABASE.md)) |
 | Sign-in | Amazon Cognito, through the AWS Amplify library (sign-in only) |
-| Hosting | S3 + CloudFront (website), API Gateway HTTP API (API) |
+| Hosting | S3 + CloudFront (website; Cloudflare Pages until AWS verifies the account, ADR-0010), API Gateway HTTP API (API) |
 | Infrastructure | AWS SAM (`infra/template.yaml`), deployed with `scripts/deploy.sh` |
 | Tests | Vitest (unit + integration with DynamoDB Local), Playwright (end-to-end) |
 
