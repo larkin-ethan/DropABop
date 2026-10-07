@@ -4,8 +4,8 @@
 // shared today) and ask these functions for a decision. The database then enforces the same rules again
 // with conditional writes, so two simultaneous requests can't both slip through (see docs/DATABASE.md).
 
-import type { PartyMember, Recommendation, Round } from '@dropabop/shared';
-import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
+import type { Comment, Party, PartyMember, Recommendation, Round } from '@dropabop/shared';
+import { MAX_COMMENTS_PER_PERSON_PER_WEEK, MAX_RATING, MIN_RATING } from '@dropabop/shared';
 import { MESSAGES, deny, type RuleResult } from './messages';
 import { getSubmissionDay, isWeekOpen, type SubmissionDay } from './week';
 
@@ -96,4 +96,70 @@ export function isValidRating(rating: unknown): rating is number {
   return (
     typeof rating === 'number' && Number.isInteger(rating) && rating >= MIN_RATING && rating <= MAX_RATING
   );
+}
+
+export interface AddCommentContext {
+  /** The commenter's membership in the week's party, or null. */
+  membership: PartyMember | null;
+  round: Round;
+  /** The song being commented on. */
+  recommendation: Recommendation;
+  /** How many comments this person already wrote this week. */
+  myCommentCountThisWeek: number;
+  now: Date;
+}
+
+/**
+ * D25: any member may comment on any of the week's songs (their own too) while the week is open; comments close when
+ * ratings lock. A per-person weekly cap stops flooding.
+ */
+export function canAddComment(ctx: AddCommentContext): RuleResult {
+  if (ctx.membership === null || ctx.membership.partyId !== ctx.round.partyId) {
+    return deny('NOT_A_MEMBER', MESSAGES.NOT_A_MEMBER);
+  }
+  if (ctx.recommendation.roundId !== ctx.round.roundId || ctx.recommendation.partyId !== ctx.round.partyId) {
+    return deny('SONG_NOT_IN_WEEK', MESSAGES.SONG_NOT_IN_WEEK);
+  }
+  if (!isWeekOpen(ctx.round, ctx.now)) {
+    return deny('WEEK_CLOSED', MESSAGES.WEEK_CLOSED_COMMENT);
+  }
+  if (ctx.myCommentCountThisWeek >= MAX_COMMENTS_PER_PERSON_PER_WEEK) {
+    return deny('CONFLICT', MESSAGES.TOO_MANY_COMMENTS);
+  }
+  return { ok: true };
+}
+
+export interface DeleteCommentContext {
+  membership: PartyMember | null;
+  party: Pick<Party, 'hostUserId' | 'partyId'>;
+  round: Round;
+  comment: Comment;
+  /** From the verified token. */
+  userId: string;
+  now: Date;
+}
+
+/**
+ * D25: you can delete your own comment while the week is open (after that, comments are part of the week's record).
+ * The host can delete any comment in their party at any time, so there's always someone who can remove something
+ * unkind.
+ */
+export function canDeleteComment(ctx: DeleteCommentContext): RuleResult {
+  if (ctx.membership === null || ctx.membership.partyId !== ctx.party.partyId) {
+    return deny('NOT_A_MEMBER', MESSAGES.NOT_A_MEMBER);
+  }
+  if (ctx.comment.roundId !== ctx.round.roundId) {
+    return deny('NOT_FOUND', MESSAGES.COMMENT_NOT_FOUND);
+  }
+  const isHost = ctx.membership.role === 'host' && ctx.party.hostUserId === ctx.userId;
+  if (isHost) {
+    return { ok: true };
+  }
+  if (ctx.comment.userId !== ctx.userId) {
+    return deny('FORBIDDEN', MESSAGES.NOT_YOUR_COMMENT);
+  }
+  if (!isWeekOpen(ctx.round, ctx.now)) {
+    return deny('WEEK_CLOSED', MESSAGES.WEEK_CLOSED_COMMENT);
+  }
+  return { ok: true };
 }

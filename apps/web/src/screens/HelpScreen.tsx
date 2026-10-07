@@ -53,6 +53,10 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           swayed by who shared what or how others voted. (A host can choose to show who shared each song
           during the week.)
         </p>
+        <p>
+          Want to say something about a song? Tap “Comments” under it. Comments show your name, so commenting
+          on your own song gives it away. They close when ratings lock.
+        </p>
       </>
     ),
   },

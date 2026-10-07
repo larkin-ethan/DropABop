@@ -307,6 +307,13 @@ Resources:
         'PUT /rounds/{roundId}/votes/{recommendationId}':
           ThrottlingBurstLimit: 20
           ThrottlingRateLimit: 10
+        # Comments (D25): a chat-like burst is fine; a script posting nonstop isn't (each person is also capped per week).
+        'POST /rounds/{roundId}/recommendations/{recommendationId}/comments':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
+        'DELETE /rounds/{roundId}/comments/{commentId}':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
 
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
@@ -677,6 +684,74 @@ Resources:
             ApiId: !Ref HttpApi
             Method: PUT
             Path: /rounds/{roundId}/votes/{recommendationId}
+
+  # D25 comments: membership + party (GetItem), the week's comments (Query).
+  ListCommentsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listCommentsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /rounds/{roundId}/comments
+
+  # D25: checks (GetItem/Query), then stores the comment (PutItem, never overwriting).
+  AddCommentFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.addCommentHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /rounds/{roundId}/recommendations/{recommendationId}/comments
+
+  # D25: finds the comment (Query), checks author/host (GetItem), deletes it (DeleteItem).
+  DeleteCommentFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.deleteCommentHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:DeleteItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: DELETE
+            Path: /rounds/{roundId}/comments/{commentId}
 
   ListMyVotesFunction:
     Type: AWS::Serverless::Function

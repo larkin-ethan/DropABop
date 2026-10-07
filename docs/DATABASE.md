@@ -30,6 +30,7 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 | Song shared (recommendation) | `PARTY#<partyId>` | `REC#<week>#<recommendationId>` | userId, submittedOn, weekday, song (embedded), createdAt |
 | "Already shared today" marker | `PARTY#<partyId>` | `SUBMITTED#<week>#<userId>#<date>` | recommendationId |
 | Rating (vote) | `PARTY#<partyId>` | `VOTE#<week>#<userId>#<recommendationId>` | rating, updatedAt |
+| Comment (D25) | `PARTY#<partyId>` | `COMMENT#<week>#<createdAt>#<commentId>` | roundId, recommendationId, userId, text, createdAt |
 | Invite code lookup | `INVITE#<code>` | `INVITE` | partyId |
 | Wrong invite codes (one hour) | `USER#<userId>` | `INVITEFAIL#<UTC hour, e.g. 2026-10-04T15>` | failures, expiresAt (TTL) |
 
@@ -69,6 +70,9 @@ Notes:
 | 14 | My ratings in a week | `Query PK=PARTY#p, SK begins_with VOTE#week#u#` |
 | 15 | Party stats / user stats (closed weeks) | Pattern 9 (all weeks), then `Query SK begins_with REC#` and `SK begins_with VOTE#`, keeping only closed weeks |
 | 16 | Week results | Patterns 8, 10, 13 |
+| 22 | A week's comments, oldest first (D25) | `Query PK=PARTY#p, SK begins_with COMMENT#week#` |
+| 23 | Add a comment | `Put` with `attribute_not_exists(PK)` (random id; never overwrites) |
+| 24 | Delete a comment | Pattern 22 to find it by id, then `DeleteItem` |
 
 Every query is limited to one partition. Lists that can grow (history, stats inputs) are paginated with
 `LastEvaluatedKey`.

@@ -43,6 +43,14 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-07 — **P8.14 done: comments on songs (Ethan's request; D25)** — Ethan chose: names always shown, comments only
+  while the week is open. Three routes (list / add / delete) as three least-privilege functions, `COMMENT#week#time#id`
+  items, rules: members only, any song in the week, ≤280 chars one line, ≤50 per person per week, delete own while
+  open, host deletes any; per-route throttles. Website: `SongComments`, collapsed by default ("💬 Comments (n)") on Rate
+  cards and read-only on Results cards; guide mentions it. Fixed on the way: the button's screen-reader name lacked a
+  space ("(2)on …"); now an explicit aria-label. Verified: verify 462 tests, integration 193 (5 new for comments), e2e
+  20/20 (one worker), screenshot at 320 px. Not deployed yet: needs a dev deploy (approval) and `deploy.sh prod` (Ethan).
+
 - 2026-10-07 — **P11.3 done: prod is live** — Ethan redeployed prod with the CORS fix. Checked: the API now allows
   only https://dropabop.pages.dev (preflight and real responses carry the header; other origins refused); the live
   site loads signed in (first-time name prompt, no console errors after reload). Ethan: "Works great". Left for P11.4:

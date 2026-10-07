@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { PartyMember, Recommendation, Round } from '@dropabop/shared';
+import type { Comment, PartyMember, Recommendation, Round } from '@dropabop/shared';
 import {
+  canAddComment,
   canCastVote,
+  canDeleteComment,
   canSubmitRecommendation,
   isValidRating,
   type SubmitRecommendationContext,
@@ -213,5 +215,99 @@ describe('isValidRating', () => {
     expect(isValidRating(0)).toBe(false);
     expect(isValidRating(10.1)).toBe(false);
     expect(isValidRating(Infinity)).toBe(false);
+  });
+});
+
+describe('comments (D25)', () => {
+  const song: Recommendation = {
+    recommendationId: 'r1',
+    roundId: round.roundId,
+    partyId: 'p1',
+    userId: 'alice', // her own song: commenting on it is allowed
+    submittedOn: '2026-10-05',
+    weekday: 'MON',
+    song: {
+      songId: 's1',
+      title: 'Midnight City',
+      artist: 'M83',
+      album: null,
+      albumArtUrl: null,
+      durationMs: null,
+      releaseDate: null,
+      providers: [],
+    },
+    createdAt: '2026-10-05T15:00:00.000Z',
+  };
+  const host: PartyMember = { ...member, userId: 'hank', role: 'host' };
+  const party = { partyId: 'p1', hostUserId: 'hank' };
+  const comment: Comment = {
+    commentId: 'c1',
+    roundId: round.roundId,
+    recommendationId: 'r1',
+    userId: 'alice',
+    text: 'Love this',
+    createdAt: '2026-10-07T17:00:00.000Z',
+  };
+  const addCtx = (overrides: Partial<Parameters<typeof canAddComment>[0]> = {}) => ({
+    membership: member,
+    round,
+    recommendation: song,
+    myCommentCountThisWeek: 0,
+    now: WEDNESDAY_NOON,
+    ...overrides,
+  });
+  const deleteCtx = (overrides: Partial<Parameters<typeof canDeleteComment>[0]> = {}) => ({
+    membership: member,
+    party,
+    round,
+    comment,
+    userId: 'alice',
+    now: WEDNESDAY_NOON,
+    ...overrides,
+  });
+
+  it('lets any member comment on any of the week’s songs (their own too) while the week is open', () => {
+    expect(canAddComment(addCtx())).toEqual({ ok: true });
+    expect(canAddComment(addCtx({ now: SATURDAY_NOON }))).toEqual({ ok: true });
+  });
+
+  it('closes comments when ratings lock', () => {
+    expect(canAddComment(addCtx({ now: AFTER_WEEK }))).toMatchObject({ ok: false, code: 'WEEK_CLOSED' });
+  });
+
+  it('refuses non-members, other parties’ songs, and the 51st comment of the week', () => {
+    expect(canAddComment(addCtx({ membership: null }))).toMatchObject({ code: 'NOT_A_MEMBER' });
+    expect(canAddComment(addCtx({ membership: { ...member, partyId: 'p2' } }))).toMatchObject({
+      code: 'NOT_A_MEMBER',
+    });
+    expect(canAddComment(addCtx({ recommendation: { ...song, roundId: 'p1.2026-09-28' } }))).toMatchObject({
+      code: 'SONG_NOT_IN_WEEK',
+    });
+    expect(canAddComment(addCtx({ myCommentCountThisWeek: 49 }))).toEqual({ ok: true });
+    expect(canAddComment(addCtx({ myCommentCountThisWeek: 50 }))).toMatchObject({
+      ok: false,
+      code: 'CONFLICT',
+    });
+  });
+
+  it('lets you delete your own comment while the week is open, but not someone else’s', () => {
+    expect(canDeleteComment(deleteCtx())).toEqual({ ok: true });
+    expect(canDeleteComment(deleteCtx({ now: AFTER_WEEK }))).toMatchObject({ code: 'WEEK_CLOSED' });
+    expect(
+      canDeleteComment(deleteCtx({ userId: 'bob', membership: { ...member, userId: 'bob' } })),
+    ).toMatchObject({ ok: false, code: 'FORBIDDEN' });
+  });
+
+  it('lets the host delete any comment, any time (moderation)', () => {
+    expect(canDeleteComment(deleteCtx({ userId: 'hank', membership: host }))).toEqual({ ok: true });
+    expect(canDeleteComment(deleteCtx({ userId: 'hank', membership: host, now: AFTER_WEEK }))).toEqual({
+      ok: true,
+    });
+    // A member whose role says host but isn't the party's host gets no special powers.
+    expect(
+      canDeleteComment(
+        deleteCtx({ userId: 'mallory', membership: { ...member, userId: 'mallory', role: 'host' } }),
+      ),
+    ).toMatchObject({ ok: false, code: 'FORBIDDEN' });
   });
 });

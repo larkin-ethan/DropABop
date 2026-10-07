@@ -250,8 +250,8 @@ Code: `services/api/src/handlers/votes.ts`.
 
 #### `PUT /rounds/{roundId}/votes/{recommendationId}`
 
-Body: `{ "rating": 8 }` (whole number 1–10). Creates or replaces your rating while the week is open; locked from
-Monday 00:00 in the week's timezone (D8). You can't rate your own songs (D6).
+Body: `{ "rating": 8 }` (whole number 1–10). Creates or replaces your rating while the week is open; locked when the
+week's ratings lock (D2, D8; a change whose write lands after the lock is refused with `409 WEEK_CLOSED`). You can't rate your own songs (D6).
 `200`: `{ "vote": { "recommendationId", "rating", "updatedAt" } }`.
 Errors: `409 WEEK_CLOSED`, `403 OWN_SONG`, `403 NOT_A_MEMBER`, `404 NOT_FOUND` (song not in this week),
 `400 VALIDATION_FAILED`.
@@ -259,6 +259,28 @@ Errors: `409 WEEK_CLOSED`, `403 OWN_SONG`, `403 NOT_A_MEMBER`, `404 NOT_FOUND` (
 #### `GET /rounds/{roundId}/votes/me`
 
 `200`: `{ "votes": [{ "recommendationId", "rating", "updatedAt" }] }`. Your ratings only.
+
+### Comments (D25)
+
+Code: `services/api/src/handlers/comments.ts`. Members of the week's party only (`403 NOT_A_MEMBER` otherwise). Names are
+shown with comments from the start (the app looks `userId` up in the party's members).
+
+#### `GET /rounds/{roundId}/comments`
+
+`200`: `{ "comments": [{ "commentId", "roundId", "recommendationId", "userId", "text", "createdAt" }] }`: every
+comment in the week, oldest first (the app groups them by song). Works for finished weeks too (read-only).
+
+#### `POST /rounds/{roundId}/recommendations/{recommendationId}/comments`
+
+Body: `{ "text": "…" }` (1–280 characters after trimming, one line, no hidden/text-direction characters). Any member,
+any song in the week (their own too), only while the week is open. At most 50 per person per week.
+`201`: `{ "comment": { … } }`. Errors: `409 WEEK_CLOSED`, `409 CONFLICT` (weekly limit), `404 NOT_FOUND` (song not in
+this week), `400 VALIDATION_FAILED`. Rate limit: 5/s, bursts of 10.
+
+#### `DELETE /rounds/{roundId}/comments/{commentId}`
+
+Your own comment while the week is open, or any comment if you're the host (any time). `204`. Errors: `403 FORBIDDEN`
+(someone else's), `409 WEEK_CLOSED` (your own, after the lock), `404 NOT_FOUND`.
 
 ### Results
 

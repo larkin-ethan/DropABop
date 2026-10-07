@@ -349,6 +349,71 @@ describe('Rate this week’s songs (P8.5)', () => {
   });
 });
 
+describe('Comments on songs (D25)', () => {
+  it('are collapsed by default, and open to show names, times and a box to add one', async () => {
+    renderApp('/rate');
+    const toggle = await screen.findByRole('button', { name: /Comments \(2\) on Heat Waves/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Perfect road trip song')).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+    const list = screen.getByRole('list', { name: 'Comments on Heat Waves' });
+    expect(within(list).getByText('Perfect road trip song')).toBeInTheDocument();
+    expect(within(list).getByText('John Park')).toBeInTheDocument(); // names always shown (D25)
+    expect(screen.getByText(/Your name shows with your comment/)).toBeInTheDocument();
+  });
+
+  it('posts a comment, then lets you delete your own', async () => {
+    const { state } = renderApp('/rate');
+    await userEvent.click(await screen.findByRole('button', { name: /Comments \(2\) on Heat Waves/ }));
+    await userEvent.type(screen.getByLabelText('Add a comment'), 'Instant add to my playlist');
+    await userEvent.click(screen.getByRole('button', { name: 'Post' }));
+    await waitFor(() => expect(state.comments.at(-1)?.text).toBe('Instant add to my playlist'));
+    expect(await screen.findByText('Instant add to my playlist')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add a comment')).toHaveValue('');
+
+    // Delete buttons appear only on your own comments (you're not the host... except in sample mode, where you are).
+    await userEvent.click(screen.getByRole('button', { name: 'Delete comment by You' }));
+    await waitFor(() =>
+      expect(state.comments.some((c) => c.text === 'Instant add to my playlist')).toBe(false),
+    );
+  });
+
+  it('only shows Delete on your own comments when you’re not the host', async () => {
+    renderApp('/rate', {
+      setup: (s) => {
+        s.parties[0]!.hostUserId = 'u2';
+        s.members = s.members.map((m) => ({ ...m, role: m.userId === 'u2' ? 'host' : 'member' }));
+      },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: /Comments \(2\) on Heat Waves/ }));
+    expect(screen.queryByRole('button', { name: /Delete comment by/ })).not.toBeInTheDocument();
+  });
+
+  it('are read-only once the week is over', async () => {
+    renderApp('/results', {
+      setup: (s) => {
+        s.comments = [
+          {
+            commentId: 'old',
+            roundId: s.pastRound.roundId,
+            recommendationId: s.pastResults[0]!.recommendationId,
+            userId: 'u3',
+            text: 'Called it',
+            createdAt: '2026-10-01T12:00:00.000Z',
+          },
+        ];
+      },
+    });
+    await userEvent.click(
+      (await screen.findAllByRole('button', { name: /Comments \(1\)/ }))[0] as HTMLElement,
+    );
+    expect(screen.getByText('Called it')).toBeInTheDocument();
+    expect(screen.getByText('Comments are closed for this week.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Add a comment')).not.toBeInTheDocument();
+  });
+});
+
 describe('Weekly results and history (P8.6, P8.7)', () => {
   it('shows the latest finished week: Bop of the Day and the ranking', async () => {
     renderApp('/results');

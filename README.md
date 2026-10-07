@@ -36,6 +36,7 @@ It runs on AWS serverless services at (or very near) **$0/month** at this scale.
 - **After the lock:** results unlock: every song ranked, each day's Bop of the Day, rating spreads, and your rating next
   to the group's. Who shared each song is revealed then (or during the week, if the host turns that on).
 - **Stats & leaderboards** from finished weeks, each showing what it's based on (or "Not enough data yet").
+- **Comments:** talk about any song while the week is open (names shown; collapsed until you open them).
 - **Profiles:** display name, avatar colour or photo, and a preferred music app.
 
 The rules in detail: [docs/PRODUCT_DECISIONS.md](docs/PRODUCT_DECISIONS.md). The original spec:
@@ -105,7 +106,7 @@ Open http://localhost:5173.
 ## How the AWS deployment works
 
 One SAM template (`infra/template.yaml`) defines everything: the DynamoDB table, Cognito user pool, the HTTP API with
-its token check and rate limits, 23 Lambda functions (one per route, each allowed only the database actions it
+its token check and rate limits, 26 Lambda functions (one per route, each allowed only the database actions it
 needs), logs kept 14 days (30 in prod), failure alarms that email you, a $5 budget alert, and the website (private S3
 bucket behind CloudFront with security headers). There are two copies, **`dropabop-dev`** and **`dropabop-prod`**,
 each with its own data and accounts. Nothing runs (or bills) while idle: weeks open and close lazily when someone

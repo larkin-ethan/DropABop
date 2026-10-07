@@ -3,6 +3,7 @@ import {
   avatarColorSchema,
   castVoteRequestSchema,
   createPartyRequestSchema,
+  addCommentRequestSchema,
   displayNameSchema,
   httpsUrlSchema,
   inviteCodeSchema,
@@ -35,6 +36,19 @@ describe('ratingSchema (spec §15, D7)', () => {
     const result = ratingSchema.safeParse(rating);
     expect(result.success).toBe(false);
     expect(firstError(result)).toBe('Ratings are whole numbers from 1 to 10.');
+  });
+});
+
+describe('addCommentRequestSchema (D25)', () => {
+  it('takes one line of up to 280 characters', () => {
+    const parse = (text: string) => addCommentRequestSchema.safeParse({ text });
+    expect(parse('  Love this one 🔥  ').data).toEqual({ text: 'Love this one 🔥' });
+    expect(parse('a'.repeat(280)).success).toBe(true);
+    expect(parse('a'.repeat(281)).success).toBe(false);
+    expect(parse('   ').success).toBe(false);
+    expect(parse('line one\nline two').success).toBe(false);
+    expect(parse('hi\u202E').success).toBe(false);
+    expect(addCommentRequestSchema.safeParse({ text: 'hi', userId: 'x' }).success).toBe(false);
   });
 });
 

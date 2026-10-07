@@ -123,6 +123,16 @@ this deliberate change to spec §13–§15.
   names. It replaces "Song of the Day" / `sotd` everywhere. Each day's winner in the weekly results (D12) is the
   **"Bop of the Day"** (Ethan, 2026-10-03).
 
+## Comments (Ethan, 2026-10-07)
+
+- **D25 — Comments on songs.** Any party member can comment on any song in the current week (their own too): one
+  line, up to 280 characters, at most 50 per person per week. **Names are always shown** (Ethan chose this knowing a
+  sharer commenting on their own song gives away that it's theirs). Comments can be added **only while the week is
+  open**; they close when ratings lock and stay readable afterwards. You can delete your own comment while the week
+  is open; the host can delete any comment at any time (moderation). In the app every song's comments start
+  **collapsed** ("💬 Comments (3)"), on the Rate screen and (read-only) in the results. Comments don't affect ratings,
+  results or stats.
+
 ## Statistics definitions (§17, §18)
 
 All stats are labeled "calculated" in the UI and show their sample size ("Based on N …").
@@ -152,6 +162,6 @@ Standard deviation = population standard deviation. Genres are shown only if a p
 
 ## Out of scope for v1
 
-Real-time updates, push/email notifications, email invites, image uploads, comments/chat, public
+Real-time updates, push/email notifications, email invites, image uploads, chat (comments on songs are in, D25), public
 profiles, host transfer, cross-party stats, native mobile apps, custom domain (Ethan, 2026-10-01: use the
 free CloudFront URL for now; a domain can be added later without rebuilding).

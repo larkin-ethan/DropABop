@@ -16,6 +16,7 @@ export { updateSettingsHandler } from './handlers/settings';
 export { getCurrentWeekHandler, listWeeksHandler } from './handlers/weeks';
 export { submitRecommendationHandler, listRecommendationsHandler } from './handlers/recommendations';
 export { castVoteHandler, listMyVotesHandler } from './handlers/votes';
+export { addCommentHandler, deleteCommentHandler, listCommentsHandler } from './handlers/comments';
 export { getResultsHandler } from './handlers/results';
 export { personalStatsHandler, groupStatsHandler, leaderboardHandler } from './handlers/stats';
 export { searchSongsHandler, resolveSongHandler } from './handlers/songs';

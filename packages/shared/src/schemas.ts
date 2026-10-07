@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { parseAppleMusicSongUrl, parseSpotifyTrackUrl, parseYouTubeUrl } from './links';
 import {
   AVATAR_IMAGE_MAX_LENGTH,
+  COMMENT_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   INVITE_CODE_PATTERN,
   MAX_PARTY_SIZE,
@@ -215,6 +216,21 @@ export const submitRecommendationRequestSchema = z.strictObject({
     .optional(),
 });
 
+/**
+ * POST /rounds/{roundId}/recommendations/{recommendationId}/comments (D25). One line of text: control characters
+ * (including line breaks) and text-direction tricks are refused, like in names.
+ */
+export const addCommentRequestSchema = z.strictObject({
+  text: z
+    .string()
+    .trim()
+    .min(1, { error: 'Write something first.' })
+    .max(COMMENT_MAX_LENGTH, { error: `Comments can be up to ${COMMENT_MAX_LENGTH} characters.` })
+    .refine((text) => !DECEPTIVE_CHARACTERS.test(text), {
+      error: 'Comments can’t contain hidden or text-direction characters.',
+    }),
+});
+
 /** PUT /rounds/{roundId}/votes/{recommendationId} */
 export const castVoteRequestSchema = z.strictObject({
   rating: ratingSchema,
@@ -256,6 +272,7 @@ export type UpdatePartySettingsRequest = z.infer<typeof updatePartySettingsReque
 export type JoinPartyRequest = z.infer<typeof joinPartyRequestSchema>;
 export type SubmitRecommendationRequest = z.infer<typeof submitRecommendationRequestSchema>;
 export type CastVoteRequest = z.infer<typeof castVoteRequestSchema>;
+export type AddCommentRequest = z.infer<typeof addCommentRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
 export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

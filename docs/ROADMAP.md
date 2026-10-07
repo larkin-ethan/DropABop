@@ -333,6 +333,10 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
   time ratings lock (11:59 pm on the last sharing day at the earliest); changes apply from next week. *Done when:* settings saves and
   validates them (API + form), weeks/results/home/share follow the week's own days and lock time, old parties keep
   Mon–Fri / Sunday 11:59 pm, unit + integration + screen tests.
+- [x] **P8.14 — Comments on songs** (Ethan, 2026-10-07; D25) — members comment on the week's songs (names shown,
+  280 characters, only while the week is open; delete your own, host moderates); collapsed by default on Rate and
+  read-only in Results. *Done when:* 3 routes with least-privilege functions, rules + integration + screen tests,
+  API/DATABASE/PRODUCT_DECISIONS updated.
 
 ---
 

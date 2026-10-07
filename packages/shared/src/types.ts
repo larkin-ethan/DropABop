@@ -159,6 +159,17 @@ export interface Vote {
   updatedAt: IsoDateTime;
 }
 
+/** D25: a comment on one song of a week. Only party members can read or write them. */
+export interface Comment {
+  commentId: string;
+  roundId: string;
+  recommendationId: string;
+  /** Who wrote it (from the verified token). Shown by name, always (D25). */
+  userId: string;
+  text: string;
+  createdAt: IsoDateTime;
+}
+
 /** D16: lookup record for joining by code. */
 export interface Invitation {
   code: string;

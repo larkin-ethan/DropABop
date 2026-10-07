@@ -2,7 +2,10 @@
 // key per resource, so a change made on one screen (e.g. rating a song) refreshes the others.
 
 import type {
+  AddCommentRequest,
   CastVoteRequest,
+  CommentResponse,
+  CommentsResponse,
   CreatePartyRequest,
   CurrentWeekResponse,
   GroupStatsResponse,
@@ -36,6 +39,7 @@ export const keys = {
   party: (partyId: string) => ['party', partyId] as const,
   currentWeek: (partyId: string) => ['currentWeek', partyId] as const,
   weekSongs: (roundId: string) => ['weekSongs', roundId] as const,
+  weekComments: (roundId: string) => ['weekComments', roundId] as const,
   rounds: (partyId: string) => ['rounds', partyId] as const,
   results: (roundId: string) => ['results', roundId] as const,
   invite: (code: string) => ['invite', code] as const,
@@ -83,6 +87,17 @@ export function useWeekSongs(roundId: string | null, options: { poll?: boolean }
   return useQuery({
     queryKey: keys.weekSongs(roundId ?? ''),
     queryFn: () => api.get<WeekSongsResponse>(`/rounds/${enc(roundId ?? '')}/recommendations`),
+    enabled: roundId !== null,
+    refetchInterval: options.poll ? WEEK_POLL_MS : false,
+  });
+}
+
+/** D25: every comment in a week (one request; the screens group them by song). Polls while the week is open. */
+export function useWeekComments(roundId: string | null, options: { poll?: boolean } = {}) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.weekComments(roundId ?? ''),
+    queryFn: () => api.get<CommentsResponse>(`/rounds/${enc(roundId ?? '')}/comments`),
     enabled: roundId !== null,
     refetchInterval: options.poll ? WEEK_POLL_MS : false,
   });
@@ -297,5 +312,28 @@ export function useCastVote(roundId: string, partyId: string) {
       void queryClient.invalidateQueries({ queryKey: keys.weekSongs(roundId) });
       void queryClient.invalidateQueries({ queryKey: keys.currentWeek(partyId) });
     },
+  });
+}
+
+/** D25: posts a comment on one song, then refreshes the week's comments. */
+export function useAddComment(roundId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ recommendationId, text }: { recommendationId: string } & AddCommentRequest) =>
+      api.post<CommentResponse>(`/rounds/${enc(roundId)}/recommendations/${enc(recommendationId)}/comments`, {
+        text,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.weekComments(roundId) }),
+  });
+}
+
+/** D25: deletes a comment (your own while the week is open; the host's moderation any time). */
+export function useDeleteComment(roundId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) => api.delete(`/rounds/${enc(roundId)}/comments/${enc(commentId)}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.weekComments(roundId) }),
   });
 }
