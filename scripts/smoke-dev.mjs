@@ -186,6 +186,8 @@ const search = await call(
   [200],
 );
 const song = search?.songs?.[0];
+// The Apple Music id is inside the song's provider list, the same way the website reads it (ShareScreen).
+const appleSongId = song?.providers?.find((p) => p.provider === 'appleMusic')?.providerSongId;
 print(`     search: ${search?.songs?.length ?? 0} songs`);
 await call(
   'POST /songs/resolve (bad link) -> 400',
@@ -203,7 +205,7 @@ if (roundId) {
     'POST',
     `/rounds/${encodeURIComponent(roundId)}/recommendations`,
     t1.access,
-    { provider: 'appleMusic', providerSongId: song?.providerSongId ?? '1' },
+    { provider: 'appleMusic', providerSongId: appleSongId ?? 'missing-from-search' },
     [201, 409],
   );
   const listed = await call(
