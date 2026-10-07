@@ -234,6 +234,41 @@ if (roundId) {
       { rating: 8 },
       [403],
     );
+    // Comments (D25): a member comments, everyone in the party can read it, the host can remove it.
+    const posted = await call(
+      'POST comment (u2)',
+      'POST',
+      `/rounds/${encodeURIComponent(roundId)}/recommendations/${othersSong.recommendationId}/comments`,
+      t2.access,
+      { text: 'Smoke test comment' },
+      [201],
+    );
+    await call(
+      'POST empty comment -> 400',
+      'POST',
+      `/rounds/${encodeURIComponent(roundId)}/recommendations/${othersSong.recommendationId}/comments`,
+      t2.access,
+      { text: '   ' },
+      [400],
+    );
+    await call(
+      'GET comments (u1)',
+      'GET',
+      `/rounds/${encodeURIComponent(roundId)}/comments`,
+      t1.access,
+      null,
+      [200],
+    );
+    if (posted?.comment?.commentId) {
+      await call(
+        'DELETE comment as host (u1)',
+        'DELETE',
+        `/rounds/${encodeURIComponent(roundId)}/comments/${posted.comment.commentId}`,
+        t1.access,
+        null,
+        [204],
+      );
+    }
   } else {
     print(
       `     no song to rate yet (${shared?.error?.code ?? 'none shared'}): rating checked on a sharing day`,
