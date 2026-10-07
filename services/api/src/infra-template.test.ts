@@ -123,16 +123,31 @@ describe('infra/template.yaml', () => {
   });
 
   it('allows browsers to call the API only from the website (and the local dev site in dev)', () => {
-    const api = template.Resources.HttpApi?.Properties as {
-      CorsConfiguration: { AllowOrigins: unknown; AllowCredentials?: boolean };
+    const api = template.Resources.HttpApi?.Properties as { CorsConfiguration: unknown };
+    // SAM only understands a condition around the WHOLE CORS block. A condition inside AllowOrigins alone becomes the
+    // entire CORS setting, which API Gateway ignores, leaving prod with no CORS (2026-10-07). So: every possible
+    // outcome of the !If tree must be a complete block. Once YAML tags are dropped, !If reads as [condition, a, b].
+    const leaves: { AllowOrigins?: unknown; AllowMethods?: unknown; AllowCredentials?: boolean }[] = [];
+    const collect = (node: unknown): void => {
+      if (Array.isArray(node) && typeof node[0] === 'string' && node.length === 3) {
+        collect(node[1]);
+        collect(node[2]);
+      } else {
+        leaves.push(node as (typeof leaves)[number]);
+      }
     };
-    // `!If [HasDevOrigin, [site, DevOrigin], [site]]` reads as a plain list once the YAML tags are dropped.
-    const origins = JSON.stringify(api.CorsConfiguration.AllowOrigins);
+    collect(api.CorsConfiguration);
+    expect(leaves.length).toBe(5);
+    for (const leaf of leaves) {
+      expect(Array.isArray(leaf.AllowOrigins)).toBe(true);
+      expect(leaf.AllowMethods).toEqual(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+      expect(leaf.AllowCredentials).toBeUndefined();
+    }
+    const origins = JSON.stringify(leaves.map((l) => l.AllowOrigins));
     expect(origins).toContain('https://${WebDistribution.DomainName}');
     expect(origins).toContain('DevOrigin');
     expect(origins).toContain('ExternalSiteOrigin'); // the temporary external host (ADR-0010)
     expect(origins).not.toContain('"*"');
-    expect(api.CorsConfiguration.AllowCredentials).toBeUndefined();
   });
 
   it('serves the website from a private bucket, HTTPS only, with security headers (P9.2)', () => {

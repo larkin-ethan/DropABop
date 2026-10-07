@@ -43,6 +43,14 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-07 — **First prod deploy (Ethan) + CORS fix** — `deploy.sh prod` created the prod stack and uploaded the
+  website to https://dropabop.pages.dev (headers checked: CSP with the exact prod API, HSTS, DENY framing, nosniff;
+  `/join/…` serves the app). But prod's API had **no CORS** (`get-api` → null; preflight 404): SAM turns a conditional
+  `AllowOrigins` into the whole CORS value, which API Gateway ignores (confirmed with aws-sam-translator 1.113.0). Dev
+  had the same template and only worked because its CORS predated the condition (P9.2). Fixed by wrapping the whole
+  CORS block in the `!If` (59c1220) + a test that every branch is a complete block. Dev redeployed: `get-api` now
+  shows the full CORS config, localhost allowed, other origins refused. Prod needs `deploy.sh prod` again.
+
 - 2026-10-07 — **Temporary website host: Cloudflare Pages (ADR-0010, Ethan's choice)** — AWS still hasn't verified
   CloudFront. GitHub Pages rejected (its limits page says not for password pages; would share larkin-ethan.github.io
   with Ethan's site). Added `ExternalSiteOrigin` (CORS + email logo; prod rule: CloudFront or external site), build
