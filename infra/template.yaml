@@ -229,25 +229,39 @@ Resources:
       AccessLogSettings:
         DestinationArn: !GetAtt ApiAccessLogGroup.Arn
         Format: '{"requestId":"$context.requestId","route":"$context.routeKey","status":"$context.status","latencyMs":"$context.responseLatency","userId":"$context.authorizer.claims.sub","authError":"$context.authorizer.error","error":"$context.error.message","integrationError":"$context.integrationErrorMessage"}'
-      CorsConfiguration:
-        # Browsers may call the API only from the website (CloudFront, or the temporary external host while CloudFront
-        # is off, ADR-0010), plus the local dev site in dev (spec §31).
-        AllowOrigins: !If
-          - ShouldHostWebsite
+      # Browsers may call the API only from the website (CloudFront, or the temporary external host while CloudFront
+      # is off, ADR-0010), plus the local dev site in dev (spec §31).
+      # The whole block sits inside the !If on purpose: SAM only handles a condition around the entire CORS
+      # configuration. A condition inside AllowOrigins alone makes SAM emit the bare list as the CORS settings,
+      # which API Gateway ignores, leaving no CORS at all (found on the first prod deploy, 2026-10-07).
+      CorsConfiguration: !If
+        - ShouldHostWebsite
+        - !If
+          - HasDevOrigin
+          - AllowOrigins: [!Sub 'https://${WebDistribution.DomainName}', !Ref DevOrigin]
+            AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+            AllowHeaders: [authorization, content-type]
+            MaxAge: 600
+          - AllowOrigins: [!Sub 'https://${WebDistribution.DomainName}']
+            AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+            AllowHeaders: [authorization, content-type]
+            MaxAge: 600
+        - !If
+          - HasExternalSite
           - !If
             - HasDevOrigin
-            - [!Sub 'https://${WebDistribution.DomainName}', !Ref DevOrigin]
-            - [!Sub 'https://${WebDistribution.DomainName}']
-          - !If
-            - HasExternalSite
-            - !If
-              - HasDevOrigin
-              - [!Ref ExternalSiteOrigin, !Ref DevOrigin]
-              - [!Ref ExternalSiteOrigin]
-            - [!Ref DevOrigin] # no website yet: only the local dev site
-        AllowMethods: [GET, POST, PUT, PATCH, DELETE]
-        AllowHeaders: [authorization, content-type]
-        MaxAge: 600
+            - AllowOrigins: [!Ref ExternalSiteOrigin, !Ref DevOrigin]
+              AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+              AllowHeaders: [authorization, content-type]
+              MaxAge: 600
+            - AllowOrigins: [!Ref ExternalSiteOrigin]
+              AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+              AllowHeaders: [authorization, content-type]
+              MaxAge: 600
+          - AllowOrigins: [!Ref DevOrigin] # no website yet: only the local dev site
+            AllowMethods: [GET, POST, PUT, PATCH, DELETE]
+            AllowHeaders: [authorization, content-type]
+            MaxAge: 600
       # Rate limits (spec §32, roadmap P9.1). API Gateway counts each route's requests from ALL callers together
       # (token bucket: RateLimit per second, Burst = short spikes) and answers 429 above them; there's no per-person
       # limit in HTTP APIs. So limits leave room for a whole party at once (20 people) while capping abuse and cost.
