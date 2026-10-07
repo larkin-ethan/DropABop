@@ -2,12 +2,13 @@
 // Results unlock when a week ends (D9). They show every song ranked, each day's Bop of the Day (D12), averages and
 // anonymous rating spreads; who rated what only when the party allows it (D11).
 
-import type { MusicProviderId, ResultsResponse, Round, SongResult } from '@dropabop/shared';
+import type { Comment, MusicProviderId, ResultsResponse, Round, SongResult } from '@dropabop/shared';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { useMe, useResults, useRounds } from '../api/hooks';
+import { useMe, useParty, useResults, useRounds, useWeekComments } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
+import { SongComments } from '../components/SongComments';
 import { ListenLinks } from '../components/SongRow';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { RatingDistribution } from '../components/Stats';
@@ -156,6 +157,17 @@ function ResultsView({
 }) {
   const [view, setView] = useState<'overall' | 'days'>('overall');
   const { results, round } = data;
+  // Comments (D25): read-only once the week is over (the host can still remove one).
+  const comments = useWeekComments(round.roundId);
+  const party = useParty(round.partyId);
+  const me = useMe();
+  const commentsOn: CommentsOn = {
+    roundId: round.roundId,
+    isHost: party.data?.isHost ?? false,
+    myUserId: me.data?.user.userId,
+    list: (recommendationId) =>
+      (comments.data?.comments ?? []).filter((c) => c.recommendationId === recommendationId),
+  };
   const byId = new Map(results.songs.map((s) => [s.recommendationId, s]));
   const rated = results.songs.filter((s) => s.ratingCount > 0).length;
 
@@ -256,7 +268,13 @@ function ResultsView({
         {view === 'overall' ? (
           <ol className="flex flex-col gap-3">
             {results.songs.map((s) => (
-              <ResultCard key={s.recommendationId} result={s} names={names} preferred={preferred} />
+              <ResultCard
+                key={s.recommendationId}
+                result={s}
+                names={names}
+                preferred={preferred}
+                commentsOn={commentsOn}
+              />
             ))}
           </ol>
         ) : (
@@ -278,6 +296,7 @@ function ResultsView({
                           result={s}
                           names={names}
                           preferred={preferred}
+                          commentsOn={commentsOn}
                           dayWinner={day.winnerIds.includes(s.recommendationId)}
                         />
                       ))}
@@ -294,15 +313,25 @@ function ResultsView({
   );
 }
 
+/** What a results card needs to show its song's comments. */
+interface CommentsOn {
+  roundId: string;
+  isHost: boolean;
+  myUserId: string | undefined;
+  list: (recommendationId: string) => Comment[];
+}
+
 function ResultCard({
   result,
   names,
   preferred,
+  commentsOn,
   dayWinner = false,
 }: {
   result: SongResult;
   names: NameLookup;
   preferred: MusicProviderId | null;
+  commentsOn: CommentsOn;
   dayWinner?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -398,6 +427,18 @@ function ResultCard({
           )}
         </div>
       )}
+      <div className="mt-3">
+        <SongComments
+          roundId={commentsOn.roundId}
+          recommendationId={result.recommendationId}
+          songTitle={result.song.title}
+          comments={commentsOn.list(result.recommendationId)}
+          weekOpen={false}
+          isHost={commentsOn.isHost}
+          myUserId={commentsOn.myUserId}
+          names={names}
+        />
+      </div>
     </li>
   );
 }

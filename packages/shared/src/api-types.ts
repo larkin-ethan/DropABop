@@ -3,6 +3,7 @@
 // fields are present: a field a viewer may not see is left out entirely, never set to null.
 
 import type {
+  Comment,
   IsoDate,
   IsoDateTime,
   MemberRole,
@@ -222,6 +223,15 @@ export interface VoteResponse {
 
 export interface MyVotesResponse {
   votes: { recommendationId: string; rating: number; updatedAt: IsoDateTime }[];
+}
+
+/** GET /rounds/{roundId}/comments: every comment in the week, oldest first (the app groups them by song). */
+export interface CommentsResponse {
+  comments: Comment[];
+}
+
+export interface CommentResponse {
+  comment: Comment;
 }
 
 export interface ResultsResponse {

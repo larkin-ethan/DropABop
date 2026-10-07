@@ -10,6 +10,11 @@ export const MAX_PARTY_SIZE = 50;
 /** D15 / spec §32: a person can be in at most this many parties (stops one account creating unlimited parties). */
 export const MAX_PARTIES_PER_USER = 5; // Ethan, 2026-10-01
 
+/** D25: a comment is a short line of text, like a chat message. */
+export const COMMENT_MAX_LENGTH = 280;
+/** D25: stops one person flooding a week with comments (20 people × 50 is still a small query). */
+export const MAX_COMMENTS_PER_PERSON_PER_WEEK = 50;
+
 /** Spec §15 / D7: ratings are whole numbers from 1 to 10. */
 export const MIN_RATING = 1;
 export const MAX_RATING = 10;

@@ -65,6 +65,16 @@ export const keys = {
     PK: partyPk(partyId),
     SK: `VOTE#${date(weekStart, 'weekStart')}#${id(userId, 'userId')}#${id(recommendationId, 'recommendationId')}`,
   }),
+  /** D25: sorted by time within the week, so one query returns a week's comments oldest first. */
+  comment: (partyId: string, weekStart: string, createdAt: string, commentId: string): ItemKey => {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(createdAt)) {
+      throw new Error('Invalid createdAt');
+    }
+    return {
+      PK: partyPk(partyId),
+      SK: `COMMENT#${date(weekStart, 'weekStart')}#${createdAt}#${id(commentId, 'commentId')}`,
+    };
+  },
   /** Wrong invite codes one person tried in one UTC hour ("2026-10-04T15"); expires on its own (TTL). */
   inviteFailures: (userId: string, hour: string): ItemKey => {
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(hour)) {
@@ -90,6 +100,7 @@ export const prefixes = {
   weekSubmissions: (weekStart: string) => `SUBMITTED#${date(weekStart, 'weekStart')}#`,
   mySubmissions: (weekStart: string, userId: string) =>
     `SUBMITTED#${date(weekStart, 'weekStart')}#${id(userId, 'userId')}#`,
+  weekComments: (weekStart: string) => `COMMENT#${date(weekStart, 'weekStart')}#`,
   allVotes: () => 'VOTE#',
   weekVotes: (weekStart: string) => `VOTE#${date(weekStart, 'weekStart')}#`,
   myWeekVotes: (weekStart: string, userId: string) =>

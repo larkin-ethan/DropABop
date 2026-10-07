@@ -8,7 +8,8 @@ FUNCTIONS = HealthFunction GetMeFunction UpdateMeFunction CreatePartyFunction Li
 	PreviewInviteFunction JoinPartyFunction RegenerateInviteFunction RemoveMemberFunction UpdateSettingsFunction \
 	GetCurrentWeekFunction ListWeeksFunction SubmitRecommendationFunction ListRecommendationsFunction \
 	CastVoteFunction ListMyVotesFunction GetResultsFunction PersonalStatsFunction GroupStatsFunction \
-	LeaderboardFunction SearchSongsFunction ResolveSongFunction
+	LeaderboardFunction SearchSongsFunction ResolveSongFunction ListCommentsFunction AddCommentFunction \
+	DeleteCommentFunction
 
 $(addprefix build-,$(FUNCTIONS)):
 	node scripts/bundle.mjs "$(ARTIFACTS_DIR)"

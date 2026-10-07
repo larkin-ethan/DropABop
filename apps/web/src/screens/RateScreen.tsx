@@ -2,18 +2,20 @@
 // All of the week's songs grouped by day, anonymous while the week is open (D10). Ratings save as you tap and can be
 // changed until the week's ratings lock (D8). You can't rate your own songs (D6).
 
-import type { CurrentWeekResponse, MusicProviderId, OpenWeekSongView } from '@dropabop/shared';
+import type { Comment, CurrentWeekResponse, MusicProviderId, OpenWeekSongView } from '@dropabop/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { safeDecode } from '../lib/pending-invite';
-import { useCastVote, useCurrentWeek, useMe, useWeekSongs } from '../api/hooks';
+import { useCastVote, useCurrentWeek, useMe, useParty, useWeekComments, useWeekSongs } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { RatingControl } from '../components/RatingControl';
+import { SongComments } from '../components/SongComments';
 import { ListenLinks, MyPickBadge } from '../components/SongRow';
 import { EmptyState } from '../components/States';
 import { AlbumArt, Card, ProgressBar, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
+import { nameLookup, type NameLookup } from '../lib/members';
 import { DAY_NAMES, formatLockTime, formatTimeLeft, hueFor } from '../lib/format';
 import { WEEKDAYS } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
@@ -100,6 +102,12 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
   const location = useLocation();
   const locked = new Date(week.round.endsAt).getTime() <= now.getTime();
   const sharers = useSharerNames(partyId);
+  // Comments (D25): one request for the whole week, grouped per song below. Names come from the party's members.
+  const comments = useWeekComments(week.round.roundId, { poll: true });
+  const party = useParty(partyId);
+  const names = nameLookup(party.data?.members ?? [], me.data?.user.userId);
+  const commentsFor = (recommendationId: string): Comment[] =>
+    (comments.data?.comments ?? []).filter((c) => c.recommendationId === recommendationId);
 
   const all = songs.data?.songs ?? [];
   const ratable = all.filter((s) => !s.isMine);
@@ -212,6 +220,10 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
                           item={s}
                           roundId={week.round.roundId}
                           partyId={partyId}
+                          comments={commentsFor(s.recommendationId)}
+                          isHost={party.data?.isHost ?? false}
+                          myUserId={me.data?.user.userId}
+                          names={names}
                           preferred={me.data?.user.preferredProvider ?? null}
                           disabled={locked}
                           sharedBy={sharers.sharedBy(s)}
@@ -237,6 +249,10 @@ function RateCard({
   item,
   roundId,
   partyId,
+  comments,
+  isHost,
+  myUserId,
+  names,
   preferred,
   disabled,
   onRated,
@@ -246,6 +262,10 @@ function RateCard({
   item: OpenWeekSongView;
   roundId: string;
   partyId: string;
+  comments: Comment[];
+  isHost: boolean;
+  myUserId: string | undefined;
+  names: NameLookup;
   preferred: MusicProviderId | null;
   disabled: boolean;
   /** Called when the person picks a rating (before it's saved). */
@@ -311,6 +331,16 @@ function RateCard({
         />
       )}
       {!item.isMine && <SaveStatus pending={vote.isPending} saved={vote.isSuccess} error={vote.error} />}
+      <SongComments
+        roundId={roundId}
+        recommendationId={item.recommendationId}
+        songTitle={item.song.title}
+        comments={comments}
+        weekOpen={!disabled}
+        isHost={isHost}
+        myUserId={myUserId}
+        names={names}
+      />
     </li>
   );
 }

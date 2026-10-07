@@ -4,6 +4,9 @@
 // It is NOT a security boundary: the real API enforces every rule on the server.
 
 import type {
+  Comment,
+  CommentResponse,
+  CommentsResponse,
   CurrentWeekResponse,
   GroupStatsResponse,
   InvitePreviewResponse,
@@ -24,6 +27,7 @@ import type {
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
+  addCommentRequestSchema,
   checkSchedule,
   shareDaysOf,
   sortWeekdays,
@@ -48,6 +52,8 @@ export interface PreviewState {
   /** Set by closeWeek(): the current week has ended (ratings locked, results out). */
   weekClosed: boolean;
   catalog: Song[];
+  /** D25: comments on songs (this week and last week). */
+  comments: Comment[];
 }
 
 function catalogSong(id: string, title: string, artist: string, album: string): Song {
@@ -158,6 +164,24 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
     },
     pastResults: pastSongs,
     weekClosed: false,
+    comments: [
+      {
+        commentId: 'c1',
+        roundId: 'p1.2026-10-05',
+        recommendationId: 'r10',
+        userId: 'u2',
+        text: 'This one has been stuck in my head all week',
+        createdAt: '2026-10-07T15:10:00.000Z',
+      },
+      {
+        commentId: 'c2',
+        roundId: 'p1.2026-10-05',
+        recommendationId: 'r10',
+        userId: 'u4',
+        text: 'Perfect road trip song',
+        createdAt: '2026-10-07T16:02:00.000Z',
+      },
+    ],
     otherParty: {
       ...party,
       partyId: 'p2',
@@ -545,6 +569,44 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return {
         vote: { recommendationId: target.recommendationId, rating, updatedAt: new Date().toISOString() },
       };
+    }
+    // Comments (D25), with the same rules as the API: members only (everyone here is), open weeks only for writing.
+    if (is('GET', 'rounds', ':id', 'comments')) {
+      const response: CommentsResponse = { comments: state.comments.filter((c) => c.roundId === parts[1]) };
+      return response;
+    }
+    if (is('POST', 'rounds', ':id', 'recommendations', ':rec', 'comments')) {
+      if (parts[1] !== state.round.roundId || state.weekClosed) {
+        throw new ApiError(409, 'WEEK_CLOSED', 'This week has ended, so comments are closed.');
+      }
+      if (!state.songs.some((s) => s.recommendationId === parts[3])) notFound();
+      const parsed = addCommentRequestSchema.safeParse(body);
+      if (!parsed.success) {
+        throw new ApiError(400, 'VALIDATION_FAILED', parsed.error.issues[0]?.message ?? 'Check the comment.');
+      }
+      const comment: Comment = {
+        commentId: `c${state.comments.length + 1}-${Date.now()}`,
+        roundId: state.round.roundId,
+        recommendationId: parts[3] ?? '',
+        userId: ME,
+        text: parsed.data.text,
+        createdAt: new Date().toISOString(),
+      };
+      state.comments = [...state.comments, comment];
+      const response: CommentResponse = { comment };
+      return response;
+    }
+    if (is('DELETE', 'rounds', ':id', 'comments', ':comment')) {
+      const target = state.comments.find((c) => c.commentId === parts[3]) ?? notFound();
+      const host = party().hostUserId === ME;
+      if (!host && target.userId !== ME) {
+        throw new ApiError(403, 'FORBIDDEN', 'You can only delete your own comments.');
+      }
+      if (!host && (target.roundId !== state.round.roundId || state.weekClosed)) {
+        throw new ApiError(409, 'WEEK_CLOSED', 'This week has ended, so comments are closed.');
+      }
+      state.comments = state.comments.filter((c) => c !== target);
+      return undefined;
     }
     if (is('GET', 'rounds', ':id', 'votes', 'me')) {
       return {
