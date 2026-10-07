@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkSchedule, shareDaysOf, sortWeekdays, withScheduleDefaults } from './schedule';
+import { checkSchedule, shareDaysOf, sortWeekdays, weekPrivacyOf, withScheduleDefaults } from './schedule';
 import { updatePartySettingsRequestSchema } from './schemas';
 
 describe('party schedule (D1, D2)', () => {
@@ -40,5 +40,15 @@ describe('party schedule (D1, D2)', () => {
     expect(parse({ shareDays: ['FUNDAY'] })).toBe(false);
     expect(parse({ ratingCloseDay: 'sunday' })).toBe(false);
     expect(parse({ ratingCloseTime: '24:00' })).toBe(false);
+  });
+});
+
+describe('weekPrivacyOf (D10, D11)', () => {
+  it('uses the week’s own switches, and treats weeks from before they were recorded as private', () => {
+    expect(weekPrivacyOf({ revealRecommenderDuringVoting: true, showWhoRatedWhat: true })).toEqual({
+      revealRecommenderDuringVoting: true,
+      showWhoRatedWhat: true,
+    });
+    expect(weekPrivacyOf({})).toEqual({ revealRecommenderDuringVoting: false, showWhoRatedWhat: false });
   });
 });

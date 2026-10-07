@@ -98,6 +98,12 @@ export interface Round {
    */
   shareDays?: Weekday[];
   /**
+   * The party's privacy switches when this week was created (D10, D11), so turning one on never reveals anything
+   * about weeks that were run with it off. Missing on older weeks = off (shown with weekPrivacyOf).
+   */
+  revealRecommenderDuringVoting?: boolean;
+  showWhoRatedWhat?: boolean;
+  /**
    * Stored status. Never read this directly to decide what's allowed: the effective status comes
    * from the current time (getEffectiveWeekStatus, ADR-0003).
    */

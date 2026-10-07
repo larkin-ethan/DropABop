@@ -334,7 +334,11 @@ function SongsByDay({
     return (
       <EmptyState
         title="No songs yet"
-        message="Be the first person to share one today."
+        message={
+          today
+            ? 'Be the first person to share one today.'
+            : 'Songs appear here as people share them on sharing days.'
+        }
         action={
           today ? (
             <Link to="/share" className={buttonClassName('primary')}>

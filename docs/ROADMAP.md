@@ -215,7 +215,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
-- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`; website sign-up run done)
+- [x] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`; website sign-up run done)
   - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile dropabop-dev` (user approves at the prompt), then calls
     `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
@@ -355,7 +355,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [x] **P10.1 — Playwright setup** — runs against `npm run dev` with a mocked API (MSW) for CI.
 - [x] **P10.2 — Critical journey** (§34) — sign up → join party → share today's song → rate others' songs → (clock
   moved past Sunday) ratings locked → view weekly results, at 375px and 1440px.
-- [ ] **P10.3 — Dev-stack smoke test** (`npm run e2e:dev` written and passing on 2026-10-04, a Sunday; tick after a weekday run covers share → rate) — same journey against the deployed dev stack with two test users
+- [x] **P10.3 — Dev-stack smoke test** (`npm run e2e:dev` written and passing on 2026-10-04, a Sunday; tick after a weekday run covers share → rate) — same journey against the deployed dev stack with two test users
   (credentials created in this task and stored only in a git-ignored local file). Manual trigger only.
 
 ---
@@ -368,7 +368,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [x] **P11.2 — Deploy workflow** (2026-10-04: replaced by `scripts/deploy.sh`, run from Ethan's Mac, ADR-0009; GitHub
   keeps running the checks) — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
   invalidation. Prod job exists but requires a manual approval (GitHub Environment `production` with Ethan as reviewer).
-- [ ] **P11.3 — First prod deploy** [HUMAN] — after AWS verifies CloudFront: protect `main` on GitHub, merge
+- [ ] **P11.3 — First prod deploy** [HUMAN] — Cloudflare Pages setup (DEPLOYMENT.md §4d, ADR-0010), merge
   `build` → `main`, then `ALERT_EMAIL=… bash scripts/deploy.sh prod` (DEPLOYMENT.md §6). AI provides exact commands.
 - [ ] **P11.4 — Prod verification** — run P10.3 smoke test against prod with a throwaway account; confirm alarms and budget.
 

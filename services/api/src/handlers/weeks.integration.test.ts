@@ -1,7 +1,7 @@
 import type { Party, Round } from '@dropabop/shared';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
-import { aRecommendation, aVote, newId } from '../../test/fixtures';
+import { aRecommendation, aVote, newId, setWeekPrivacy } from '../../test/fixtures';
 import { testDeps } from '../../test/handler-deps';
 import { putRecommendation } from '../data/recommendations';
 import { putVote } from '../data/votes';
@@ -131,6 +131,10 @@ describe('GET /parties/{partyId}/rounds/current', () => {
       }),
       deps,
     );
+    // Turned on mid-week: this week stays as it started (D10).
+    expect((await currentWeek(memberId, party)).body).not.toHaveProperty('sharedTodayUserIds');
+
+    await setWeekPrivacy(deps.data, round, { revealRecommenderDuringVoting: true });
     expect((await currentWeek(memberId, party)).body.sharedTodayUserIds).toEqual([hostId]);
   });
 

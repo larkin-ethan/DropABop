@@ -122,7 +122,7 @@ export function getSubmissionDay(
   };
 }
 
-/** True while ratings and (weekday) submissions are accepted for this round. */
+/** True while ratings and (sharing-day) submissions are accepted for this round. */
 export function isWeekOpen(round: Pick<Round, 'endsAt'>, now: Date): boolean {
   return now.getTime() < new Date(round.endsAt).getTime();
 }
@@ -188,7 +188,8 @@ export type WeekPlan =
 export function planCurrentWeek(
   party: {
     partyId: string;
-    settings: WeekSchedule & Pick<PartySettings, 'paused' | 'shareDays'>;
+    settings: WeekSchedule &
+      Pick<PartySettings, 'paused' | 'shareDays' | 'revealRecommenderDuringVoting' | 'showWhoRatedWhat'>;
   },
   latestRound: Round | null,
   now: Date,
@@ -228,6 +229,9 @@ export function planCurrentWeek(
       startsAt,
       endsAt: window.endsAt,
       shareDays: shareDaysOf(party.settings),
+      // Privacy switches are fixed per week too (D10, D11), so changing them never affects a week already running.
+      revealRecommenderDuringVoting: party.settings.revealRecommenderDuringVoting,
+      showWhoRatedWhat: party.settings.showWhoRatedWhat,
       status: 'OPEN',
     },
   };

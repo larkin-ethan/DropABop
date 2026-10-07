@@ -282,7 +282,7 @@ function SearchResults({
     return (
       <EmptyState
         title="No songs found"
-        message="Try different words, or paste an Apple Music link instead."
+        message="Try different words, or paste a song link from Apple Music, Spotify or YouTube Music instead."
       />
     );
   }
@@ -295,7 +295,7 @@ function SearchResults({
         >
           <AlbumArt url={song.albumArtUrl} hue={hueFor(song.songId)} />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{song.title}</p>
+            <p className="line-clamp-2 font-semibold break-words">{song.title}</p>
             <p className="truncate text-sm text-muted">
               {song.artist}
               {song.album ? ` · ${song.album}` : ''}

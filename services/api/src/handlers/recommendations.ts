@@ -8,6 +8,7 @@ import {
   parseYouTubeUrl,
   songSchema,
   submitRecommendationRequestSchema,
+  weekPrivacyOf,
 } from '@dropabop/shared';
 import { parseRoundId } from '../data/keys';
 import { listMySubmissionDates, listWeekRecommendations, putRecommendation } from '../data/recommendations';
@@ -45,7 +46,7 @@ function pastedLinks(links: SubmitRecommendationRequest['links']): SongProvider[
 
 /**
  * Share today's song (spec §14, D1). The server decides today's date, looks the song up with the music service
- * itself, and stores it. One per person per weekday; the database enforces that even for simultaneous requests.
+ * itself, and stores it. One per person per sharing day; the database enforces that even for simultaneous requests.
  */
 export const submitRecommendationFn: HandlerFn = async (event, { data, now, newId, music }) => {
   const { userId } = getAuthenticatedUser(event);
@@ -105,7 +106,7 @@ export const submitRecommendationFn: HandlerFn = async (event, { data, now, newI
  */
 export const listRecommendationsFn: HandlerFn = async (event, { data, now }) => {
   const { userId } = getAuthenticatedUser(event);
-  const { round, party } = await loadRoundForMember(event, data, userId);
+  const { round } = await loadRoundForMember(event, data, userId);
 
   const [songs, myVotes] = await Promise.all([
     listWeekRecommendations(data, round.roundId),
@@ -113,7 +114,8 @@ export const listRecommendationsFn: HandlerFn = async (event, { data, now }) => 
   ]);
   const voteBySong = new Map(myVotes.map((v) => [v.recommendationId, v]));
   // Once the week is over, recommenders are revealed (D10); ratings still come only from the results endpoint.
-  const reveal = !isWeekOpen(round, now()) || party.settings.revealRecommenderDuringVoting;
+  // The week's own switch, so turning it on mid-week doesn't reveal songs shared under the old setting.
+  const reveal = !isWeekOpen(round, now()) || weekPrivacyOf(round).revealRecommenderDuringVoting;
 
   return ok({
     round,

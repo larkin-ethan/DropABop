@@ -17,6 +17,7 @@ const template = parse(readRepoFile('infra/template.yaml'), { logLevel: 'silent'
     string,
     { Type: string; Properties: Record<string, unknown>; Metadata?: Record<string, unknown> }
   >;
+  Rules?: Record<string, unknown>;
 };
 
 interface FunctionProps {
@@ -129,6 +130,7 @@ describe('infra/template.yaml', () => {
     const origins = JSON.stringify(api.CorsConfiguration.AllowOrigins);
     expect(origins).toContain('https://${WebDistribution.DomainName}');
     expect(origins).toContain('DevOrigin');
+    expect(origins).toContain('ExternalSiteOrigin'); // the temporary external host (ADR-0010)
     expect(origins).not.toContain('"*"');
     expect(api.CorsConfiguration.AllowCredentials).toBeUndefined();
   });
@@ -226,10 +228,16 @@ describe('infra/template.yaml', () => {
     }
   });
 
-  it('never switches website hosting off for prod', () => {
+  it('never leaves prod without a website: CloudFront, or an https external host (ADR-0010)', () => {
     const samconfig = readRepoFile('infra/samconfig.toml');
     const prod = samconfig.slice(samconfig.indexOf('[prod.'));
-    expect(prod).not.toContain('HostWebsite=false');
+    if (prod.includes('HostWebsite=false')) {
+      expect(prod).toMatch(/ExternalSiteOrigin=https:\/\/[a-z0-9.-]+/);
+    }
+    // The template refuses it too (Rules), so a hand-typed deploy can't do it either.
+    const rules = JSON.stringify(template.Rules);
+    expect(rules).toContain('ProdHostsWebsite');
+    expect(rules).toContain('ExternalSiteOnlyWithoutCloudFront');
   });
 
   it('keeps logs for a limited time only, and logs every API request (P9.4)', () => {
@@ -251,11 +259,12 @@ describe('infra/template.yaml', () => {
     const pool = template.Resources.UserPool?.Properties as {
       VerificationMessageTemplate: { EmailMessage: unknown; EmailSubject: string };
     };
-    // `!If [ShouldHostWebsite, withLogo, withoutLogo]` reads as a list once the YAML tags are dropped.
-    const versions = (pool.VerificationMessageTemplate.EmailMessage as unknown[]).filter(
-      (v): v is string => typeof v === 'string' && v.includes('<div'),
-    );
-    expect(versions).toHaveLength(2);
+    // `!If [ShouldHostWebsite, cloudFrontLogo, !If [HasExternalSite, externalLogo, noLogo]]` reads as nested lists once
+    // the YAML tags are dropped.
+    const versions = [pool.VerificationMessageTemplate.EmailMessage]
+      .flat(3)
+      .filter((v): v is string => typeof v === 'string' && v.includes('<div'));
+    expect(versions).toHaveLength(3);
     for (const html of versions) {
       expect(html).toContain('{####}');
       expect(html.length).toBeLessThan(20_000);

@@ -24,6 +24,14 @@ export function formatDayList(days: Weekday[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
+/** "23:59" → "11:59 pm", "09:00" → "9:00 am" (a party's lock time, which is stored as 24-hour HH:MM). */
+export function formatTimeOfDay(time: string): string {
+  const [hours = 0, minutes = 0] = time.split(':').map(Number);
+  const suffix = hours < 12 ? 'am' : 'pm';
+  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+}
+
 /**
  * Between weeks: when sharing next opens. Weeks start Monday, but the first sharing day is the host's choice (D1).
  * `shareDays` are the party's current settings (what the next week will use); undefined while they load.

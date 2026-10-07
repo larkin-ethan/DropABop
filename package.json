@@ -2,7 +2,7 @@
   "name": "song-of-the-day",
   "private": true,
   "type": "module",
-  "description": "Private social music app: one song per member per weekday, rated 1–10 by the group.",
+  "description": "Private social music app: one song per member per sharing day, rated 1–10 by the group.",
   "engines": {
     "node": ">=24 <25"
   },

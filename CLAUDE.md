@@ -1,8 +1,8 @@
 # CLAUDE.md — Drop a Bop
 
-Private social music app. Each week, every party member shares one song per day (Mon–Fri), anyone can
-rate any of that week's songs 1–10 until Sunday night, then ratings lock and the weekly results and taste
-statistics are revealed. 10–20 users per party. (This weekly model deliberately changes spec §13–15: ADR-0004.)
+Private social music app. Each week, every party member shares one song per sharing day (Mon–Fri unless the
+host picks other days), anyone can rate any of that week's songs 1–10 until the host's lock time (default Sunday
+11:59 pm), then ratings lock and the weekly results and taste statistics are revealed. 10–20 users per party. (This weekly model deliberately changes spec §13–15: ADR-0004.)
 Serverless AWS, near-$0 to run.
 
 ## Where things are

@@ -22,7 +22,13 @@ import type {
   Weekday,
   WeekSongsResponse,
 } from '@dropabop/shared';
-import { DEFAULT_SHARE_DAYS, checkSchedule, shareDaysOf, sortWeekdays } from '@dropabop/shared';
+import {
+  DEFAULT_SHARE_DAYS,
+  checkSchedule,
+  shareDaysOf,
+  sortWeekdays,
+  weekPrivacyOf,
+} from '@dropabop/shared';
 import { ApiError, type ApiClient } from '../api/client';
 import { sampleMembers, sampleSongs, type SongView } from './sample-data';
 
@@ -135,6 +141,8 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       startsAt: '2026-10-05T05:00:00.000Z',
       endsAt,
       shareDays: [...DEFAULT_SHARE_DAYS],
+      revealRecommenderDuringVoting: false,
+      showWhoRatedWhat: false,
       status: 'OPEN',
     },
     today: { weekday: 'WED', date: '2026-10-07', dayNumber: 3, dayCount: 5 },
@@ -286,8 +294,8 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       sharedToday: today !== null && mine.some((s) => s.weekday === today.weekday),
       mySubmissionDates: mine.map((s) => s.submittedOn),
       sharedTodayCount: today === null ? 0 : state.songs.filter((s) => s.weekday === today.weekday).length,
-      // Like the real API: who has shared today only when the party reveals recommenders (D10).
-      ...(p.settings.revealRecommenderDuringVoting && today !== null
+      // Like the real API: who has shared today only when this week reveals recommenders (D10).
+      ...(weekPrivacyOf(state.round).revealRecommenderDuringVoting && today !== null
         ? { sharedTodayUserIds: mine.some((s) => s.weekday === today.weekday) ? [ME] : [] }
         : {}),
       progress: {
@@ -488,8 +496,8 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     }
     if (is('GET', 'rounds', ':id', 'recommendations')) {
       if (parts[1] !== state.round.roundId) notFound();
-      // Like the real API (D10): who shared each song only for your own songs, or when the party reveals them.
-      const reveal = party().settings.revealRecommenderDuringVoting;
+      // Like the real API (D10): who shared each song only for your own songs, or when this week reveals them.
+      const reveal = weekPrivacyOf(state.round).revealRecommenderDuringVoting;
       const others = state.members.filter((m) => m.userId !== ME);
       const songs = state.songs.map((song, index) => {
         if (song.isMine) return { ...song, recommendedBy: ME };

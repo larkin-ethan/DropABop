@@ -39,7 +39,7 @@ this deliberate change to spec §13–§15.
   put (exactly one wins if two people arrive at once). Whether a week is `OPEN` or `CLOSED` is always computed
   from the current time, and the first request after it ends records the close. See ADR-0003.
 - **D4 — Weeks never overlap.** Exactly one round per party per week.
-- **D5 — Late joiners.** Someone who joins mid-week may submit songs for the remaining weekdays and may rate
+- **D5 — Late joiners.** Someone who joins mid-week may submit songs on the week's remaining sharing days and may rate
   every song from the whole week.
 
 ## Voting (§15, §16)
@@ -55,10 +55,13 @@ this deliberate change to spec §13–§15.
 - **D10 — Recommender anonymity** (confirmed by Ethan, 2026-10-01). Default: while the week is open, songs are
   shown **without** who recommended them; revealed with the results. Party setting
   `revealRecommenderDuringVoting` (default `false`). While it's off, the app also doesn't show *who* has shared today
-  (only how many), because that list next to the songs would give away whose song is whose.
+  (only how many), because that list next to the songs would give away whose song is whose. Each week records the
+  setting it started with, so a change applies from the next week and never un-hides songs already shared
+  (pre-launch security review, 2026-10-04).
 - **D11 — Individual ratings visibility.** Default: results show averages, counts, and an anonymous
   distribution, plus *your own* rating. Party setting `showWhoRatedWhat` (default `false`) reveals each
-  member's rating per song.
+  member's rating per song. Also recorded per week: turning it on shows names only for weeks that start afterwards, so
+  ratings given anonymously stay anonymous (2026-10-04).
 - Rating every song isn't required. With 20 members a week can have up to 100 songs, so the UI groups songs
   by day and shows progress ("12 of 31 rated").
 
@@ -91,7 +94,8 @@ this deliberate change to spec §13–§15.
   The browser crops and shrinks the photo to a 128×128 JPEG (a few KB, so the original photo and its location data
   never leave the device); it's stored with the profile as a small data URL and shown to party members instead of the
   initials. JPEG/WebP only (no SVG), at most 9,000 characters; it can be removed any time. No new AWS service.
-- **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, preferred music app. Nothing else.
+- **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, optional profile picture (D18),
+  preferred music app. Nothing else.
 
 ## Music (§10, §11, §12)
 
@@ -130,7 +134,7 @@ If the minimum sample isn't met, show "Not enough data yet" — never a number.
 |---|---|---|
 | Song average | Mean of all ratings the song received | 1 rating |
 | Average rating given | Mean of all ratings a user gave | 5 ratings |
-| Average score received (= Average Recommendation Score) | Mean of the song averages of songs the user recommended | 3 recommendations |
+| Average score received (= Average Recommendation Score) | Mean of the song averages of songs the user recommended | 3 rated songs |
 | Generosity | User's average rating given − party's average rating given (positive = generous) | 10 ratings |
 | Most generous voter / Toughest critic | Highest / lowest Generosity in the party | 10 ratings each |
 | Highest-rated song / Crowd favorite | Highest song average (crowd favorite also requires ratings from ≥ 75% of that week's active raters — people who rated at least one song that week — not counting the recommender) | 3 ratings |
@@ -139,9 +143,9 @@ If the minimum sample isn't met, show "Not enough data yet" — never a number.
 | Everyone agreed | Lowest standard deviation of ratings | 4 ratings |
 | Dark horse | Song whose average beats its recommender's average from earlier songs by the most (positive only) | song has 3 ratings; recommender has ≥ 3 earlier rated songs |
 | Musical twin | Other member with the smallest mean absolute difference in ratings on songs you both rated | 5 shared songs |
-| Most consistent | Lowest standard deviation of a user's song averages | 3 recommendations |
+| Most consistent | Lowest standard deviation of a user's song averages | 3 rated songs |
 | Most surprising | Recommender with the most songs that beat their own earlier average by ≥ 1.0 point | 1 such song |
-| Most popular | Most ratings ≥ 8 received across all recommendations | 3 recommendations |
+| Most popular | Most ratings ≥ 8 received across all recommendations | 3 songs shared |
 | Favorite artists | Artists the user rated highest on average | 2 songs by the artist |
 
 Standard deviation = population standard deviation. Genres are shown only if a provider supplies them.

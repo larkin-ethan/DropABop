@@ -43,6 +43,42 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-07 — **Temporary website host: Cloudflare Pages (ADR-0010, Ethan's choice)** — AWS still hasn't verified
+  CloudFront. GitHub Pages rejected (its limits page says not for password pages; would share larkin-ethan.github.io
+  with Ethan's site). Added `ExternalSiteOrigin` (CORS + email logo; prod rule: CloudFront or external site), build
+  writes `_headers` (CloudFront's security policy with the exact API), `deploy-web.sh` uploads to Cloudflare with
+  `npx wrangler@4` when there's no CloudFront bucket, prod samconfig `HostWebsite=false
+  ExternalSiteOrigin=https://dropabop.pages.dev`, DEPLOYMENT §4d setup steps. Verified: `sam validate --lint`, template
+  tests 14/14, a test build's `_headers` and no `404.html` (SPA fallback), `npm run verify`. Not yet run: the Cloudflare
+  upload itself (needs Ethan's account). Also moved 74 iCloud conflict copies ("… 2.md" etc., stale snapshots from
+  Oct 4) out of the repo to a backup; they were breaking the format check.
+
+- 2026-10-07 — **P10.3 done** — `npm run e2e:dev` passed on a sharing day (Wednesday): invite → join → the friend
+  rates the host's song in the real website → leave. The host had already shared today (the smoke run uses the same
+  test user), so the test took its "already shared" path; sharing through the website on dev was checked by Ethan by
+  hand the same day. A run on a fresh day would cover both automatically.
+
+- 2026-10-07 — **P4.3 done** — Weekday run of `node scripts/smoke-dev.mjs` (Ethan, Wednesday): 36/36, including share
+  (201), rate (200) and own-song block (403). The first run showed the script itself sent a non-existent song id (it
+  read `song.providerSongId`; the id is in `song.providers`); fixed in 78a2710. Website sharing was fine throughout.
+
+- 2026-10-04 — **Pre-launch review + friend guide (Ethan's request while waiting on AWS)** — Three independent reviews
+  (security, app rules, screens); no MUST FIX in security or rules. Fixed: privacy switches recorded per week (turning
+  "who shared"/"who rated what" on never reveals earlier weeks, D10/D11); names reject hidden/text-direction
+  characters; stats tie on the shown value; a rating that straddles the lock is refused instead of wiping the earlier
+  one; screens: invite-page dead end, ratings stay under "Unrated" + per-card Saved/error, sign-in confirmations, no
+  one-tap sign-out on phones, pause confirmation, settings don't wipe unsaved edits, members see plain text, stat
+  "?" works on tap, results explain skipped weeks, 2-line titles, dialog focus trap, copy fixes. Added `/how-it-works`
+  guide and "Copy invite message". Verified: verify, integration 188/188, e2e 20/20 (one worker: the Mac was
+  overloaded by iCloud syncing Documents, which timed out parallel runs). Not done (notes): 6-character invite codes,
+  Share tabs' arrow keys, history row details, forgot-password resend. API changes not deployed to dev yet.
+
+- 2026-10-04 — **First prod deploy attempt (Ethan)** — Rolled back: CloudFront still unverified ("Your account must
+  be verified before you can add new CloudFront resources"), as expected. Ethan deleted the leftovers in the console:
+  the ROLLBACK_COMPLETE `dropabop-prod` and `dropabop-github-deploy` stacks and the retained empty prod table (prod
+  user pool checked). A pending SNS confirmation email for the deleted prod topic can be ignored. Retry P11.3 only
+  after AWS Support confirms CloudFront verification (still no reply on the case).
+
 - 2026-10-04 — **Moved to DropABop; manual deploys (ADR-0009)** — Repo moved with full history to
   `~/Documents/GitHub/DropABop` and published by Ethan (main + build). Bootstrap deploy failed: an AWS-managed SCP on
   this new-experience account denies `iam:CreateOpenIDConnectProvider`. Ethan chose manual deploys: added

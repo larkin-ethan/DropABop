@@ -17,7 +17,7 @@ import {
   type UpdatePartySettingsRequest,
   type Weekday,
 } from '@dropabop/shared';
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   useMe,
@@ -35,7 +35,7 @@ import { TextField } from '../components/TextField';
 import { Avatar, Button, Card } from '../components/ui';
 import { AvatarImageError, toAvatarDataUrl } from '../lib/avatar-image';
 import { errorMessage } from '../lib/errors';
-import { DAY_NAMES } from '../lib/format';
+import { DAY_NAMES, formatDayList, formatTimeOfDay } from '../lib/format';
 import { PROVIDER_NAMES } from '../lib/music-links';
 import { inviteLink } from '../lib/pending-invite';
 import { useCurrentParty } from '../party/CurrentParty';
@@ -149,7 +149,13 @@ function PartySettings({
           isHost ? 'You’re the host: you can change these.' : 'Only the host can change these settings.'
         }
       />
-      <SettingsForm party={party} isHost={isHost} memberCount={members.length} />
+      {isHost ? (
+        // Keyed by party, so switching parties starts the form from that party's values. Saving a toggle doesn't
+        // reset the form, so unsaved edits elsewhere in it are kept.
+        <SettingsForm key={party.partyId} party={party} isHost={isHost} memberCount={members.length} />
+      ) : (
+        <SettingsSummary party={party} memberCount={members.length} />
+      )}
       <InviteCard party={party} isHost={isHost} />
       <MembersCard party={party} members={members} isHost={isHost} />
     </div>
@@ -173,16 +179,7 @@ function SettingsForm({
   const [closeDay, setCloseDay] = useState<Weekday>(party.settings.ratingCloseDay);
   const [closeTime, setCloseTime] = useState(party.settings.ratingCloseTime);
   const [saved, setSaved] = useState(false);
-
-  // If the party changes underneath (e.g. switching parties), start from its values.
-  useEffect(() => {
-    setName(party.name);
-    setMaxMembers(String(party.settings.maxMembers));
-    setTimezone(party.settings.timezone);
-    setShareDays(party.settings.shareDays);
-    setCloseDay(party.settings.ratingCloseDay);
-    setCloseTime(party.settings.ratingCloseTime);
-  }, [party]);
+  const [confirmingPause, setConfirmingPause] = useState(false);
 
   // The same rule the API enforces, shown before saving: ratings lock at 11:59 pm on the last sharing day at the earliest.
   const scheduleProblem = checkSchedule({ shareDays, ratingCloseDay: closeDay, ratingCloseTime: closeTime });
@@ -310,14 +307,14 @@ function SettingsForm({
         <div className="divide-y divide-line border-y border-line">
           <Toggle
             label="Show who shared each song during the week"
-            description="Off: songs stay anonymous until the results (recommended)."
+            description="Off: songs stay anonymous until the results (recommended). A change applies from next week."
             checked={party.settings.revealRecommenderDuringVoting}
             disabled={readOnly || update.isPending}
             onChange={(value) => save({ revealRecommenderDuringVoting: value })}
           />
           <Toggle
             label="Show who rated what in the results"
-            description="Off: results show only anonymous rating spreads."
+            description="Off: results show only anonymous rating spreads. A change applies from next week’s results."
             checked={party.settings.showWhoRatedWhat}
             disabled={readOnly || update.isPending}
             onChange={(value) => save({ showWhoRatedWhat: value })}
@@ -338,7 +335,8 @@ function SettingsForm({
             <Button
               variant="secondary"
               disabled={update.isPending}
-              onClick={() => save({ paused: !party.settings.paused })}
+              // Pausing affects everyone, so it asks first; resuming is harmless and happens straight away.
+              onClick={() => (party.settings.paused ? save({ paused: false }) : setConfirmingPause(true))}
             >
               <Icon name="pause" className="size-4" />
               {party.settings.paused ? 'Resume the party' : 'Pause the party'}
@@ -351,15 +349,87 @@ function SettingsForm({
           </p>
         )}
       </form>
+      <Modal open={confirmingPause} title="Pause the party?" onClose={() => setConfirmingPause(false)}>
+        <p className="text-muted">
+          No new weeks start until you resume, for everyone in the party. A week that’s already running
+          finishes normally. Good for holidays.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setConfirmingPause(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setConfirmingPause(false);
+              save({ paused: true });
+            }}
+          >
+            Pause the party
+          </Button>
+        </div>
+      </Modal>
     </Card>
   );
 }
 
+/** What members see: the party's settings as plain text (only the host can change them, D13). */
+function SettingsSummary({ party, memberCount }: { party: Party; memberCount: number }) {
+  const s = party.settings;
+  const rows: [string, string][] = [
+    ['Party name', party.name],
+    ['Members', `${memberCount} of up to ${s.maxMembers}`],
+    ['Timezone', s.timezone],
+    ['Sharing days', formatDayList(s.shareDays)],
+    ['Ratings lock', `${DAY_NAMES[s.ratingCloseDay]} at ${formatTimeOfDay(s.ratingCloseTime)}`],
+    [
+      'Who shared each song',
+      s.revealRecommenderDuringVoting ? 'Shown during the week' : 'Hidden until the results',
+    ],
+    ['Who rated what', s.showWhoRatedWhat ? 'Shown in the results' : 'Not shown (anonymous spreads)'],
+  ];
+  return (
+    <Card>
+      <dl className="grid gap-3 sm:grid-cols-[auto_1fr] sm:gap-x-6">
+        {rows.map(([label, value]) => (
+          <div key={label} className="contents">
+            <dt className="text-sm text-muted">{label}</dt>
+            <dd className="mb-2 font-medium break-words sm:mb-0">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {s.paused && (
+        <p className="mt-4 text-sm text-gold">
+          Paused: no new weeks start until the host resumes. Past results and stats stay available.
+        </p>
+      )}
+    </Card>
+  );
+}
+
+/** A ready-to-send invitation (text, chat, email) with the party's schedule, the link, and the guide. */
+export function inviteMessage(party: Party, link: string): string {
+  const { shareDays, ratingCloseDay, ratingCloseTime } = party.settings;
+  return [
+    `Join my Drop a Bop party “${party.name}”! 🎵`,
+    `On ${formatDayList(shareDays)} we each share a song we love, then rate each other’s picks from 1 to 10. ` +
+      `Ratings lock ${DAY_NAMES[ratingCloseDay]} at ${formatTimeOfDay(ratingCloseTime)}, and then we see the results.`,
+    `Join here: ${link} (or use code ${party.inviteCode})`,
+    `How it works: ${window.location.origin}/how-it-works`,
+  ].join('\n\n');
+}
+
 function InviteCard({ party, isHost }: { party: Party; isHost: boolean }) {
   const regenerate = useRegenerateInvite(party.partyId);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'link' | 'message' | null>(null);
   const [confirming, setConfirming] = useState(false);
   const link = inviteLink(party.inviteCode);
+
+  function copy(text: string, what: 'link' | 'message') {
+    void navigator.clipboard
+      ?.writeText(text)
+      .then(() => setCopied(what))
+      .catch(() => setCopied(null));
+  }
 
   return (
     <Card>
@@ -372,15 +442,11 @@ function InviteCard({ party, isHost }: { party: Party; isHost: boolean }) {
         Code: <span className="font-mono font-semibold text-ink">{party.inviteCode}</span>
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
-        <Button
-          onClick={() => {
-            void navigator.clipboard
-              ?.writeText(link)
-              .then(() => setCopied(true))
-              .catch(() => setCopied(false));
-          }}
-        >
-          <Icon name="copy" className="size-4" /> {copied ? 'Copied!' : 'Copy link'}
+        <Button onClick={() => copy(link, 'link')}>
+          <Icon name="copy" className="size-4" /> {copied === 'link' ? 'Copied!' : 'Copy link'}
+        </Button>
+        <Button variant="secondary" onClick={() => copy(inviteMessage(party, link), 'message')}>
+          <Icon name="copy" className="size-4" /> {copied === 'message' ? 'Copied!' : 'Copy invite message'}
         </Button>
         {isHost && (
           <Button variant="secondary" onClick={() => setConfirming(true)}>

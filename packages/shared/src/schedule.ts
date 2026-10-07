@@ -49,3 +49,16 @@ export function checkSchedule(
 
 /** The last minute of a day: on the last sharing day, the only allowed lock time. */
 const LAST_MINUTE = '23:59';
+
+/**
+ * The privacy switches a week runs with (D10, D11): fixed when the week starts, like its sharing days. Weeks from before
+ * this was recorded count as both off, the private choice, so nothing given anonymously is ever revealed later.
+ */
+export function weekPrivacyOf(
+  round: Pick<Round, 'revealRecommenderDuringVoting' | 'showWhoRatedWhat'>,
+): Pick<PartySettings, 'revealRecommenderDuringVoting' | 'showWhoRatedWhat'> {
+  return {
+    revealRecommenderDuringVoting: round.revealRecommenderDuringVoting ?? false,
+    showWhoRatedWhat: round.showWhoRatedWhat ?? false,
+  };
+}

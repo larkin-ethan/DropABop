@@ -144,12 +144,27 @@ function notEnough<T>(sampleSize: number, required: number): Stat<T> {
   return { status: 'not-enough-data', sampleSize, required };
 }
 
-/** Picks every candidate tied for the best value. Values are compared after rounding to 6 decimals. */
-function pickWinners(candidates: Winner[], direction: 'highest' | 'lowest', required: number): Superlative {
+/**
+ * Values are compared as the app shows them (1 decimal, or 2 for the controversial score), so two songs that both show
+ * 8.3 tie instead of one quietly beating the other, the same rule as weekly results (D12, STATISTICS.md ground rules).
+ * Returns an integer key so equal displayed values compare exactly.
+ */
+function shownValueKey(value: number, decimals: number): number {
+  const scale = 10 ** decimals;
+  return Math.round((value + Number.EPSILON) * scale);
+}
+
+/** Picks every candidate tied for the best value, as shown to people (see shownValueKey). */
+function pickWinners(
+  candidates: Winner[],
+  direction: 'highest' | 'lowest',
+  required: number,
+  decimals = 1,
+): Superlative {
   if (candidates.length === 0) {
     return notEnough(0, required);
   }
-  const key = (v: number) => Math.round(v * 1e6);
+  const key = (v: number) => shownValueKey(v, decimals);
   const best =
     direction === 'highest'
       ? Math.max(...candidates.map((c) => key(c.value)))
@@ -377,7 +392,7 @@ export function mostControversial(data: StatsData): Superlative {
       };
     })
     .filter((c) => c.value > 0);
-  return pickWinners(candidates, 'highest', MINIMUMS.spreadRatings);
+  return pickWinners(candidates, 'highest', MINIMUMS.spreadRatings, 2); // the score is shown to 2 decimals
 }
 
 /**
@@ -484,17 +499,22 @@ export function mostPopular(data: StatsData): Superlative {
 // Leaderboards (spec §18)
 // ---------------------------------------------------------------------------
 
-/** Ranks candidates; only those meeting the minimum are included. */
-export function rankEntries(candidates: Winner[], direction: 'highest' | 'lowest'): LeaderboardEntry[] {
+/** Ranks candidates; only those meeting the minimum are included. Equal shown values share a rank (1, 1, 3). */
+export function rankEntries(
+  candidates: Winner[],
+  direction: 'highest' | 'lowest',
+  decimals = 1,
+): LeaderboardEntry[] {
+  const key = (v: number) => shownValueKey(v, decimals);
   const sorted = [...candidates].sort((a, b) =>
     direction === 'highest'
-      ? b.value - a.value || a.id.localeCompare(b.id)
-      : a.value - b.value || a.id.localeCompare(b.id),
+      ? key(b.value) - key(a.value) || a.id.localeCompare(b.id)
+      : key(a.value) - key(b.value) || a.id.localeCompare(b.id),
   );
   const entries: LeaderboardEntry[] = [];
   sorted.forEach((c, index) => {
     const previous = entries[index - 1];
-    const tied = previous !== undefined && Math.round(previous.value * 1e6) === Math.round(c.value * 1e6);
+    const tied = previous !== undefined && key(previous.value) === key(c.value);
     entries.push({
       id: c.id,
       rank: tied ? previous.rank : index + 1,

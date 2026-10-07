@@ -11,6 +11,7 @@ import { takePendingInvite } from './lib/pending-invite';
 import { CurrentPartyProvider } from './party/CurrentParty';
 import { ForgotPasswordScreen, SignInScreen, SignUpScreen, VerifyEmailScreen } from './screens/AuthScreens';
 import { ComponentGallery } from './screens/ComponentGallery';
+import { HelpScreen } from './screens/HelpScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LandingScreen } from './screens/LandingScreen';
 import { CreatePartyScreen, JoinByLinkScreen, JoinWithCodeScreen } from './screens/OnboardingScreens';
@@ -85,6 +86,8 @@ export function App({ preview = false }: { preview?: boolean }) {
           <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
           {/* Works signed out too: sign up or log in, then come back and join (P8.2). */}
           <Route path="/join/:code" element={<JoinByLinkScreen />} />
+          {/* The guide for new friends: readable before signing up. */}
+          <Route path="/how-it-works" element={<HelpScreen />} />
 
           <Route element={<RequireAuth preview={preview} />}>
             <Route path="/" element={<HomeScreen />} />

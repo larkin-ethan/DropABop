@@ -71,6 +71,26 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps Tab inside the dialog', async () => {
+    render(
+      <>
+        <button type="button">Behind the dialog</button>
+        <Modal open title="Pause the party?" onClose={() => {}}>
+          <button type="button">Cancel</button>
+          <button type="button">Pause</button>
+        </Modal>
+      </>,
+    );
+    await userEvent.tab(); // Close
+    await userEvent.tab(); // Cancel
+    await userEvent.tab(); // Pause (the last one)
+    expect(screen.getByRole('button', { name: 'Pause' })).toHaveFocus();
+    await userEvent.tab(); // wraps round instead of leaving the dialog
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('button', { name: 'Pause' })).toHaveFocus();
+  });
+
   it('renders nothing when closed', () => {
     render(
       <Modal open={false} title="Hidden" onClose={() => {}}>

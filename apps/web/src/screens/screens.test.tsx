@@ -108,6 +108,7 @@ describe('Home (P8.3)', () => {
     renderApp('/', {
       setup: (s) => {
         s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+        s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
     expect(await screen.findByLabelText('Ethan Larkin has shared today')).toBeInTheDocument();
@@ -124,6 +125,7 @@ describe('Home (P8.3)', () => {
     renderApp('/', {
       setup: (s) => {
         s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+        s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
     expect((await screen.findAllByText(/^Shared by /)).length).toBeGreaterThan(0);
@@ -193,6 +195,7 @@ describe('Share today’s song (P8.4)', () => {
       setup: (s) => {
         s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
         s.parties[0]!.settings.revealRecommenderDuringVoting = true;
+        s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
     await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'abba');
@@ -290,6 +293,37 @@ describe('Rate this week’s songs (P8.5)', () => {
     await waitFor(() => expect(state.songs.find((s) => s.recommendationId === 'r10')?.myRating).toBe(9));
   });
 
+  it('keeps a song you just rated on the Unrated list, so a mis-tap can be fixed, and says it saved', async () => {
+    const { state } = renderApp('/rate?show=unrated');
+    const group = await screen.findByRole('radiogroup', { name: /Rate Heat Waves/ });
+    await userEvent.click(within(group).getByRole('radio', { name: '7 out of 10' }));
+    expect(await screen.findByText(/✓ Saved/)).toBeInTheDocument();
+    // Still there after saving: fix the rating.
+    await userEvent.click(
+      within(screen.getByRole('radiogroup', { name: /Rate Heat Waves/ })).getByRole('radio', {
+        name: '8 out of 10',
+      }),
+    );
+    await waitFor(() => expect(state.songs.find((s) => s.recommendationId === 'r10')?.myRating).toBe(8));
+  });
+
+  it('shows a failed save on the song itself', async () => {
+    const state = createPreviewState();
+    const base = createPreviewApi(state);
+    const api: ApiClient = {
+      ...base,
+      put: () =>
+        Promise.reject(new ApiError(409, 'WEEK_CLOSED', 'This week has ended, so ratings are locked.')),
+    };
+    renderApp('/rate', { api });
+    const group = await screen.findByRole('radiogroup', { name: /Rate Heat Waves/ });
+    await userEvent.click(within(group).getByRole('radio', { name: '5 out of 10' }));
+    const card = group.closest('li') as HTMLElement;
+    expect(await within(card).findByRole('alert')).toHaveTextContent(
+      'This week has ended, so ratings are locked. Your rating wasn’t saved.',
+    );
+  });
+
   it('still saves a rating when you leave the page right after tapping it', async () => {
     const { state } = renderApp('/rate');
     const group = await screen.findByRole('radiogroup', { name: /Rate Heat Waves/ });
@@ -322,6 +356,28 @@ describe('Weekly results and history (P8.6, P8.7)', () => {
     expect(screen.getByRole('heading', { name: /Bop of the Day/ })).toBeInTheDocument();
     expect(screen.getAllByLabelText('Rank 1').length).toBeGreaterThan(0);
     expect(screen.getByText(/This week’s unlock Sunday 11:59 pm/)).toBeInTheDocument();
+  });
+
+  it('says so when the newest week had too few songs, instead of calling an older week "last week"', async () => {
+    const state = createPreviewState();
+    const base = createPreviewApi(state);
+    const api: ApiClient = {
+      ...base,
+      get: <T,>(path: string) =>
+        /\/rounds(\?|$)/.test(path)
+          ? (Promise.resolve({
+              rounds: [{ ...state.round, status: 'NOT_ENOUGH_SONGS' }, state.pastRound],
+              nextCursor: null,
+            }) as Promise<T>)
+          : base.get<T>(path),
+    };
+    renderApp('/results', { api });
+    expect(
+      await screen.findByText(
+        /The most recent finished week didn’t have enough songs for results, so these are from the week of Sep 28/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/These are last week’s results/)).not.toBeInTheDocument();
   });
 
   it('switches to the per-day view and shows a rating spread', async () => {
@@ -361,7 +417,10 @@ describe('Stats and leaderboard (P8.8, P8.9)', () => {
     renderApp('/stats/group');
     expect(await screen.findByText('Highest-rated song')).toBeInTheDocument();
     expect(screen.getByText('Most generous voter')).toBeInTheDocument();
-    expect(screen.getAllByLabelText(/How it’s calculated/).length).toBeGreaterThan(5);
+    expect(screen.getAllByRole('button', { name: /is calculated/ }).length).toBeGreaterThan(5);
+    // Tap (not hover) shows the definition, so it works on phones.
+    await userEvent.click(screen.getByRole('button', { name: 'How Most divisive is calculated' }));
+    expect(screen.getByText(/ratings were most spread out/)).toBeInTheDocument();
   });
 
   it('ranks people, with "Based on N" on every row', async () => {
@@ -381,6 +440,10 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
     await userEvent.click(screen.getByRole('switch', { name: /Show who rated what/ }));
     await waitFor(() => expect(state.parties[0]?.settings.showWhoRatedWhat).toBe(true));
     await userEvent.click(screen.getByRole('button', { name: 'Pause the party' }));
+    // Pausing affects everyone, so it asks first.
+    const dialog = await screen.findByRole('dialog', { name: 'Pause the party?' });
+    expect(state.parties[0]?.settings.paused).toBe(false);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Pause the party' }));
     await waitFor(() => expect(state.parties[0]?.settings.paused).toBe(true));
   });
 
@@ -423,8 +486,12 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
         s.members = s.members.map((m, i) => (i === 0 ? { ...m, role: 'member' } : m));
       },
     });
-    expect(await screen.findByRole('checkbox', { name: 'Monday' })).toBeDisabled();
-    expect(screen.getByLabelText('Ratings lock on')).toBeDisabled();
+    // Plain text, not fields that look editable.
+    expect(await screen.findByText('Only the host can change these settings.')).toBeInTheDocument();
+    expect(screen.getByText('Monday to Friday')).toBeInTheDocument();
+    expect(screen.getByText('Sunday at 11:59 pm')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Monday' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
   });
 
   it('after removing someone, offers a new invite link (D17)', async () => {
@@ -449,7 +516,8 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
     });
     expect(await screen.findByText('Only the host can change these settings.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: /Show who rated what/ })).toBeDisabled();
+    expect(screen.getByText('Not shown (anonymous spreads)')).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Leave' })).toBeInTheDocument();
   });
 
@@ -551,5 +619,50 @@ describe('Joining and creating parties (P8.2)', () => {
     renderApp('/parties/new');
     await userEvent.click(await screen.findByRole('button', { name: 'Create party' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+});
+
+describe('Privacy switches are fixed per week (D10, 2026-10-04)', () => {
+  it('turning on “show who shared” mid-week keeps this week’s songs anonymous', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.parties[0]!.settings.revealRecommenderDuringVoting = true; // changed after the week started
+      },
+    });
+    expect(await screen.findByText('Who shared what is revealed with the results')).toBeInTheDocument();
+    expect(screen.queryByText(/^Shared by /)).not.toBeInTheDocument();
+  });
+});
+
+describe('How it works guide and invite message (2026-10-04)', () => {
+  it('can be read signed out, from the invite page, with a way to sign up', async () => {
+    renderApp('/join/SONG-7K4P', { auth: fakeAuth() });
+    await userEvent.click(await screen.findByRole('link', { name: /See how it works/ }));
+    expect(await screen.findByRole('heading', { name: 'How Drop a Bop works' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Share one song each sharing day/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Get started' })).toHaveAttribute('href', '/sign-up');
+    window.sessionStorage.clear();
+  });
+
+  it('copies an invite message with the party’s schedule, link and code', async () => {
+    let copied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: (text: string) => ((copied = text), Promise.resolve()) },
+    });
+    renderApp('/settings', {
+      setup: (s) => {
+        s.parties[0]!.settings.shareDays = ['MON', 'WED', 'FRI'];
+        s.parties[0]!.settings.ratingCloseDay = 'SAT';
+        s.parties[0]!.settings.ratingCloseTime = '21:00';
+      },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Copy invite message' }));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+    expect(copied).toContain('Join my Drop a Bop party “Ethan’s Music Party”!');
+    expect(copied).toContain('On Monday, Wednesday and Friday we each share a song');
+    expect(copied).toContain('Ratings lock Saturday at 9:00 pm');
+    expect(copied).toContain('/join/SONG-7K4P (or use code SONG-7K4P)');
+    expect(copied).toContain('/how-it-works');
   });
 });

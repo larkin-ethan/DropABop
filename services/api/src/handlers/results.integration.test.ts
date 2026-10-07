@@ -1,7 +1,7 @@
 import type { Party, Round } from '@dropabop/shared';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
-import { newId } from '../../test/fixtures';
+import { newId, setWeekPrivacy } from '../../test/fixtures';
 import { testDeps } from '../../test/handler-deps';
 import { putVote } from '../data/votes';
 import { runHandler } from '../http/handler';
@@ -156,16 +156,22 @@ describe('GET /rounds/{roundId}/results', () => {
     expect(body.round.status).toBe('CLOSED');
   });
 
-  it('shows who rated what only when the host turns it on (D11)', async () => {
+  it('shows who rated what only for weeks that started with it on (D11)', async () => {
     const { party, round, a } = await playWeek();
+    // Turned on after the week was played: ratings given anonymously stay anonymous.
     await runHandler(
       updateSettingsFn,
       apiEvent({ userId: a, pathParameters: { partyId: party.partyId }, body: { showWhoRatedWhat: true } }),
       deps,
     );
     deps.setNow(AFTER_WEEK);
-    const body = bodyOf(await results(a, round.roundId)) as ResultsBody;
-    expect(body.results.songs.every((s) => Array.isArray(s.ratings))).toBe(true);
+    const hidden = bodyOf(await results(a, round.roundId)) as ResultsBody;
+    expect(hidden.results.songs.every((s) => s.ratings === undefined)).toBe(true);
+
+    // A week run with it on shows them.
+    await setWeekPrivacy(deps.data, round, { showWhoRatedWhat: true });
+    const shown = bodyOf(await results(a, round.roundId)) as ResultsBody;
+    expect(shown.results.songs.every((s) => Array.isArray(s.ratings))).toBe(true);
   });
 
   it('ignores a rating saved after the week ended', async () => {

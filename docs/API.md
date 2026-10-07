@@ -153,7 +153,7 @@ field): `name`, `maxMembers` (2–50, not below the current member count), `time
 `paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`, `shareDays` (1–7 of `MON`…`SUN`, stored in week
 order), `ratingCloseDay` (`MON`…`SUN`), `ratingCloseTime` (`HH:MM`, 24-hour; ratings lock at the end of that
 minute). The lock can't be earlier than 23:59 on the last sharing day (checked against the stored settings, so partial updates
-are safe: `400 VALIDATION_FAILED`). Timezone and schedule changes apply from next week. Parties created before
+are safe: `400 VALIDATION_FAILED`). Timezone, schedule and the two privacy switches apply from next week (each week records them when it starts). Parties created before
 the schedule was editable read as Monday–Friday, Sunday 23:59. The invite code and host can't be changed here.
 `200`: `{ "party", "members", "isHost": true }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `400 VALIDATION_FAILED`.
 
@@ -277,7 +277,7 @@ are ignored.
     "songs": [{ "recommendationId": "…", "rank": 1, "weekday": "TUE", "submittedOn": "…", "song": { … },
                 "recommendedBy": "userId", "averageRating": 9.5, "ratingCount": 4,
                 "distribution": [0,0,0,0,0,0,0,0,2,2], "myRating": 10 }],
-    "days": [{ "weekday": "MON", "songIds": ["…"], "winnerIds": ["…"] }, … 5 days],
+    "days": [{ "weekday": "MON", "songIds": ["…"], "winnerIds": ["…"] }, … one per sharing day],
     "totalRatings": 23
   },
   "members": [{ "userId": "…", "displayName": "…", "avatarColor": "#…" }]

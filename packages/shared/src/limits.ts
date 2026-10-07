@@ -36,7 +36,7 @@ export const DEFAULT_RATING_CLOSE_TIME = '23:59';
 export const TIME_OF_DAY_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
- * D2: a week is OPEN for submitting (weekdays) and rating (all week), then CLOSED.
+ * D2: a week is OPEN for submitting (on sharing days) and rating (all week), then CLOSED.
  * NOT_ENOUGH_SONGS is a closed week that had fewer than 2 songs: no results, excluded from stats.
  */
 export const ROUND_STATUSES = ['OPEN', 'CLOSED', 'NOT_ENOUGH_SONGS'] as const;

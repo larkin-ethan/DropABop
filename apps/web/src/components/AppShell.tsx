@@ -30,7 +30,7 @@ const NAV: NavItem[] = [
 ];
 
 /** Signs out, forgets every cached answer (the next person on this device starts clean), and goes to the welcome page. */
-export function SignOutButton({ compact = false }: { compact?: boolean }) {
+export function SignOutButton() {
   const { service, refresh } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -51,19 +51,6 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
     }
   }
 
-  if (compact) {
-    return (
-      <button
-        type="button"
-        onClick={() => void handleClick()}
-        disabled={busy}
-        aria-label="Sign out"
-        className="text-muted"
-      >
-        <Icon name="signOut" />
-      </button>
-    );
-  }
   return (
     <button
       type="button"
@@ -236,7 +223,7 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
             <Icon name="settings" />
           </NavLink>
           <ProfileLink compact />
-          <SignOutButton compact />
+          {/* No sign-out icon here: next to the avatar it was too easy to tap by accident. It's on the Profile page. */}
         </div>
       </header>
 

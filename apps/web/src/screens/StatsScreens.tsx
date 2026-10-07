@@ -9,7 +9,7 @@ import { useGroupStats, useLeaderboard, useMe, usePersonalStats } from '../api/h
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { EmptyState } from '../components/States';
-import { Leaderboard, RatingDistribution, StatCard } from '../components/Stats';
+import { Leaderboard, RatingDistribution, StatCard, StatHeading } from '../components/Stats';
 import { Avatar, Card, buttonClassName } from '../components/ui';
 import { formatAverage } from '../lib/format';
 import { nameLookup, type NameLookup } from '../lib/members';
@@ -42,19 +42,6 @@ function StatsTabs() {
   );
 }
 
-function Definition({ text }: { text: string }) {
-  return (
-    <span
-      className="cursor-help rounded-full border border-line px-1.5 text-xs text-muted"
-      title={text}
-      tabIndex={0}
-      aria-label={`How it’s calculated: ${text}`}
-    >
-      ?
-    </span>
-  );
-}
-
 /** A card for a "most …" stat: the winner(s) with their value, or "Not enough data yet". */
 function SuperlativeCard({
   label,
@@ -71,10 +58,7 @@ function SuperlativeCard({
 }) {
   return (
     <div className="rounded-xl border border-line bg-surface-raised p-4">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-muted">{label}</p>
-        <Definition text={definition} />
-      </div>
+      <StatHeading label={label} definition={definition} />
       {stat.status === 'ok' ? (
         <ul className="mt-2 flex flex-col gap-2">
           {stat.value.map((winner) => (
@@ -103,7 +87,7 @@ function songLine(winner: WinnerWithSong, names: NameLookup, valueLabel: (v: num
   const song = winner.song ?? null;
   return (
     <div>
-      <p className="truncate font-semibold">{song?.title ?? 'A song'}</p>
+      <p className="line-clamp-2 font-semibold break-words">{song?.title ?? 'A song'}</p>
       <p className="truncate text-sm text-muted">
         {song?.artist}
         {song ? ` · shared by ${names.name(song.recommendedBy)}` : ''}
@@ -213,18 +197,24 @@ export function PersonalStatsScreen() {
 
               <div className="mt-4 grid gap-3 lg:grid-cols-3">
                 <Card>
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <h2 className="font-bold">Ratings you give</h2>
-                    <Definition text="How many of each rating, 1 to 10, you’ve given." />
+                  <div className="mb-3">
+                    <StatHeading
+                      heading
+                      label="Ratings you give"
+                      definition="How many of each rating, 1 to 10, you’ve given."
+                    />
                   </div>
                   <StatBody stat={s.ratingDistribution} unit="ratings">
                     {(counts) => <RatingDistribution counts={counts} />}
                   </StatBody>
                 </Card>
                 <Card>
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <h2 className="font-bold">Favorite artists</h2>
-                    <Definition text="Artists you rate highest on average (at least 2 of their songs rated by you). Top 3." />
+                  <div className="mb-3">
+                    <StatHeading
+                      heading
+                      label="Favorite artists"
+                      definition="Artists you rate highest on average (at least 2 of their songs rated by you). Top 3."
+                    />
                   </div>
                   <StatBody stat={s.favoriteArtists} unit="songs by one artist">
                     {(artists) => (
@@ -246,9 +236,12 @@ export function PersonalStatsScreen() {
                   </StatBody>
                 </Card>
                 <Card>
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <h2 className="font-bold">Musical twin</h2>
-                    <Definition text="The member whose ratings differ least from yours, on at least 5 songs you both rated. The number is the average gap between your ratings (0 = identical)." />
+                  <div className="mb-3">
+                    <StatHeading
+                      heading
+                      label="Musical twin"
+                      definition="The member whose ratings differ least from yours, on at least 5 songs you both rated. The number is the average gap between your ratings (0 = identical)."
+                    />
                   </div>
                   <StatBody stat={s.musicalTwin} unit="songs you both rated">
                     {(twins) => (

@@ -38,7 +38,8 @@ when someone makes a request (ADR-0003), and the website polls for new songs.
 | `WebBucket`, `WebBucketPolicy` | S3 bucket + policy | The built website; private (all public access blocked), readable only by this CloudFront distribution, HTTPS only | Storage (a few MB) |
 | `WebDistribution`, `WebOriginAccessControl`, `WebSecurityHeaders` | CloudFront | HTTPS-only website, single-page-app fallback, security headers (HSTS, CSP, no framing, nosniff, referrer policy) | Always-free 1 TB + 10M requests/month |
 
-Website hosting is behind the `HostWebsite` switch (on by default; dev has it off until AWS verifies the account for
+Until AWS verifies the account for CloudFront, prod's website is on **Cloudflare Pages** (ADR-0010,
+`ExternalSiteOrigin`); only the static files are there. Website hosting is behind the `HostWebsite` switch (on by default; dev has it off until AWS verifies the account for
 CloudFront: DEPLOYMENT.md §4c). Deploys run from the owner's Mac with `scripts/deploy.sh` (ADR-0009): this account type
 can't create GitHub's OIDC provider, so there are no CI deploy roles.
 

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Publishes the website to a stack's S3 bucket and CloudFront (roadmap P9.2).
+# Publishes the website: to the stack's S3 bucket + CloudFront (roadmap P9.2), or, while CloudFront is off, to the
+# temporary Cloudflare Pages site named by the stack's ExternalWebsiteUrl (ADR-0010).
 #
 #   bash scripts/deploy-web.sh                  # dev, with your AWS profile dropabop-dev
-#   STACK=dropabop-prod AWS_PROFILE_NAME= …      # how the GitHub deploy workflow calls it (no profile there)
+#   STACK=dropabop-prod bash scripts/deploy-web.sh
 #
-# Prod releases go through the GitHub deploy workflow (P11.2) with Ethan's approval, not from a laptop.
+# Usually you don't run this directly: scripts/deploy.sh runs it after deploying the stack (ADR-0009).
 #
 # Steps: read the stack's outputs → build the site with those (public) addresses → upload it → clear CloudFront's
 # copy of index.html so people get the new version straight away.
@@ -14,7 +15,7 @@ cd "$(dirname "$0")/.."
 
 STACK="${STACK:-dropabop-dev}"
 REGION="${REGION:-us-east-2}"
-# Unset → the dropabop-dev profile; set to empty (as in GitHub Actions) → use the credentials already configured.
+# Unset → the dropabop-dev profile; set to empty → use whatever credentials the shell already has.
 PROFILE="${AWS_PROFILE_NAME-dropabop-dev}"
 
 aws_cli() {
@@ -30,17 +31,20 @@ output() {
     --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text
 }
 
+is_set() {
+  [ -n "$1" ] && [ "$1" != "None" ]
+}
+
 echo "Reading $STACK outputs…"
 BUCKET=$(output WebBucketName)
-if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
-  echo "This stack doesn't host the website yet (HostWebsite is off). Nothing to publish."
+EXTERNAL_SITE=$(output ExternalWebsiteUrl)
+if ! is_set "$BUCKET" && ! is_set "$EXTERNAL_SITE"; then
+  echo "This stack doesn't host a website (HostWebsite is off and there's no ExternalSiteOrigin). Nothing to publish."
   exit 0
 fi
 API_URL=$(output ApiUrl)
 POOL_ID=$(output UserPoolId)
 CLIENT_ID=$(output UserPoolClientId)
-DISTRIBUTION=$(output WebDistributionId)
-SITE=$(output WebsiteUrl)
 
 echo "Building the website…"
 # Public values only (spec §37): they end up in the JavaScript every visitor downloads.
@@ -49,6 +53,24 @@ VITE_API_URL="$API_URL" \
   VITE_COGNITO_CLIENT_ID="$CLIENT_ID" \
   VITE_AWS_REGION="$REGION" \
   npm run build -w @dropabop/web
+
+if ! is_set "$BUCKET"; then
+  # Temporary host (ADR-0010): Cloudflare Pages, through Cloudflare's own CLI (Wrangler). The project name is the
+  # pages.dev subdomain, e.g. https://dropabop.pages.dev → dropabop. One-time setup: DEPLOYMENT.md §4d.
+  PROJECT=$(echo "$EXTERNAL_SITE" | sed -E 's#^https://([a-z0-9-]+)\.pages\.dev$#\1#')
+  if [ "$PROJECT" = "$EXTERNAL_SITE" ]; then
+    echo "ExternalSiteOrigin ($EXTERNAL_SITE) isn't a pages.dev address, so I don't know where to upload it."
+    exit 1
+  fi
+  echo "Uploading to Cloudflare Pages ($PROJECT)…"
+  # The production branch is main (set when the project was created), so this updates the live site.
+  npx --yes wrangler@4 pages deploy apps/web/dist --project-name "$PROJECT" --branch main --commit-dirty=true
+  echo "Done: $EXTERNAL_SITE"
+  exit 0
+fi
+
+DISTRIBUTION=$(output WebDistributionId)
+SITE=$(output WebsiteUrl)
 
 echo "Uploading to the bucket…"
 # Files in assets/ have content hashes in their names, so browsers may keep them forever.

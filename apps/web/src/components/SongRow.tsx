@@ -63,7 +63,7 @@ export function SongRow({
     <li className="flex items-start gap-3 rounded-xl border border-transparent p-2 transition hover:border-line hover:bg-surface-raised sm:items-center sm:gap-4">
       <AlbumArt url={song.albumArtUrl} hue={hueFor(id)} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{song.title}</p>
+        <p className="line-clamp-2 font-semibold break-words">{song.title}</p>
         <p className="truncate text-sm text-muted">{song.artist}</p>
         {detail && <div className="mt-0.5 text-xs text-muted">{detail}</div>}
         {showLinks && (
