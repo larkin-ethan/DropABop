@@ -368,7 +368,7 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 - [x] **P11.2 — Deploy workflow** (2026-10-04: replaced by `scripts/deploy.sh`, run from Ethan's Mac, ADR-0009; GitHub
   keeps running the checks) — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
   invalidation. Prod job exists but requires a manual approval (GitHub Environment `production` with Ethan as reviewer).
-- [ ] **P11.3 — First prod deploy** [HUMAN] — Cloudflare Pages setup (DEPLOYMENT.md §4d, ADR-0010), merge
+- [x] **P11.3 — First prod deploy** [HUMAN] — Cloudflare Pages setup (DEPLOYMENT.md §4d, ADR-0010), merge
   `build` → `main`, then `ALERT_EMAIL=… bash scripts/deploy.sh prod` (DEPLOYMENT.md §6). AI provides exact commands.
 - [ ] **P11.4 — Prod verification** — run P10.3 smoke test against prod with a throwaway account; confirm alarms and budget.
 

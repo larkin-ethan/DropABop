@@ -2,7 +2,7 @@
 
 ## Current focus
 
-The repo now lives in `~/Documents/GitHub/DropABop` (GitHub: larkin-ethan/DropABop, public). Deploys are by hand
+**Prod is live at https://dropabop.pages.dev** (Cloudflare Pages until CloudFront, ADR-0010). The repo now lives in `~/Documents/GitHub/DropABop` (GitHub: larkin-ethan/DropABop, public). Deploys are by hand
 with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). Waiting on Ethan:
 weekday checks **P4.3** and **P10.3** (Monday), AWS's CloudFront verification (§4c), then **P11.3** (protect `main`,
 merge `build` → `main`, first prod deploy). Remaining AI work follows those: P9.2 website publish, P11.4, P12.2.
@@ -42,6 +42,11 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-07 — **P11.3 done: prod is live** — Ethan redeployed prod with the CORS fix. Checked: the API now allows
+  only https://dropabop.pages.dev (preflight and real responses carry the header; other origins refused); the live
+  site loads signed in (first-time name prompt, no console errors after reload). Ethan: "Works great". Left for P11.4:
+  Ethan's own walkthrough on prod (the AI may not create accounts there), alert-email confirmation, alarms/budget.
 
 - 2026-10-07 — **First prod deploy (Ethan) + CORS fix** — `deploy.sh prod` created the prod stack and uploaded the
   website to https://dropabop.pages.dev (headers checked: CSP with the exact prod API, HSTS, DENY framing, nosniff;
