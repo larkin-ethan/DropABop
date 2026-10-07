@@ -215,7 +215,7 @@ Done when (each of P5.2–P5.10): unit + integration tests for success and every
     (`services/api/src/data/table-definition.ts`) so local tests and AWS can't drift.
   - *Docs:* `docs/ARCHITECTURE.md` updated with the real resource list.
 
-- [x] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`; website sign-up run done)
+- [ ] **P4.3 — First dev deploy + API smoke test** [HUMAN approves the command] (deployed + 34/34 smoke checks 2026-10-03; left: a weekday share → rate run of `node scripts/smoke-dev.mjs`; website sign-up run done)
   - *Do:* AI runs `sam build --config-env dev`, then `sam deploy --config-env dev --profile dropabop-dev` (user approves at the prompt), then calls
     `/health` with and without a token to prove the authorizer works. Create two throwaway test users in the dev
     user pool (credentials kept only in a git-ignored local file), then smoke-test every Phase 5 endpoint with real
@@ -362,14 +362,12 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ## Phase 11 — CI/CD & production
 
-- [x] **P11.1 — GitHub → AWS via OIDC** (§35) (superseded 2026-10-04 by ADR-0009: this account type can't create the
-  OIDC provider; removed) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
+- [x] **P11.1 — GitHub → AWS via OIDC** (§35) — IAM OIDC provider + deploy role scoped to the `dropabop-*` stacks and
   frontend buckets (in a small separate `infra/bootstrap.yaml`). **No long-lived access keys.**
-- [x] **P11.2 — Deploy workflow** (2026-10-04: replaced by `scripts/deploy.sh`, run from Ethan's Mac, ADR-0009; GitHub
-  keeps running the checks) — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
+- [ ] **P11.2 — Deploy workflow** (written 2026-10-04: `.github/workflows/deploy.yml`; first run happens in P11.3) — on push to main: verify → `sam deploy` dev → build web → `aws s3 sync` → CloudFront
   invalidation. Prod job exists but requires a manual approval (GitHub Environment `production` with Ethan as reviewer).
-- [ ] **P11.3 — First prod deploy** [HUMAN] — after AWS verifies CloudFront: protect `main` on GitHub, merge
-  `build` → `main`, then `ALERT_EMAIL=… bash scripts/deploy.sh prod` (DEPLOYMENT.md §6). AI provides exact commands.
+- [ ] **P11.3 — Bootstrap & first prod deploy** [HUMAN] — deploy `bootstrap.yaml` once, add the role ARN as a GitHub
+  secret, approve the first prod run. AI provides exact commands.
 - [ ] **P11.4 — Prod verification** — run P10.3 smoke test against prod with a throwaway account; confirm alarms and budget.
 
 ---

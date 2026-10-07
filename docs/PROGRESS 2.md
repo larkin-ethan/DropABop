@@ -2,10 +2,11 @@
 
 ## Current focus
 
-The repo now lives in `~/Documents/GitHub/DropABop` (GitHub: larkin-ethan/DropABop, public). Deploys are by hand
-with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). Waiting on Ethan:
-weekday checks **P4.3** and **P10.3** (Monday), AWS's CloudFront verification (§4c), then **P11.3** (protect `main`,
-merge `build` → `main`, first prod deploy). Remaining AI work follows those: P9.2 website publish, P11.4, P12.2.
+Phases 10–11 written. Waiting on Ethan: **P11.3** (put the repo on GitHub, deploy `infra/bootstrap.yaml`, set the
+GitHub variables / secret / `production` environment: DEPLOYMENT.md §6), and AWS's two account requests (§4c).
+Weekday checks still to run: **P4.3** and **P10.3** (`node scripts/smoke-dev.mjs`, `npm run e2e:dev`). P12.1 done.
+Remaining AI work only follows those: P9.2 website publish once CloudFront is verified, P12.2 cost check after a week
+of real use.
 
 ## Blocked / Questions for Ethan
 
@@ -42,39 +43,6 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
-
-- 2026-10-07 — **P4.3 done** — Weekday run of `node scripts/smoke-dev.mjs` (Ethan, Wednesday): 36/36, including share
-  (201), rate (200) and own-song block (403). The first run showed the script itself sent a non-existent song id (it
-  read `song.providerSongId`; the id is in `song.providers`); fixed in 78a2710. Website sharing was fine throughout.
-
-- 2026-10-04 — **Pre-launch review + friend guide (Ethan's request while waiting on AWS)** — Three independent reviews
-  (security, app rules, screens); no MUST FIX in security or rules. Fixed: privacy switches recorded per week (turning
-  "who shared"/"who rated what" on never reveals earlier weeks, D10/D11); names reject hidden/text-direction
-  characters; stats tie on the shown value; a rating that straddles the lock is refused instead of wiping the earlier
-  one; screens: invite-page dead end, ratings stay under "Unrated" + per-card Saved/error, sign-in confirmations, no
-  one-tap sign-out on phones, pause confirmation, settings don't wipe unsaved edits, members see plain text, stat
-  "?" works on tap, results explain skipped weeks, 2-line titles, dialog focus trap, copy fixes. Added `/how-it-works`
-  guide and "Copy invite message". Verified: verify, integration 188/188, e2e 20/20 (one worker: the Mac was
-  overloaded by iCloud syncing Documents, which timed out parallel runs). Not done (notes): 6-character invite codes,
-  Share tabs' arrow keys, history row details, forgot-password resend. API changes not deployed to dev yet.
-
-- 2026-10-04 — **First prod deploy attempt (Ethan)** — Rolled back: CloudFront still unverified ("Your account must
-  be verified before you can add new CloudFront resources"), as expected. Ethan deleted the leftovers in the console:
-  the ROLLBACK_COMPLETE `dropabop-prod` and `dropabop-github-deploy` stacks and the retained empty prod table (prod
-  user pool checked). A pending SNS confirmation email for the deleted prod topic can be ignored. Retry P11.3 only
-  after AWS Support confirms CloudFront verification (still no reply on the case).
-
-- 2026-10-04 — **Moved to DropABop; manual deploys (ADR-0009)** — Repo moved with full history to
-  `~/Documents/GitHub/DropABop` and published by Ethan (main + build). Bootstrap deploy failed: an AWS-managed SCP on
-  this new-experience account denies `iam:CreateOpenIDConnectProvider`. Ethan chose manual deploys: added
-  `scripts/deploy.sh` (clean tree, verify, build, deploy with change review, publish website; prod only from clean
-  `main` after typing "prod"; `ALERT_EMAIL` for a stage's first deploy), removed `deploy.yml`, `bootstrap.yaml` and its
-  test, updated DEPLOYMENT §6, README, ARCHITECTURE, DEVELOPMENT, ADR-0002, ROADMAP P11. Empty
-  `dropabop-github-deploy` stack (ROLLBACK_COMPLETE, $0) left for Ethan to delete. Also: dev deployed with P8.13
-  (Ethan approved); Ethan then ran `node scripts/smoke-dev.mjs` against it: 34/34 (Sunday path: sharing closed, results
-  not ready).
-  Verified: `npm run verify`; `bash -n` on the script and its samconfig parsing for both stages. The script itself
-  hasn't run end to end yet.
 
 - 2026-10-04 — **P8.13 done (Ethan's request)** — The host can choose the sharing days and the day + time ratings
   lock (Ethan chose: just these two, applying from next week). `packages/shared/src/schedule.ts` (defaults for old
