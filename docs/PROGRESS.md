@@ -43,6 +43,11 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-07 — **P10.3 done** — `npm run e2e:dev` passed on a sharing day (Wednesday): invite → join → the friend
+  rates the host's song in the real website → leave. The host had already shared today (the smoke run uses the same
+  test user), so the test took its "already shared" path; sharing through the website on dev was checked by Ethan by
+  hand the same day. A run on a fresh day would cover both automatically.
+
 - 2026-10-07 — **P4.3 done** — Weekday run of `node scripts/smoke-dev.mjs` (Ethan, Wednesday): 36/36, including share
   (201), rate (200) and own-song block (403). The first run showed the script itself sent a non-existent song id (it
   read `song.providerSongId`; the id is in `song.providers`); fixed in 78a2710. Website sharing was fine throughout.
