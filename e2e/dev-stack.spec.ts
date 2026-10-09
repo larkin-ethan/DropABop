@@ -28,6 +28,16 @@ async function signIn(browser: Browser, user: TestUser, name: string): Promise<P
   // First sign-in on a fresh account asks for a name.
   const namePrompt = page.getByRole('heading', { name: /What should your party call you/ });
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
+  // Accounts that haven't agreed to the current privacy policy are asked once (P13.2a). Wait until the app has
+  // settled on either the prompt or the home screen's party switcher before deciding.
+  const agree = page.getByRole('button', { name: 'I agree' });
+  await expect(agree.or(page.getByRole('button', { name: /Party/ }).first())).toBeVisible({
+    timeout: 20_000,
+  });
+  if (await agree.isVisible()) {
+    await agree.click();
+    await expect(agree).toBeHidden({ timeout: 20_000 });
+  }
   if (await namePrompt.isVisible()) {
     await page.getByLabel('Display name').fill(name);
     await page.getByRole('button', { name: 'Save' }).click();

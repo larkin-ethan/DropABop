@@ -3,8 +3,9 @@
 ## Current focus
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
-It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.2
-are done; next is **P13.2a** (privacy page + agreement at sign-up and for existing members, required by YouTube). Phase 13 runs
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.2a
+are done; next is **P13.3** (player layer). P13.2a (privacy page + agreement) still needs a dev deploy and
+`deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
 (cost check after a week of use), P12.3 (launch).
 
@@ -50,6 +51,18 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.2a done: privacy page + agreement** — public `/privacy` page (policy + terms of use incl. the
+  YouTube Terms of Service sentence, contact droppa.bop@gmail.com, version `PRIVACY_POLICY_VERSION` 2026-10-09),
+  linked from sign-up, Help, Landing and Profile. Sign-up has a required "I agree" checkbox; the agreement is
+  remembered for that new account id (Cognito `sub` from `signUp`) and saved on its first signed-in visit, so it's
+  never counted for someone else on a shared computer (spec-reviewer catch; cleared on sign-out too). Signed-in
+  members who haven't agreed to the current version see a one-time prompt (`PrivacyGate`; I agree / Sign out).
+  API: `PATCH /users/me` takes `acceptPrivacy: true` only; the server stores `privacyAcceptedAt` (its clock) +
+  `privacyVersion`. Verified: `npm run verify` (471 tests + 1 skipped), `npm run test:integration` 197 passed (4 new),
+  `npm run e2e -- --workers=1` 21 passed (privacy page added at all 7 widths), e2e types, browser pane check of
+  `/privacy` and sign-up at 320 px (no overflow, no console errors). Not run: `e2e:dev` (its sign-in now clicks
+  "I agree" when asked). Leftovers: dev deploy (approval) + prod (Ethan).
 
 - 2026-10-09 — **P13.2 done: provider compliance research** — re-read the official YouTube pages (Developer
   Policies, Required Minimum Functionality, API Services Terms, IFrame API reference, player parameters, branding

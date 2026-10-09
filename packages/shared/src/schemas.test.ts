@@ -210,6 +210,18 @@ describe('request schemas reject client-supplied identity (spec §24)', () => {
   });
 });
 
+describe('updateProfileRequestSchema: privacy agreement (ADR-0011)', () => {
+  it('accepts only acceptPrivacy: true, never a time or version from the browser', () => {
+    expect(updateProfileRequestSchema.safeParse({ acceptPrivacy: true }).success).toBe(true);
+    expect(updateProfileRequestSchema.safeParse({ acceptPrivacy: false }).success).toBe(false);
+    expect(updateProfileRequestSchema.safeParse({ acceptPrivacy: 'yes' }).success).toBe(false);
+    expect(
+      updateProfileRequestSchema.safeParse({ privacyAcceptedAt: '2020-01-01T00:00:00.000Z' }).success,
+    ).toBe(false);
+    expect(updateProfileRequestSchema.safeParse({ privacyVersion: '2099-01-01' }).success).toBe(false);
+  });
+});
+
 describe('castVoteRequestSchema', () => {
   it('accepts a valid rating', () => {
     expect(castVoteRequestSchema.parse({ rating: 9 })).toEqual({ rating: 9 });

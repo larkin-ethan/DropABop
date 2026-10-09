@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { agreedAtSignUp } from '../lib/privacy-consent';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -209,9 +210,35 @@ describe('sign-in screens', () => {
 
     await userEvent.clear(screen.getByLabelText('Confirm password'));
     await userEvent.type(screen.getByLabelText('Confirm password'), 'Secret123');
+    await userEvent.click(screen.getByRole('checkbox', { name: /I agree to the privacy policy and terms/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
     expect(service.signUp).toHaveBeenCalledWith('new@example.com', 'Secret123');
     await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/verify'));
+  });
+
+  it('sign up needs the privacy agreement (ADR-0011) and remembers it for the first sign-in', async () => {
+    window.localStorage.clear();
+    const service = fakeAuth();
+    renderAt('/sign-up', service, <SignUpScreen />);
+    await userEvent.type(screen.getByLabelText('Email'), 'new@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'Secret123');
+    await userEvent.type(screen.getByLabelText('Confirm password'), 'Secret123');
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Please agree to the privacy policy and terms',
+    );
+    expect(service.signUp).not.toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: 'privacy policy and terms' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /I agree to the privacy policy and terms/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(service.signUp).toHaveBeenCalled();
+    expect(agreedAtSignUp('new-user')).toBe(true);
+    expect(agreedAtSignUp('someone-else')).toBe(false);
+    window.localStorage.clear();
   });
 
   it('verify confirms the code', async () => {

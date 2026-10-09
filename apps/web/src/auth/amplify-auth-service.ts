@@ -48,7 +48,8 @@ export function createAmplifyAuthService(config: AppConfig): AuthService {
     },
 
     async signUp(email, password) {
-      await signUp({ username: email, password, options: { userAttributes: { email } } });
+      const result = await signUp({ username: email, password, options: { userAttributes: { email } } });
+      return { userId: result.userId ?? null };
     },
 
     async confirmSignUp(email, code) {

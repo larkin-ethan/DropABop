@@ -137,6 +137,9 @@ export const updateProfileRequestSchema = z
     avatarColor: avatarColorSchema,
     avatarImage: avatarImageSchema.nullable(),
     preferredProvider: musicProviderSchema.nullable(),
+    // Agreeing to the privacy policy and terms (ADR-0011). Only `true`: the server records the time and the current
+    // version itself, so a browser can't back-date it or claim a version it never saw.
+    acceptPrivacy: z.literal(true, { error: 'To agree to the privacy policy, send acceptPrivacy: true.' }),
   })
   .partial()
   .refine((body) => Object.keys(body).length > 0, { error: 'Nothing to update.' });

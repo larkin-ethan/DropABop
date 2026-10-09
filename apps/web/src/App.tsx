@@ -6,6 +6,7 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react
 import { useAuth } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PrivacyGate } from './components/PrivacyGate';
 import { LoadingState } from './components/States';
 import { takePendingInvite } from './lib/pending-invite';
 import { CurrentPartyProvider } from './party/CurrentParty';
@@ -15,6 +16,7 @@ import { HelpScreen } from './screens/HelpScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LandingScreen } from './screens/LandingScreen';
 import { CreatePartyScreen, JoinByLinkScreen, JoinWithCodeScreen } from './screens/OnboardingScreens';
+import { PrivacyScreen } from './screens/PrivacyScreen';
 import { RateScreen } from './screens/RateScreen';
 import { HistoryScreen, LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
 import { PartySettingsScreen, ProfileScreen } from './screens/SettingsScreens';
@@ -60,7 +62,9 @@ function RequireAuth({ preview }: { preview: boolean }) {
   }
   return (
     <AppShell banner={preview ? <PreviewBanner /> : undefined}>
-      <Outlet />
+      <PrivacyGate>
+        <Outlet />
+      </PrivacyGate>
     </AppShell>
   );
 }
@@ -88,6 +92,7 @@ export function App({ preview = false }: { preview?: boolean }) {
           <Route path="/join/:code" element={<JoinByLinkScreen />} />
           {/* The guide for new friends: readable before signing up. */}
           <Route path="/how-it-works" element={<HelpScreen />} />
+          <Route path="/privacy" element={<PrivacyScreen />} />
 
           <Route element={<RequireAuth preview={preview} />}>
             <Route path="/" element={<HomeScreen />} />

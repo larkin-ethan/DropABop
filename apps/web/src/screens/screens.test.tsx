@@ -3,10 +3,12 @@
 
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { PRIVACY_POLICY_VERSION } from '@dropabop/shared';
 import { describe, expect, it } from 'vitest';
 import type { ApiClient } from '../api/client';
 import { ApiError } from '../api/client';
 import { createPreviewApi, createPreviewState } from '../preview/preview-api';
+import { rememberSignUpAgreement } from '../lib/privacy-consent';
 import { fakeAuth, renderApp } from '../test/render-app';
 
 describe('Home (P8.3)', () => {
@@ -143,6 +145,8 @@ describe('Home (P8.3)', () => {
                 displayName: 'Ethan',
                 avatarColor: '#3B82F6',
                 preferredProvider: null,
+                privacyAcceptedAt: '2026-10-09T12:00:00.000Z',
+                privacyVersion: PRIVACY_POLICY_VERSION,
                 createdAt: '',
               },
               parties: [{ partyId: 'p1', partyName: 'Party', role: 'host', joinedAt: '' }],
@@ -729,5 +733,81 @@ describe('How it works guide and invite message (2026-10-04)', () => {
     expect(copied).toContain('Ratings lock Saturday at 9:00 pm');
     expect(copied).toContain('/join/SONG-7K4P (or use code SONG-7K4P)');
     expect(copied).toContain('/how-it-works');
+  });
+});
+
+describe('Privacy policy and agreement (P13.2a, ADR-0011)', () => {
+  it('the policy is public, names the contact, and binds video use to the YouTube Terms', async () => {
+    renderApp('/privacy', { auth: fakeAuth() });
+    expect(
+      await screen.findByRole('heading', { name: 'Privacy policy and terms', level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'droppa.bop@gmail.com' })).toHaveAttribute(
+      'href',
+      'mailto:droppa.bop@gmail.com',
+    );
+    for (const link of screen.getAllByRole('link', { name: 'YouTube Terms of Service' })) {
+      expect(link).toHaveAttribute('href', 'https://www.youtube.com/t/terms');
+    }
+    expect(screen.getByRole('link', { name: 'Google Privacy Policy' })).toHaveAttribute(
+      'href',
+      'https://www.google.com/policies/privacy',
+    );
+    expect(screen.getByText(/you agree to be bound by the/)).toBeInTheDocument();
+  });
+
+  it('asks a member who hasn’t agreed, and lets them in once they do', async () => {
+    const { state } = renderApp('/', {
+      setup: (s) => {
+        delete s.user.privacyAcceptedAt;
+        delete s.user.privacyVersion;
+      },
+    });
+    expect(await screen.findByRole('heading', { name: 'Privacy policy and terms' })).toBeInTheDocument();
+    expect(screen.queryByText('Wednesday · Day 3 of 5')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Read the privacy policy and terms' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'I agree' }));
+    expect(await screen.findByText('Wednesday · Day 3 of 5')).toBeInTheDocument();
+    expect(state.user.privacyVersion).toBeDefined();
+  });
+
+  it('asks again when the policy version changes', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.user.privacyVersion = '2000-01-01';
+      },
+    });
+    expect(await screen.findByRole('button', { name: 'I agree' })).toBeInTheDocument();
+  });
+
+  it('never counts another account’s sign-up agreement (shared computers)', async () => {
+    rememberSignUpAgreement('someone-else');
+    const { state } = renderApp('/', {
+      setup: (s) => {
+        delete s.user.privacyAcceptedAt;
+        delete s.user.privacyVersion;
+      },
+    });
+    expect(await screen.findByRole('button', { name: 'I agree' })).toBeInTheDocument();
+    expect(state.user.privacyAcceptedAt).toBeUndefined();
+    window.localStorage.clear();
+  });
+
+  it('doesn’t ask again someone who agreed at sign-up on this browser', async () => {
+    rememberSignUpAgreement('me');
+    const { state } = renderApp('/', {
+      setup: (s) => {
+        delete s.user.privacyAcceptedAt;
+        delete s.user.privacyVersion;
+      },
+    });
+    expect(await screen.findByText('Wednesday · Day 3 of 5')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'I agree' })).not.toBeInTheDocument();
+    await waitFor(() => expect(state.user.privacyAcceptedAt).toBeDefined());
+    expect(window.localStorage.getItem('dropabop.privacyAgreedAtSignUp')).toBeNull();
   });
 });

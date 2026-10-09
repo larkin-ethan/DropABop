@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
 import { useMe } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
+import { forgetSignUpAgreement } from '../lib/privacy-consent';
 import { forgetCurrentParty, useCurrentParty } from '../party/CurrentParty';
 import { Icon, type IconName } from './Icon';
 import { Avatar, Logo } from './ui';
@@ -45,6 +46,7 @@ export function SignOutButton() {
       // (not "sign in to see this page again", which is what the route guard would show).
       queryClient.clear();
       forgetCurrentParty();
+      forgetSignUpAgreement(); // shared computers: never carry one person's sign-up agreement over to the next
       await refresh();
       setBusy(false);
       void navigate('/welcome', { replace: true });

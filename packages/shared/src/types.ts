@@ -28,6 +28,10 @@ export interface User {
   avatarImage?: string | null;
   /** D22: whose "Open in …" link is shown first. */
   preferredProvider: MusicProviderId | null;
+  /** When this person agreed to the privacy policy and terms (server time, ADR-0011). Missing = never. */
+  privacyAcceptedAt?: IsoDateTime | null;
+  /** Which version they agreed to (PRIVACY_POLICY_VERSION at the time). */
+  privacyVersion?: string | null;
   createdAt: IsoDateTime;
 }
 

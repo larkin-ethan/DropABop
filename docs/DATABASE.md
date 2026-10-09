@@ -22,7 +22,7 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 
 | Item | PK | SK | Main attributes |
 |---|---|---|---|
-| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, createdAt |
+| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, privacyAcceptedAt, privacyVersion (P13.2a; set only by the server), createdAt |
 | "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt |
 | Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime; missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |

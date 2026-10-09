@@ -408,7 +408,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   **Stop and ask Ethan** if the terms need something only he can do (e.g. publishing a privacy policy, accepting
   terms) or forbid the docked player. *Done when:* every capability P13.3 relies on is cited, open questions are
   listed in API_COMPLIANCE.md, Ethan has answered any stop question.
-- [ ] **P13.2a — Privacy page + agreement** (§36; ADR-0011, D27) — a `/privacy` page anyone can open (privacy policy + terms of use incl. the
+- [x] **P13.2a — Privacy page + agreement** (§36; ADR-0011, D27) — a `/privacy` page anyone can open (privacy policy + terms of use incl. the
   YouTube Terms of Service sentence, text from `docs/PRIVACY.md`, linked from sign-up, Help and settings); a required
   "I agree to the privacy policy and terms" checkbox at sign-up; a one-time prompt for signed-in members who haven't agreed to the current version.
   Backend: `PATCH /users/me` accepts `acceptPrivacy: true` and stores `privacyAcceptedAt` (server time) +

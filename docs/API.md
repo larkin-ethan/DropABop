@@ -78,7 +78,7 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 
 ```json
 {
-  "user": { "userId": "…", "displayName": "Ethan", "avatarColor": "#3B82F6", "preferredProvider": null, "createdAt": "…" },
+  "user": { "userId": "…", "displayName": "Ethan", "avatarColor": "#3B82F6", "preferredProvider": null, "privacyAcceptedAt": "…", "privacyVersion": "2026-10-09", "createdAt": "…" },
   "parties": [{ "partyId": "…", "partyName": "Ethan's Music Party", "role": "host", "joinedAt": "…" }]
 }
 ```
@@ -87,8 +87,11 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 
 Body (`updateProfileRequestSchema`, at least one field): `displayName` (1–40 chars, trimmed), `avatarColor`
 (`#RRGGBB`), `avatarImage` (profile picture: a `data:image/jpeg|webp;base64,…` URL up to 9,000 characters, or
-`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22).
-Updates only the given fields; your name/color in party member lists updates too.
+`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22),
+`acceptPrivacy` (only `true`: agree to the privacy policy and terms, ADR-0011; the server saves `privacyAcceptedAt`
+from its own clock and `privacyVersion` = the current `PRIVACY_POLICY_VERSION`, so neither can be sent).
+Updates only the given fields; your name/color in party member lists updates too. `privacyAcceptedAt` /
+`privacyVersion` are missing on profiles that never agreed; the website asks again when the version changes.
 
 `200`: `{ "user": { … } }`. Errors: `400 VALIDATION_FAILED` (bad value, empty update, or any unexpected field such
 as `userId`).

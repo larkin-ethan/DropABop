@@ -16,7 +16,7 @@ export function fakeAuth(overrides: Partial<AuthService> = {}): AuthService {
   return {
     getCurrentUserId: vi.fn(() => Promise.resolve(null)),
     getAccessToken: vi.fn(() => Promise.resolve('token-1')),
-    signUp: vi.fn(() => Promise.resolve()),
+    signUp: vi.fn(() => Promise.resolve({ userId: 'new-user' })),
     confirmSignUp: vi.fn(() => Promise.resolve()),
     resendSignUpCode: vi.fn(() => Promise.resolve()),
     signIn: vi.fn(() => Promise.resolve({ status: 'signedIn' as const })),

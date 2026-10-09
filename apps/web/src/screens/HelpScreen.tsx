@@ -132,6 +132,12 @@ export function HelpScreen() {
           ))}
         </ol>
 
+        <p className="mt-8 text-center text-sm">
+          <Link to="/privacy" className="font-semibold text-blue hover:underline">
+            Privacy policy and terms
+          </Link>
+        </p>
+
         {!signedIn && (
           <div className="mt-8 flex flex-col items-center gap-3 text-center">
             <Link to="/sign-up" className={buttonClassName('primary', 'w-full max-w-xs py-3')}>

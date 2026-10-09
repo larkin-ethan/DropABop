@@ -27,6 +27,7 @@ import type {
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
+  PRIVACY_POLICY_VERSION,
   addCommentRequestSchema,
   checkSchedule,
   shareDaysOf,
@@ -128,6 +129,8 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       displayName: 'Ethan Larkin',
       avatarColor: '#3B82F6',
       preferredProvider: null,
+      privacyAcceptedAt: '2026-10-09T12:00:00.000Z',
+      privacyVersion: PRIVACY_POLICY_VERSION,
       createdAt: '2026-09-01T12:00:00.000Z',
     },
     parties: [party],
@@ -352,7 +355,16 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return response;
     }
     if (is('PATCH', 'users', 'me')) {
-      state.user = { ...state.user, ...(body as Partial<User>) };
+      // Like the real API: `acceptPrivacy` becomes the time and current version (ADR-0011).
+      const { acceptPrivacy, ...changes } = body as Partial<User> & { acceptPrivacy?: true };
+      state.user = { ...state.user, ...changes };
+      if (acceptPrivacy === true) {
+        state.user = {
+          ...state.user,
+          privacyAcceptedAt: new Date().toISOString(),
+          privacyVersion: PRIVACY_POLICY_VERSION,
+        };
+      }
       state.members = state.members.map((m) =>
         m.userId === ME
           ? {

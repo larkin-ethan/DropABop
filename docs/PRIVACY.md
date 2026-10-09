@@ -87,6 +87,9 @@ Questions or complaints about privacy: **droppa.bop@gmail.com**.
   using the features (sign-up checkbox + one-time prompt for existing members) [III.A.2]. Our terms of use link the
   YouTube Terms of Service and say users agree to be bound by them [III.A.1]. We use no Google "Authorized Data",
   so the revoke-access link requirement doesn't apply.
+- **Settings named in the policy:** the "Play videos in Drop a Bop" switch (Settings → Music) and notification
+  choices arrive in P13.6 / P13.10. The player itself (P13.3–P13.4) ships no earlier than that switch, so the
+  policy is accurate by the time videos can play; don't deploy P13.4 to prod before P13.6.
 - **Data minimisation:** no listening history, no provider tokens (no accounts are connected), no IP addresses in
   our logs. The agreement is stored as a timestamp + policy version on the user's profile.
 - **No account deletion is offered yet** (Ethan, 2026-10-09). If that changes, first decide what is removed (D17 keeps

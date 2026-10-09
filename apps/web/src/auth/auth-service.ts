@@ -12,7 +12,8 @@ export interface AuthService {
   getCurrentUserId: () => Promise<string | null>;
   /** A valid access token (refreshed automatically when needed), or null if signed out. */
   getAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string | null>;
-  signUp: (email: string, password: string) => Promise<void>;
+  /** Returns the new account's Cognito id (`sub`) when Cognito reports it, so consent can be tied to it. */
+  signUp: (email: string, password: string) => Promise<{ userId: string | null }>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   resendSignUpCode: (email: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<SignInResult>;
@@ -25,7 +26,7 @@ export interface AuthService {
 export const previewAuthService: AuthService = {
   getCurrentUserId: () => Promise.resolve('me'),
   getAccessToken: () => Promise.resolve('preview-token'),
-  signUp: () => Promise.resolve(),
+  signUp: () => Promise.resolve({ userId: 'me' }),
   confirmSignUp: () => Promise.resolve(),
   resendSignUpCode: () => Promise.resolve(),
   signIn: () => Promise.resolve({ status: 'signedIn' }),

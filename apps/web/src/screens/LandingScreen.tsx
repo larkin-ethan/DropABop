@@ -122,6 +122,11 @@ export function LandingScreen() {
             Read the full guide
           </Link>
         </p>
+        <p className="mt-4 text-center text-sm">
+          <Link to="/privacy" className="text-muted hover:text-ink hover:underline">
+            Privacy policy and terms
+          </Link>
+        </p>
         <p className="mt-4 text-center text-sm text-muted">
           Already have an account?{' '}
           <Link to="/sign-in" className="font-semibold text-blue hover:underline">

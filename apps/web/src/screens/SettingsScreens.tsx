@@ -18,7 +18,7 @@ import {
   type Weekday,
 } from '@dropabop/shared';
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import {
   useMe,
   useParty,
@@ -602,8 +602,11 @@ export function ProfileScreen() {
       <QueryBoundary isPending={me.isPending} error={me.error} onRetry={() => void me.refetch()}>
         {() => (me.data ? <ProfileForm user={me.data.user} /> : null)}
       </QueryBoundary>
-      <div className="mt-6 flex justify-center">
+      <div className="mt-6 flex flex-col items-center gap-2">
         <SignOutButton />
+        <Link to="/privacy" className="text-sm text-muted hover:text-ink hover:underline">
+          Privacy policy and terms
+        </Link>
       </div>
     </div>
   );

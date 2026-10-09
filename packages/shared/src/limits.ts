@@ -72,6 +72,12 @@ export const AVATAR_IMAGE_MAX_LENGTH = 9_000;
 /** Shown until the person picks a name during onboarding (P8.2). */
 export const DEFAULT_DISPLAY_NAME = 'New member';
 
+/**
+ * Version of the privacy policy and terms (docs/PRIVACY.md, ADR-0011). YouTube requires people to agree before using
+ * its player; bumping this asks everyone to agree again.
+ */
+export const PRIVACY_POLICY_VERSION = '2026-10-09';
+
 /** Avatar background colors from the design palette (docs/design), D18. Also the choices on the Profile screen. */
 export const AVATAR_COLORS = [
   '#3B82F6',

@@ -1,6 +1,6 @@
 // New-user defaults (D18, D19).
 
-import { AVATAR_COLORS, DEFAULT_DISPLAY_NAME, type User } from '@dropabop/shared';
+import { AVATAR_COLORS, DEFAULT_DISPLAY_NAME, PRIVACY_POLICY_VERSION, type User } from '@dropabop/shared';
 
 // DEFAULT_DISPLAY_NAME and AVATAR_COLORS live in @dropabop/shared so the Profile screen offers the same colors.
 export { AVATAR_COLORS, DEFAULT_DISPLAY_NAME };
@@ -22,4 +22,12 @@ export function buildNewUser(userId: string, now: Date): User {
     preferredProvider: null,
     createdAt: now.toISOString(),
   };
+}
+
+/**
+ * The fields saved when someone agrees to the privacy policy and terms (ADR-0011). The time comes from the server
+ * clock and the version is the current one, never values sent by the browser.
+ */
+export function privacyAgreement(now: Date): { privacyAcceptedAt: string; privacyVersion: string } {
+  return { privacyAcceptedAt: now.toISOString(), privacyVersion: PRIVACY_POLICY_VERSION };
 }

@@ -3,6 +3,7 @@ import { apiEvent, bodyOf } from '../../test/events';
 import { aMember, aParty, newId } from '../../test/fixtures';
 import { testDeps } from '../../test/handler-deps';
 import { createParty, listMembers } from '../data/parties';
+import { PRIVACY_POLICY_VERSION } from '@dropabop/shared';
 import { DEFAULT_DISPLAY_NAME } from '../domain/profile';
 import { runHandler } from '../http/handler';
 import { getMe, updateMe } from './users';
@@ -83,6 +84,49 @@ describe('PATCH /users/me', () => {
   it('rejects an empty update', async () => {
     const result = await runHandler(updateMe, apiEvent({ userId: newId(), body: {} }), deps);
     expect(result.statusCode).toBe(400);
+  });
+});
+
+describe('privacy agreement (ADR-0011, P13.2a)', () => {
+  it('records the server time and the current version, and returns them from GET', async () => {
+    const userId = newId();
+    deps.setNow('2026-10-09T15:30:00.000Z');
+    const result = await runHandler(updateMe, apiEvent({ userId, body: { acceptPrivacy: true } }), deps);
+    expect(result.statusCode).toBe(200);
+    expect(bodyOf(result)).toMatchObject({
+      user: { userId, privacyAcceptedAt: '2026-10-09T15:30:00.000Z', privacyVersion: PRIVACY_POLICY_VERSION },
+    });
+
+    const after = bodyOf(await runHandler(getMe, apiEvent({ userId }), deps)) as {
+      user: { privacyAcceptedAt: string; privacyVersion: string; displayName: string };
+    };
+    expect(after.user.privacyAcceptedAt).toBe('2026-10-09T15:30:00.000Z');
+    expect(after.user.privacyVersion).toBe(PRIVACY_POLICY_VERSION);
+    expect(after.user.displayName).toBe(DEFAULT_DISPLAY_NAME); // nothing else changed
+  });
+
+  it('new profiles start without an agreement', async () => {
+    const body = bodyOf(await runHandler(getMe, apiEvent({ userId: newId() }), deps)) as {
+      user: Record<string, unknown>;
+    };
+    expect(body.user.privacyAcceptedAt).toBeUndefined();
+  });
+
+  it('refuses a time or version chosen by the browser', async () => {
+    for (const body of [
+      { privacyAcceptedAt: '2020-01-01T00:00:00.000Z' },
+      { privacyVersion: '2099-01-01' },
+      { acceptPrivacy: true, privacyVersion: '2099-01-01' },
+      { acceptPrivacy: false },
+    ]) {
+      const result = await runHandler(updateMe, apiEvent({ userId: newId(), body }), deps);
+      expect(result.statusCode).toBe(400);
+    }
+  });
+
+  it('requires sign-in', async () => {
+    const result = await runHandler(updateMe, apiEvent({ body: { acceptPrivacy: true } }), deps);
+    expect(result.statusCode).toBe(401);
   });
 });
 
