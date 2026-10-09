@@ -11,6 +11,7 @@ import type {
   GroupStatsResponse,
   InviteCodeResponse,
   InvitePreviewResponse,
+  LeaderboardPeriod,
   LeaderboardResponse,
   MeResponse,
   PartyResponse,
@@ -49,7 +50,8 @@ export const keys = {
   invite: (code: string) => ['invite', code] as const,
   personalStats: (partyId: string) => ['personalStats', partyId] as const,
   groupStats: (partyId: string) => ['groupStats', partyId] as const,
-  leaderboard: (partyId: string) => ['leaderboard', partyId] as const,
+  leaderboard: (partyId: string, period?: LeaderboardPeriod) =>
+    period === undefined ? (['leaderboard', partyId] as const) : (['leaderboard', partyId, period] as const),
   search: (q: string) => ['search', q] as const,
 };
 
@@ -166,11 +168,12 @@ export function useGroupStats(partyId: string | null) {
   });
 }
 
-export function useLeaderboard(partyId: string | null) {
+export function useLeaderboard(partyId: string | null, period: LeaderboardPeriod = 'all') {
   const api = useApi();
   return useQuery({
-    queryKey: keys.leaderboard(partyId ?? ''),
-    queryFn: () => api.get<LeaderboardResponse>(`/parties/${enc(partyId ?? '')}/leaderboard`),
+    queryKey: keys.leaderboard(partyId ?? '', period),
+    queryFn: () =>
+      api.get<LeaderboardResponse>(`/parties/${enc(partyId ?? '')}/leaderboard?period=${period}`),
     enabled: partyId !== null,
     staleTime: STATS_STALE_MS,
   });

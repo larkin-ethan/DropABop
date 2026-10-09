@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.10 are done (genre, calendar history, achievements, notifications); next is **P13.11** (leaderboard periods, group stats, profile, home). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.11 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home); next is **P13.12** (search). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -16,6 +16,12 @@ hand with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks 
 (comments) still needs a dev deploy (approval) and `deploy.sh prod` (Ethan).
 
 ## Blocked / Questions for Ethan
+
+- **Leaderboard "This week" and who-rated-what (P13.11, not blocking).** D30 asks for Highest Average Given in every
+  period. On the one-week board, someone whose 5+ ratings that week average exactly 10.0 (or 1.0) shows how they
+  rated every song, even when "show who rated what" is off (D11). Rare and only at the extremes. Options: keep as
+  D30 says (current), or hide the week period for the rater-side boards (average given, most generous, toughest
+  critic) when that switch is off. Ethan to decide.
 
 - **CloudFront verification (blocks P9.2's deploy, 2026-10-04).** Creating the distribution failed: "Your account must
   be verified before you can add new CloudFront resources. ... contact AWS Support". Ethan opens a free Account and
@@ -52,6 +58,21 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.11 done: leaderboard periods, group stats, profile, home** — `GET …/leaderboard?period=week|month|all`
+  (D30: latest closed week / weeks whose lock falls in this month, party timezone / all). Person boards are now
+  `{ ranked, provisional, required }`: people below a minimum are listed as "Provisional" with "2 of 3", never with a
+  number. New boards: Highest Average Given, Most Bops, Most Ratings, Crowd Favorites, Most Generous, Toughest Critic
+  (plus the existing ones). Group stats add members, group average, rating distribution, top artists, most
+  consistent, weekly/monthly activity (text tables). Personal stats add ratings given, favourite genres, recent
+  songs, last finished week's rank. `/profile` is now a stats page (editing stays in Settings → Account). Home: one
+  main button from the real state (`lib/home-action.ts`: share → rate → "All caught up"; results or waiting between
+  weeks), "Today's drop" counts first on phones, plus your averages, latest achievement and last week's rank.
+  `artistCounts`/`dayIn` moved into `stats.ts` for reuse. spec-reviewer: PASS; applied its should-fixes (home text
+  before any finished week, helper reuse, more tests, STATISTICS note on Most Surprising per period); its privacy
+  note is in Blocked / Questions. Verified: `npm run verify` (634 + 1 skipped), integration 221 (4 new leaderboard
+  `period` tests), e2e 32 passed, Home/Profile/Leaderboard/Group stats checked in the browser pane at 320/375 px
+  and desktop (no horizontal overflow, no console errors). Not deployed.
 
 - 2026-10-09 — **P13.10 done: notifications** — in-app only (D29). `GET /parties/{partyId}/notifications` worked
   out from this week and the latest week with results (key queries only, so the bell's 5-minute checks stay cheap):

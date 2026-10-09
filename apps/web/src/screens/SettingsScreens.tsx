@@ -18,7 +18,7 @@ import {
   type Weekday,
 } from '@dropabop/shared';
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
   useMe,
   useParty,
@@ -27,7 +27,6 @@ import {
   useUpdateProfile,
   useUpdateSettings,
 } from '../api/hooks';
-import { SignOutButton } from '../components/AppShell';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { PageHeader, QueryBoundary } from '../components/Page';
@@ -587,28 +586,6 @@ function MembersCard({ party, members, isHost }: { party: Party; members: PartyM
         </div>
       </Modal>
     </Card>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// /profile (P8.11)
-// ---------------------------------------------------------------------------
-
-export function ProfileScreen() {
-  const me = useMe();
-  return (
-    <div className="mx-auto max-w-xl">
-      <PageHeader title="Your profile" description="How you appear to your parties." />
-      <QueryBoundary isPending={me.isPending} error={me.error} onRetry={() => void me.refetch()}>
-        {() => (me.data ? <ProfileForm user={me.data.user} /> : null)}
-      </QueryBoundary>
-      <div className="mt-6 flex flex-col items-center gap-2">
-        <SignOutButton />
-        <Link to="/privacy" className="text-sm text-muted hover:text-ink hover:underline">
-          Privacy policy and terms
-        </Link>
-      </div>
-    </div>
   );
 }
 

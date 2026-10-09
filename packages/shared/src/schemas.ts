@@ -296,6 +296,11 @@ export const personalStatsQuerySchema = z.strictObject({
   partyId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' }),
 });
 
+/** GET /parties/{partyId}/leaderboard?period= (D30). Defaults to all time. */
+export const leaderboardQuerySchema = z.strictObject({
+  period: z.enum(['week', 'month', 'all'], { error: 'Pick week, month or all.' }).default('all'),
+});
+
 /** POST /songs/resolve — paste an Apple Music song link instead of searching (D21). */
 export const resolveSongRequestSchema = z.strictObject({
   url: z.string().refine((url) => parseAppleMusicSongUrl(url) !== null, {

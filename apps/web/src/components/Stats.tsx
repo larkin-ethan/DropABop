@@ -136,6 +136,46 @@ export function Leaderboard({
   );
 }
 
+export interface ProvisionalRow {
+  id: string;
+  sampleSize: number;
+  name: string;
+}
+
+/**
+ * People below a leaderboard's minimum (D30): listed apart with how much data they have, never with a value and
+ * never ranked, so one 10 can't beat 100 ratings averaging 9.5.
+ */
+export function ProvisionalList({
+  rows,
+  required,
+  unit,
+}: {
+  rows: ProvisionalRow[];
+  required: number;
+  unit: string;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <p className="text-xs font-semibold tracking-wide text-muted uppercase">Provisional</p>
+      <p className="mt-0.5 text-xs text-muted">
+        Not ranked yet: needs {required} {unit}.
+      </p>
+      <ul className="mt-2 flex flex-col gap-1 text-sm">
+        {rows.map((row) => (
+          <li key={row.id} className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate">{row.name}</span>
+            <span className="shrink-0 text-xs text-muted">
+              {row.sampleSize} of {required}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** Horizontal bars for how many of each rating a song (or person) got. `counts[0]` = number of 1s. */
 export function RatingDistribution({ counts }: { counts: number[] }) {
   const max = Math.max(1, ...counts);

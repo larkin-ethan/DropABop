@@ -338,19 +338,32 @@ Results only change when a week closes, so clients should cache these.
 
 Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRecommended` (number),
 `highestRatedRecommendation`, `lowestRatedRecommendation`, `generosity`, `ratingDistribution` (10 counts),
-`favoriteArtists` (top 3), `musicalTwin`. Errors: `400` (missing partyId), `403 NOT_A_MEMBER`,
+`favoriteArtists` (top 3), `musicalTwin`, `ratingsGiven` (number), `favoriteGenres` (top 3, like favourite artists),
+`recentSongs` (your latest 5 songs from closed weeks: `recommendationId`, `roundId`, `submittedOn`, `title`, `artist`,
+`albumArtUrl`, exact `average` or null, `ratingCount`), `lastWeekRank` (`{ roundId, weekStart, position, of }` for the
+most recent closed week, or null if none of your songs were rated in it; P13.11). Errors: `400` (missing partyId), `403 NOT_A_MEMBER`,
 `404 NOT_FOUND` (unknown party).
 
 #### `GET /parties/{partyId}/stats`
 
 `songsShared`, `ratingsGiven`, `highestRatedSong`, `crowdFavorite`, `mostDivisive`, `mostControversial`,
-`everyoneAgreed`, `darkHorse`, `mostGenerousVoter`, `toughestCritic`. Members only.
+`everyoneAgreed`, `darkHorse`, `mostGenerousVoter`, `toughestCritic`, and (P13.11) `memberCount`, `groupAverage`,
+`ratingDistribution` (10 counts), `topArtists` (`{ artist, songCount }`, top 3 with ties), `mostConsistent`,
+`weeklyActivity` and `monthlyActivity` (newest first, up to 12 each: `{ period, weeks, songs, ratings, average }`,
+`period` = the week's Monday or the lock month `YYYY-MM`). Members only.
 
-#### `GET /parties/{partyId}/leaderboard`
+#### `GET /parties/{partyId}/leaderboard?period=week|month|all`
 
-`highestAverageSongRating` (songs, with `song` summary), `highestAverageRecommendationScore`, `mostConsistent`,
-`mostSurprising`, `mostPopular`: each a ranked list of `{ id, rank, value, sampleSize }` containing only entries
-that meet the minimum sample. Ties share a rank. Members only.
+`period` (D30, default `all`): `week` = the most recent closed week; `month` = closed weeks whose ratings locked in
+the current calendar month (party timezone); `all` = every closed week. Unknown values → `400`. The response echoes
+`period`, and `weeksPlayed` counts the weeks in it.
+
+Song boards, ranked lists of `{ id, rank, value, sampleSize, song }`: `highestAverageSongRating`, `crowdFavorites`.
+Person boards, each `{ ranked: [{ id, rank, value, sampleSize }], provisional: [{ id, sampleSize }], required }`:
+`highestAverageReceived`, `highestAverageGiven`, `mostBops`, `mostRatings`, `mostGenerous`, `toughestCritic`,
+`mostConsistent`, `mostSurprising`, `mostPopular`. Only people meeting `required` are ranked; people with some data
+but below it are in `provisional` (most data first) **with no value**, so they never appear to outrank anyone.
+Ties share a rank. Members only (`403 NOT_A_MEMBER`).
 
 ### History
 

@@ -22,6 +22,25 @@ describe('Home (P8.3)', () => {
     expect(screen.getByText(/Ratings lock/)).toBeInTheDocument();
   });
 
+  it('shows your averages, latest achievement and last week’s rank (spec §26)', async () => {
+    renderApp('/');
+    const highlights = await screen.findByRole('region', { name: 'Your highlights' });
+    expect(within(highlights).getByText('7.4')).toBeInTheDocument(); // average given
+    expect(within(highlights).getByText('8.1')).toBeInTheDocument(); // average received
+    expect(within(highlights).getByText('#2')).toBeInTheDocument();
+    expect(within(highlights).getByRole('link', { name: 'View stats' })).toHaveAttribute('href', '/stats');
+  });
+
+  it('has one main button: sharing comes before rating', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
+      },
+    });
+    expect(await screen.findByRole('link', { name: 'Share today’s song' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Rate \d+ more/ })).not.toBeInTheDocument();
+  });
+
   it('asks you to share when you haven’t yet today', async () => {
     renderApp('/', {
       setup: (s) => {
@@ -496,11 +515,65 @@ describe('Stats and leaderboard (P8.8, P8.9)', () => {
 
   it('ranks people, with "Based on N" on every row', async () => {
     renderApp('/leaderboard');
-    expect(
-      await screen.findByRole('heading', { name: 'Highest average recommendation score' }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText(/Based on \d+ songs/).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'Highest average received' })).toBeInTheDocument();
+    for (const board of [
+      'Highest average given',
+      'Most bops',
+      'Most ratings',
+      'Crowd favorites',
+      'Most generous',
+    ]) {
+      expect(screen.getByRole('heading', { name: board })).toBeInTheDocument();
+    }
+    expect(screen.getAllByText(/Based on \d+ rated songs/).length).toBeGreaterThan(0);
     expect(screen.getByText('Nobody has enough data for this one yet.')).toBeInTheDocument(); // Most surprising
+  });
+
+  it('lists people below a minimum as Provisional with the rule, never with a number (D30)', async () => {
+    renderApp('/leaderboard');
+    const card = (await screen.findByRole('heading', { name: 'Highest average received' })).closest(
+      'div',
+    )!.parentElement!;
+    expect(within(card).getByText('Provisional')).toBeInTheDocument();
+    expect(within(card).getByText('Not ranked yet: needs 3 rated songs.')).toBeInTheDocument();
+    expect(within(card).getByText('2 of 3')).toBeInTheDocument();
+  });
+
+  it('switches period (This week / This month / All time) and asks the API for it', async () => {
+    const api = createPreviewApi(createPreviewState());
+    const get = vi.spyOn(api, 'get');
+    renderApp('/leaderboard', { api });
+    const week = await screen.findByRole('button', { name: 'This week' });
+    expect(screen.getByRole('button', { name: 'All time' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(week);
+    expect(week).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByText(/The most recent finished week/)).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/leaderboard\?period=week$/));
+    expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/leaderboard\?period=all$/));
+  });
+
+  it('group stats show counts, group average, top artists and activity tables', async () => {
+    renderApp('/stats/group');
+    expect(await screen.findByText('Members')).toBeInTheDocument();
+    expect(screen.getByText('Group average')).toBeInTheDocument();
+    expect(screen.getAllByText('7.3').length).toBeGreaterThan(0);
+    expect(screen.getByText('Robyn')).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: /each finished week/ })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: /month their ratings locked/ })).toBeInTheDocument();
+    expect(screen.getByText('Most consistent')).toBeInTheDocument();
+  });
+});
+
+describe('Profile (P13.11, spec §18)', () => {
+  it('is a stats page: averages, counts, badges, favourites and recent songs; editing is in Settings', async () => {
+    renderApp('/profile');
+    expect(await screen.findByText('Average received')).toBeInTheDocument();
+    expect(screen.getByText('Ratings given')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Achievements' })).toBeInTheDocument();
+    expect(screen.getByText('Electronic')).toBeInTheDocument(); // favourite genre
+    expect(screen.getByRole('heading', { name: 'Recent bops' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Edit profile/ })).toHaveAttribute('href', '/settings/account');
+    expect(screen.queryByLabelText('Display name')).not.toBeInTheDocument();
   });
 });
 
@@ -606,20 +679,15 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
     expect(state.parties).toHaveLength(0);
   });
 
-  it('saves your name, colour, and preferred music app (D22)', async () => {
-    const { state } = renderApp('/profile');
+  it('saves your name and colour in Settings → Account (the preferred app is in Settings → Music)', async () => {
+    const { state } = renderApp('/settings/account');
     const name = await screen.findByLabelText('Display name');
     await userEvent.clear(name);
     await userEvent.type(name, 'E');
     await userEvent.click(screen.getByLabelText('Color #22C55E'));
-    await userEvent.selectOptions(screen.getByLabelText('Preferred music app'), 'spotify');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Saved')).toBeInTheDocument();
-    expect(state.user).toMatchObject({
-      displayName: 'E',
-      avatarColor: '#22C55E',
-      preferredProvider: 'spotify',
-    });
+    expect(state.user).toMatchObject({ displayName: 'E', avatarColor: '#22C55E' });
   });
 });
 

@@ -17,7 +17,7 @@ import type {
 } from '@dropabop/shared';
 import { MAX_RATING, MIN_RATING, WEEKDAYS, shareDaysOf } from '@dropabop/shared';
 import { calculateWeekResults, countableVotes, roundToOneDecimal } from './results';
-import { mean, populationStdDev } from './stats';
+import { artistCounts, mean, populationStdDev } from './stats';
 
 /** Minimum ratings for "lowest rated" (same as the stats table's song minimum). */
 const LOWEST_RATED_MIN_RATINGS = 3;
@@ -99,18 +99,6 @@ function addToDistribution(distribution: number[], ratings: number[]): void {
 /** Competition ranks (1, 1, 3) on values already rounded for display, highest first. */
 function competitionRank(values: number[], value: number): number {
   return values.filter((v) => v > value).length + 1;
-}
-
-/** Artists grouped case-insensitively, keeping the first spelling seen, with how many songs each has. */
-function artistCounts(songs: { artist: string }[]): { artist: string; songs: number }[] {
-  const byKey = new Map<string, { artist: string; songs: number }>();
-  for (const song of songs) {
-    const key = song.artist.trim().toLowerCase();
-    const entry = byKey.get(key) ?? { artist: song.artist.trim(), songs: 0 };
-    entry.songs += 1;
-    byKey.set(key, entry);
-  }
-  return [...byKey.values()].sort((a, b) => b.songs - a.songs || a.artist.localeCompare(b.artist));
 }
 
 // ---------------------------------------------------------------------------------------------------------------

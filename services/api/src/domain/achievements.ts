@@ -15,7 +15,7 @@ import type {
 } from '@dropabop/shared';
 import { shareDaysOf } from '@dropabop/shared';
 import { calculateWeekResults } from './results';
-import { buildStatsData, crowdFavorite, mostDivisive, type StatsData } from './stats';
+import { buildStatsData, crowdFavorite, dayIn, mostDivisive, type StatsData } from './stats';
 
 // ---------------------------------------------------------------------------------------------------------------
 // Facts about one closed week, from the viewer's point of view
@@ -45,16 +45,6 @@ const PERFECT_MIN_RATINGS = 3;
 const GROUP_FAVORITE_MIN_RATINGS = 3;
 const GROUP_FAVORITE_MIN_AVERAGE = 8;
 const FULL_HOUSE_MIN_SONGS = 5;
-
-/** The calendar day of a moment in a timezone ("en-CA" formats dates as YYYY-MM-DD). */
-export function dayIn(moment: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(moment);
-}
 
 function weekFacts(
   round: Round,
@@ -595,3 +585,6 @@ export function forOtherMember(achievements: Achievement[]): Achievement[] {
     RATING_REVEALING.has(a.id) ? { ...a, unlockedOn: null, unlockedDay: null } : a,
   );
 }
+
+// Kept here too so existing imports keep working; the helper itself lives with the other stats maths.
+export { dayIn };

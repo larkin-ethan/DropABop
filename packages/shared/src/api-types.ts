@@ -100,6 +100,19 @@ export interface FavoriteArtist {
   songCount: number;
 }
 
+/** A genre the user rated highest on average (P13.11; genres exist only on songs shared since P13.7). */
+export interface FavoriteGenre {
+  genre: string;
+  averageRating: number;
+  songCount: number;
+}
+
+/** An artist the party shared most, with how many songs (spelling-insensitive). */
+export interface ArtistCount {
+  artist: string;
+  songCount: number;
+}
+
 export interface MusicalTwin {
   userId: string;
   /** Average gap between your rating and theirs on songs you both rated (0 = identical taste). */
@@ -114,6 +127,23 @@ export interface LeaderboardEntry {
   value: number;
   /** Shown as "Based on N …" next to every row. */
   sampleSize: number;
+}
+
+/** Leaderboard periods (D30): the most recent closed week, closed weeks locking this month, or all of them. */
+export type LeaderboardPeriod = 'week' | 'month' | 'all';
+
+/** Someone below a board's minimum (D30): listed apart with how much data they have, never with a number. */
+export interface ProvisionalEntry {
+  id: string;
+  sampleSize: number;
+}
+
+/** A board of people: those meeting the minimum are ranked; the rest are "Provisional" (D30). */
+export interface PersonBoard {
+  ranked: LeaderboardEntry[];
+  provisional: ProvisionalEntry[];
+  /** The minimum each person needs to be ranked (the unit is board-specific, see docs/STATISTICS.md). */
+  required: number;
 }
 
 /** Title and artwork next to a song-based stat. */
@@ -253,7 +283,37 @@ export interface PersonalStatsResponse {
   ratingDistribution: Stat<number[]>;
   favoriteArtists: Stat<FavoriteArtist[]>;
   musicalTwin: Stat<MusicalTwin[]>;
+  /** Valid ratings you gave in closed weeks (spec §18 "votes cast"). */
+  ratingsGiven: number;
+  favoriteGenres: Stat<FavoriteGenre[]>;
+  /** Your latest songs from closed weeks, newest first (up to 5). */
+  recentSongs: RecentSong[];
+  /** Your place among the sharers of the most recent closed week, or null if none of your songs were rated in it. */
+  lastWeekRank: { roundId: string; weekStart: IsoDate; position: number; of: number } | null;
   members: MemberName[];
+}
+
+export interface RecentSong {
+  recommendationId: string;
+  roundId: string;
+  submittedOn: IsoDate;
+  title: string;
+  artist: string;
+  albumArtUrl: string | null;
+  /** Exact average (the app rounds it), or null if nobody rated it. */
+  average: number | null;
+  ratingCount: number;
+}
+
+/** Songs and ratings in one closed week or month (group stats "activity"). */
+export interface ActivityPoint {
+  /** The week's Monday (weekly) or "YYYY-MM" of the lock day (monthly). */
+  period: string;
+  weeks: number;
+  songs: number;
+  ratings: number;
+  /** Mean of every rating in the period, or null if none. */
+  average: number | null;
 }
 
 export interface GroupStatsResponse {
@@ -268,16 +328,36 @@ export interface GroupStatsResponse {
   darkHorse: SongSuperlative;
   mostGenerousVoter: Superlative;
   toughestCritic: Superlative;
+  /** Current members. */
+  memberCount: number;
+  /** Mean of every valid rating in closed weeks (1 rating). */
+  groupAverage: Stat<number>;
+  ratingDistribution: Stat<number[]>;
+  /** Artists shared most, top 3 (ties at 3rd all shown). */
+  topArtists: Stat<ArtistCount[]>;
+  mostConsistent: Superlative;
+  /** Newest first, up to 12 weeks / 12 months. */
+  weeklyActivity: ActivityPoint[];
+  monthlyActivity: ActivityPoint[];
   members: MemberName[];
 }
 
 export interface LeaderboardResponse {
+  period: LeaderboardPeriod;
+  /** Closed weeks in the period. */
   weeksPlayed: number;
   highestAverageSongRating: (LeaderboardEntry & { song: SongSummary | null })[];
-  highestAverageRecommendationScore: LeaderboardEntry[];
-  mostConsistent: LeaderboardEntry[];
-  mostSurprising: LeaderboardEntry[];
-  mostPopular: LeaderboardEntry[];
+  /** Songs rated by at least 75% of their week's raters, by average (D30). */
+  crowdFavorites: (LeaderboardEntry & { song: SongSummary | null })[];
+  highestAverageReceived: PersonBoard;
+  highestAverageGiven: PersonBoard;
+  mostBops: PersonBoard;
+  mostRatings: PersonBoard;
+  mostGenerous: PersonBoard;
+  toughestCritic: PersonBoard;
+  mostConsistent: PersonBoard;
+  mostSurprising: PersonBoard;
+  mostPopular: PersonBoard;
   members: MemberName[];
 }
 

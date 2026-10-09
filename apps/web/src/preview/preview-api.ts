@@ -403,6 +403,30 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         ratingDistribution: { status: 'ok', value: [0, 0, 1, 1, 1, 2, 3, 2, 1, 1], sampleSize: 12 },
         favoriteArtists: notEnough(0, 2),
         musicalTwin: notEnough(3, 5),
+        ratingsGiven: 12,
+        favoriteGenres: {
+          status: 'ok',
+          value: [{ genre: 'Electronic', averageRating: 8.5, songCount: 2 }],
+          sampleSize: 1,
+        },
+        recentSongs: state.pastResults
+          .filter((r) => r.recommendedBy === ME)
+          .map((r) => ({
+            recommendationId: r.recommendationId,
+            roundId: state.pastRound.roundId,
+            submittedOn: r.submittedOn,
+            title: r.song.title,
+            artist: r.song.artist,
+            albumArtUrl: r.song.albumArtUrl,
+            average: r.averageRating,
+            ratingCount: r.ratingCount,
+          })),
+        lastWeekRank: {
+          roundId: state.pastRound.roundId,
+          weekStart: state.pastRound.weekStart,
+          position: 2,
+          of: 4,
+        },
         members: memberNames(state),
       };
       return response;
@@ -512,34 +536,120 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         darkHorse: notEnough(0, 3),
         mostGenerousVoter: { status: 'ok', value: [{ id: 'u2', value: 0.8, sampleSize: 11 }], sampleSize: 4 },
         toughestCritic: { status: 'ok', value: [{ id: 'u4', value: -0.9, sampleSize: 10 }], sampleSize: 4 },
+        memberCount: state.members.length,
+        groupAverage: { status: 'ok', value: 7.3, sampleSize: 32 },
+        ratingDistribution: { status: 'ok', value: [0, 1, 1, 2, 3, 5, 7, 6, 4, 3], sampleSize: 32 },
+        topArtists: {
+          status: 'ok',
+          value: [
+            { artist: 'Robyn', songCount: 2 },
+            { artist: 'Sade', songCount: 1 },
+          ],
+          sampleSize: state.pastResults.length,
+        },
+        mostConsistent: notEnough(2, 3),
+        weeklyActivity: [
+          {
+            period: state.pastRound.weekStart,
+            weeks: 1,
+            songs: state.pastResults.length,
+            ratings: 32,
+            average: 7.3,
+          },
+        ],
+        monthlyActivity: [
+          {
+            period: state.pastRound.weekStart.slice(0, 7),
+            weeks: 1,
+            songs: state.pastResults.length,
+            ratings: 32,
+            average: 7.3,
+          },
+        ],
         members: memberNames(state),
       };
       return response;
     }
     if (is('GET', 'parties', ':id', 'leaderboard')) {
+      const songEntries = state.pastResults.slice(0, 5).map((r, i) => ({
+        id: r.recommendationId,
+        rank: i + 1,
+        value: r.averageRating ?? 0,
+        sampleSize: r.ratingCount,
+        song: {
+          title: r.song.title,
+          artist: r.song.artist,
+          albumArtUrl: r.song.albumArtUrl,
+          recommendedBy: r.recommendedBy,
+          submittedOn: r.submittedOn,
+        },
+      }));
       const response: LeaderboardResponse = {
+        period: (params.get('period') ?? 'all') as LeaderboardResponse['period'],
         weeksPlayed: 1,
-        highestAverageSongRating: state.pastResults.slice(0, 5).map((r, i) => ({
-          id: r.recommendationId,
-          rank: i + 1,
-          value: r.averageRating ?? 0,
-          sampleSize: r.ratingCount,
-          song: {
-            title: r.song.title,
-            artist: r.song.artist,
-            albumArtUrl: r.song.albumArtUrl,
-            recommendedBy: r.recommendedBy,
-            submittedOn: r.submittedOn,
-          },
-        })),
-        highestAverageRecommendationScore: [
-          { id: 'u3', rank: 1, value: 8.4, sampleSize: 5 },
-          { id: ME, rank: 2, value: 8.1, sampleSize: 5 },
-          { id: 'u2', rank: 3, value: 7.2, sampleSize: 4 },
-        ],
-        mostConsistent: [{ id: 'u2', rank: 1, value: 0.6, sampleSize: 4 }],
-        mostSurprising: [],
-        mostPopular: [{ id: 'u3', rank: 1, value: 0.8, sampleSize: 5 }],
+        highestAverageSongRating: songEntries,
+        crowdFavorites: songEntries.slice(0, 2),
+        highestAverageReceived: {
+          ranked: [
+            { id: 'u3', rank: 1, value: 8.4, sampleSize: 5 },
+            { id: ME, rank: 2, value: 8.1, sampleSize: 5 },
+            { id: 'u2', rank: 3, value: 7.2, sampleSize: 4 },
+          ],
+          provisional: [{ id: 'u4', sampleSize: 2 }],
+          required: 3,
+        },
+        highestAverageGiven: {
+          ranked: [
+            { id: 'u2', rank: 1, value: 8.2, sampleSize: 11 },
+            { id: ME, rank: 2, value: 7.4, sampleSize: 12 },
+          ],
+          provisional: [{ id: 'u4', sampleSize: 3 }],
+          required: 5,
+        },
+        mostBops: {
+          ranked: [
+            { id: ME, rank: 1, value: 5, sampleSize: 5 },
+            { id: 'u3', rank: 1, value: 5, sampleSize: 5 },
+            { id: 'u2', rank: 3, value: 4, sampleSize: 4 },
+          ],
+          provisional: [],
+          required: 1,
+        },
+        mostRatings: {
+          ranked: [
+            { id: ME, rank: 1, value: 12, sampleSize: 12 },
+            { id: 'u2', rank: 2, value: 11, sampleSize: 11 },
+          ],
+          provisional: [],
+          required: 1,
+        },
+        mostGenerous: {
+          ranked: [
+            { id: 'u2', rank: 1, value: 0.8, sampleSize: 11 },
+            { id: 'u4', rank: 2, value: -0.9, sampleSize: 10 },
+          ],
+          provisional: [{ id: ME, sampleSize: 9 }],
+          required: 10,
+        },
+        toughestCritic: {
+          ranked: [
+            { id: 'u4', rank: 1, value: -0.9, sampleSize: 10 },
+            { id: 'u2', rank: 2, value: 0.8, sampleSize: 11 },
+          ],
+          provisional: [{ id: ME, sampleSize: 9 }],
+          required: 10,
+        },
+        mostConsistent: {
+          ranked: [{ id: 'u2', rank: 1, value: 0.6, sampleSize: 4 }],
+          provisional: [],
+          required: 3,
+        },
+        mostSurprising: { ranked: [], provisional: [], required: 1 },
+        mostPopular: {
+          ranked: [{ id: 'u3', rank: 1, value: 8, sampleSize: 5 }],
+          provisional: [],
+          required: 3,
+        },
         members: memberNames(state),
       };
       return response;

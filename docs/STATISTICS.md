@@ -42,15 +42,60 @@ needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.
 | Dark horse | The surprise hit | Song that beat its recommender's average from earlier songs by the most | 3 ratings, and the recommender has 3 earlier rated songs |
 | Most generous voter / Toughest critic | Who rates highest / lowest | Highest / lowest generosity | 10 ratings |
 
+## More group stats (P13.11)
+
+| Stat | What it means | How it's calculated | Needs |
+|---|---|---|---|
+| Members | Who's in the party now | Count of current members | — |
+| Group average | How the party rates | Mean of every rating | 1 rating |
+| Ratings the group gives | Which ratings get handed out | Count of each rating 1–10, everyone | 1 rating |
+| Top artists | Who gets shared most | Artists by songs shared (spelling-insensitive), top 3; everyone tied with 3rd is shown | 1 song |
+| Most consistent | Reliably good picks | Lowest spread of a person's song averages | 3 rated songs |
+| Weekly activity | How busy each week was | Songs, ratings and average rating per closed week, latest 12 | — |
+| Monthly activity | The same by month | Closed weeks grouped by the month their ratings locked (party timezone), latest 12 | — |
+
+## Your profile and Home (P13.11)
+
+| Stat | What it means | How it's calculated | Needs |
+|---|---|---|---|
+| Ratings given | How many ratings you've given | Count of your valid ratings | — |
+| Favorite genres | Genres you rate highest | Your average rating per genre (spelling-insensitive), top 3. Only songs shared since genres were added (P13.7) have one | 2 songs in that genre |
+| Recent bops | Your latest songs | Your newest 5 songs from closed weeks, with their average | — |
+| Last finished week's rank | Your place last week | Sharers of the most recent closed week ranked by average received (as shown, ties share a rank), e.g. "#2 of 4" | 1 rated song that week |
+| Recent achievement | Your newest badge | The unlocked achievement with the latest unlock date | — |
+
+Home's main button follows what you can actually do now: **share** (a sharing day you haven't shared on) → **rate**
+(songs left) → a calm "All caught up" message; between weeks or while paused it opens last week's results, or says
+you're waiting if there are none yet. Code: `apps/web/src/lib/home-action.ts`.
+
 ## Leaderboards
+
+Code: the `…Board` functions in `stats.ts` (D30).
+
+**Periods.** *This week* = the most recent closed week. *This month* = closed weeks whose ratings locked in the current
+calendar month, in the party's timezone (a week locking at the end of Sunday 31 May counts for May). *All time* =
+every closed week (the spec's "Overall" is the same). Every number on the board is worked out from that period only;
+for generosity that includes the party's average it's compared with, and for Most Surprising the "earlier average"
+comes from earlier songs in the same period (so in a single week that board is usually empty).
+
+**Provisional.** The minimums apply in every period. People below a board's minimum (but with some data) are listed
+apart under *Provisional* with the rule ("needs 3 rated songs") and how far they are ("2 of 3"), never with a value
+and never ranked, so one rating of 10 can't beat 100 ratings averaging 9.5. People with no data aren't listed.
 
 | Leaderboard | Definition | Needs |
 |---|---|---|
-| Highest Average Song Rating | Songs ranked by average rating | 3 ratings |
-| Highest Average Recommendation Score | Average rating received by songs the user recommended | 3 rated songs |
-| Most Consistent | Smallest spread between the averages of a user's songs | 3 rated songs |
-| Most Surprising | Number of a user's songs that beat their own earlier average by 1 point or more | 1 such song |
+| Highest Average Received | Average rating received by songs the person shared (= Average Recommendation Score) | 3 rated songs |
+| Highest Average Given | Mean of the ratings the person gave | 5 ratings |
+| Most Bops | Songs shared | 1 song |
+| Most Ratings | Ratings given | 1 rating |
+| Crowd Favorites | Songs rated by at least 75% of that week's active raters (not counting the sharer), by average | 3 ratings (per song) |
+| Highest Average Song Rating | Songs ranked by average rating | 3 ratings (per song) |
+| Most Generous / Toughest Critic | Highest / lowest generosity (average given − the party's average given) | 10 ratings |
+| Most Consistent | Smallest spread between the averages of a person's songs | 3 rated songs |
+| Most Surprising | Number of a person's songs that beat their own earlier average by 1 point or more | 1 such song |
 | Most Popular | Number of ratings of 8 or higher received | 3 songs shared |
+
+Song boards have no provisional list: songs with too few ratings simply aren't on them.
 
 ## History (calendar, Day view, Week view)
 

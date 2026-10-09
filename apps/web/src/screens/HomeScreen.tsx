@@ -9,7 +9,14 @@ import {
   type Weekday,
 } from '@dropabop/shared';
 import { Link } from 'react-router';
-import { useCurrentWeek, useMe, useParty, useWeekSongs } from '../api/hooks';
+import {
+  useAchievements,
+  useCurrentWeek,
+  useMe,
+  useParty,
+  usePersonalStats,
+  useWeekSongs,
+} from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
@@ -17,7 +24,15 @@ import { AchievementBanner } from './AchievementsScreen';
 import { songDetailsPath } from './SongDetailsScreen';
 import { EmptyState } from '../components/States';
 import { Avatar, Card, ProgressBar, buttonClassName } from '../components/ui';
-import { DAY_NAMES, formatDayList, formatLockTime, formatTimeLeft, nextWeekSharingText } from '../lib/format';
+import { homeAction, type HomeAction } from '../lib/home-action';
+import {
+  DAY_NAMES,
+  formatAverage,
+  formatDayList,
+  formatLockTime,
+  formatTimeLeft,
+  nextWeekSharingText,
+} from '../lib/format';
 import { WEEKDAYS, shareDaysOf } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
@@ -129,19 +144,109 @@ function NoWeekHome({ partyId, week }: { partyId: string; week: NoWeek }) {
               ? 'The host can resume it any time in Party settings. Past results and stats are still here.'
               : nextWeekSharingText(party.data?.party.settings.shareDays)
           }
-          action={
-            week.lastRoundId ? (
-              <Link
-                to={`/results/${encodeURIComponent(week.lastRoundId)}`}
-                className={buttonClassName('secondary')}
-              >
-                <Icon name="trophy" className="size-4" /> See last week’s results
-              </Link>
-            ) : undefined
-          }
+          action={week.lastRoundId ? <MainAction action={homeAction(true, week)} /> : undefined}
         />
       </Card>
+      <div className="mt-6">
+        <HomeHighlights partyId={partyId} />
+      </div>
     </div>
+  );
+}
+
+function DropCount({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="text-3xl font-bold">{value}</dd>
+    </div>
+  );
+}
+
+const ACTION_ICON = { join: 'link', share: 'plus', rate: 'star', results: 'trophy' } as const;
+
+/** The one main button (spec §26), or a calm message when there's nothing to do right now. */
+function MainAction({ action }: { action: HomeAction }) {
+  if (action.to === null) {
+    return (
+      <p className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-muted">
+        <Icon name="check" className="size-4" /> {action.label}
+      </p>
+    );
+  }
+  return (
+    <Link to={action.to} className={buttonClassName('primary', 'w-full')}>
+      <Icon name={ACTION_ICON[action.kind]} className="size-4" />
+      {action.label}
+    </Link>
+  );
+}
+
+/**
+ * Your averages, latest achievement and last week's rank (spec §26). Secondary to this week's songs, so it stays
+ * out of the way while loading or if it fails (the Stats pages show the full story and their own errors).
+ */
+function HomeHighlights({ partyId }: { partyId: string }) {
+  const stats = usePersonalStats(partyId);
+  const achievements = useAchievements(partyId);
+  const s = stats.data;
+  if (s === undefined) return null;
+  const latest = (achievements.data?.achievements ?? [])
+    .filter((a) => a.unlocked)
+    .sort((a, b) => (b.unlockedOn ?? '').localeCompare(a.unlockedOn ?? ''))[0];
+  const average = (stat: typeof s.averageRatingGiven) =>
+    stat.status === 'ok' ? formatAverage(stat.value) : '–';
+
+  return (
+    <section aria-label="Your highlights" className="grid gap-4 sm:grid-cols-3">
+      <Card>
+        <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Your stats</h2>
+        <dl className="mt-3 grid grid-cols-2 gap-2">
+          <div className="flex flex-col-reverse">
+            <dt className="text-xs text-muted">Average given</dt>
+            <dd className="text-2xl font-bold">{average(s.averageRatingGiven)}</dd>
+          </div>
+          <div className="flex flex-col-reverse">
+            <dt className="text-xs text-muted">Average received</dt>
+            <dd className="text-2xl font-bold">{average(s.averageScoreReceived)}</dd>
+          </div>
+        </dl>
+        {(s.averageRatingGiven.status !== 'ok' || s.averageScoreReceived.status !== 'ok') && (
+          <p className="mt-2 text-xs text-muted">– = not enough finished weeks yet</p>
+        )}
+      </Card>
+      <Card>
+        <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Recent achievement</h2>
+        {latest === undefined ? (
+          <p className="mt-3 text-sm text-muted">None yet. They unlock as weeks finish.</p>
+        ) : (
+          <Link to="/achievements" className="mt-3 flex items-center gap-2 hover:underline">
+            <span className="text-2xl" aria-hidden="true">
+              {latest.emoji}
+            </span>
+            <span className="font-bold">{latest.title}</span>
+          </Link>
+        )}
+      </Card>
+      <Card>
+        <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Last finished week</h2>
+        {s.lastWeekRank === null ? (
+          <p className="mt-3 text-sm text-muted">
+            {s.weeksPlayed === 0
+              ? 'No finished week yet.'
+              : 'No ranking: none of your songs were rated that week.'}
+          </p>
+        ) : (
+          <p className="mt-3">
+            <span className="text-2xl font-bold">#{s.lastWeekRank.position}</span>
+            <span className="text-muted"> of {s.lastWeekRank.of} sharers</span>
+          </p>
+        )}
+        <Link to="/stats" className="mt-2 inline-block text-sm font-semibold text-blue hover:underline">
+          View stats
+        </Link>
+      </Card>
+    </section>
   );
 }
 
@@ -152,7 +257,7 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
   const me = useMe();
   const preferred = me.data?.user.preferredProvider ?? null;
   const { today, progress } = week;
-  const unrated = progress.ratableCount - progress.ratedCount;
+  const unrated = progress.ratableCount - progress.ratedCount; // the main button below says what to do about it
   const members = party.data?.members ?? [];
   const sharers = useSharerNames(partyId);
 
@@ -183,13 +288,13 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
           <MembersToday week={week} members={members} />
         </Card>
 
-        <Card className="flex flex-col lg:col-span-2">
-          <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Your ratings</h2>
-          <p className="mt-4 text-4xl font-bold">
-            {progress.ratedCount}
-            <span className="text-xl font-medium text-muted"> / {progress.ratableCount}</span>
-          </p>
-          <p className="mt-1 text-sm text-muted">songs rated this week</p>
+        <Card className="order-first flex flex-col lg:order-none lg:col-span-2">
+          <h2 className="text-sm font-semibold tracking-wide text-muted uppercase">Today’s drop</h2>
+          <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <DropCount label="Songs this week" value={progress.songCount} />
+            <DropCount label="Rated" value={progress.ratedCount} />
+            <DropCount label="Left to rate" value={Math.max(0, unrated)} />
+          </dl>
           <div className="mt-4">
             <ProgressBar
               value={progress.ratedCount}
@@ -198,20 +303,12 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
             />
           </div>
           <div className="mt-auto pt-5">
-            <Link
-              to={unrated > 0 ? '/rate?show=unrated' : '/rate'}
-              className={buttonClassName(unrated > 0 ? 'primary' : 'secondary', 'w-full')}
-            >
-              <Icon name="star" className="size-4" />
-              {unrated > 0
-                ? `Rate ${unrated} more`
-                : progress.ratableCount === 0
-                  ? 'Nothing to rate yet'
-                  : 'All caught up'}
-            </Link>
+            <MainAction action={homeAction(true, week)} />
           </div>
         </Card>
       </div>
+
+      <HomeHighlights partyId={partyId} />
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -247,14 +344,11 @@ function TodayStatus({ week, songs }: { week: OpenWeek; songs: OpenWeekSongView[
   const { today } = week;
   if (today === null) {
     return (
-      <div className="mt-4 flex flex-col items-start gap-3">
+      <div className="mt-4">
         <p className="text-lg">
           Today isn’t a sharing day (this week: {formatDayList(shareDaysOf(week.round))}). Catch up on this
           week’s songs before ratings lock {formatLockTime(week.round.endsAt)}.
         </p>
-        <Link to="/rate" className={buttonClassName('secondary')}>
-          <Icon name="star" className="size-4" /> Catch up on this week’s songs
-        </Link>
       </div>
     );
   }
@@ -277,11 +371,8 @@ function TodayStatus({ week, songs }: { week: OpenWeek; songs: OpenWeekSongView[
     );
   }
   return (
-    <div className="mt-4 flex flex-col items-start gap-3">
+    <div className="mt-4">
       <p className="text-lg">You haven’t shared a song today.</p>
-      <Link to="/share" className={buttonClassName('primary')}>
-        <Icon name="plus" className="size-4" /> Share today’s song
-      </Link>
     </div>
   );
 }

@@ -78,8 +78,9 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
     body: (
       <p>
         After a few weeks, your stats show your taste: your average rating, who you agree with most, and how
-        the group rates your picks. Leaderboards compare everyone. Each one says how much it’s based on, and
-        shows “Not enough data yet” until there’s enough.
+        the group rates your picks. Leaderboards compare everyone this week, this month or all time; anyone
+        without enough data yet is listed as “Provisional” instead of being ranked. Each number says how much
+        it’s based on, and shows “Not enough data yet” until there’s enough.
       </p>
     ),
   },
