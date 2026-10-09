@@ -60,7 +60,7 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
   switch (`playInApp` on the profile; Play video buttons hide when off), what each service does. Help: "Listening in
   Drop a Bop". Notification switches moved to P13.10 (§29: no controls that don't work yet). The P13.4 prod hold is
   lifted. spec-reviewer: PASS; applied its fixes (lockout message, switch keeps its position, one save at a time,
-  stale docs). Verified: `npm run verify` (541 + 1 skipped), integration 204 (+ users file re-run after fixes, 14),
+  stale docs). Verified: `npm run verify` (540 + 1 skipped), integration 204 (+ users file re-run after fixes, 14),
   e2e 26 passed (3 new settings pages at 7 widths), 6 new screen tests. Leftovers: Profile still has the full edit form until
   P13.11 turns it into a stats page.
 
