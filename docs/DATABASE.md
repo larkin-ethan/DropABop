@@ -81,6 +81,7 @@ Notes:
 | 24 | Delete a comment | Pattern 22 to find it by id, then `DeleteItem` |
 | 25 | History calendar for a month (P13.8) | Same as 15 (every week, because the ★ compares with your best ever), then the month's weeks are picked in code (ADR-0006) |
 | 26 | Achievements for one member (P13.9) | Same as 15 (every closed week is replayed in order to find each unlock date), plus `GetItem` of your own party link for `achievementsSeenAt` |
+| 27 | Party search (P13.12, D33) | `Query PK=PARTY#p, SK begins_with REC#`, **descending** (newest weeks first), stopping at 5,000 songs; plus patterns 4 and 9. Filtered in code: DynamoDB has no text search, and a party adds about 5,000 songs a year at most (D33's documented exception to "no fetching everything to filter") |
 
 Every query is limited to one partition. Lists that can grow (history, stats inputs) are paginated with
 `LastEvaluatedKey`.

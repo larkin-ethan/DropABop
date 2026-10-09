@@ -22,6 +22,7 @@ const SCREENS = [
   { name: 'leaderboard', path: '/leaderboard' },
   { name: 'achievements', path: '/achievements' },
   { name: 'notifications', path: '/notifications' },
+  { name: 'search', path: '/search?q=good' },
   { name: 'settings-notifications', path: '/settings/notifications' },
   { name: 'settings', path: '/settings' },
   { name: 'settings-party', path: '/settings/party' },

@@ -361,6 +361,55 @@ export interface LeaderboardResponse {
   members: MemberName[];
 }
 
+// ---------------------------------------------------------------------------
+// Party search (P13.12, D33): only the current party's songs, artists, members and weeks.
+// ---------------------------------------------------------------------------
+
+export type PartySearchType = 'all' | 'songs' | 'artists' | 'members' | 'weeks';
+
+export interface SearchSongHit {
+  recommendationId: string;
+  roundId: string;
+  submittedOn: IsoDate;
+  title: string;
+  artist: string;
+  album: string | null;
+  albumArtUrl: string | null;
+  /** True while the song's week is open: no sharer (unless yours or the week reveals sharers, D10) and no ratings (D9). */
+  weekOpen: boolean;
+  isMine: boolean;
+  /** Left out while the week is open, unless the song is yours or that week reveals sharers (D10). */
+  recommendedBy?: string;
+}
+
+export interface SearchArtistHit {
+  artist: string;
+  songCount: number;
+}
+
+export interface SearchWeekHit {
+  roundId: string;
+  weekStart: IsoDate;
+  status: RoundStatus;
+  songCount: number;
+}
+
+export interface PartySearchResponse {
+  q: string;
+  type: PartySearchType;
+  /** For `all`: the best few of each category. For one category: one page of it (the others are empty). */
+  songs: SearchSongHit[];
+  artists: SearchArtistHit[];
+  members: MemberName[];
+  weeks: SearchWeekHit[];
+  /** How many matches each category has in total (for the tab labels). */
+  totals: Record<Exclude<PartySearchType, 'all'>, number>;
+  /** Pass back as `cursor` for the next page of a single category; null when there's no more (always null for `all`). */
+  nextCursor: string | null;
+  /** True if the party has more songs than one search reads (the newest are searched). */
+  truncated: boolean;
+}
+
 export interface SongSearchResponse {
   songs: Song[];
 }

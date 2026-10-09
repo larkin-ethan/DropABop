@@ -43,7 +43,7 @@ Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend us
 ### Rate limits (P9.1)
 
 API Gateway limits each route for **all callers together** (requests per second / short burst; 429 above them).
-Default 25/s, burst 50. Tighter: song search 3/s (burst 10), resolve link 2/s (5), invite preview and join 2/s (5),
+Default 25/s, burst 50. Tighter: song search 3/s (burst 10), party search 5/s (10), resolve link 2/s (5), invite preview and join 2/s (5),
 create party and new invite link 1/s (3), settings / profile / remove member 2/s (5), share a song 5/s (10), rate
 10/s (20). Per-person limits come from the rules themselves: 5 parties per person, one song per day, invite code
 required. Sign-in is protected by Cognito: after 5 wrong passwords an account is locked for 1 s, doubling each time
@@ -364,6 +364,28 @@ Person boards, each `{ ranked: [{ id, rank, value, sampleSize }], provisional: [
 `mostConsistent`, `mostSurprising`, `mostPopular`. Only people meeting `required` are ranked; people with some data
 but below it are in `provisional` (most data first) **with no value**, so they never appear to outrank anyone.
 Ties share a rank. Members only (`403 NOT_A_MEMBER`).
+
+### Search
+
+#### `GET /parties/{partyId}/search?q=…&type=all|songs|artists|members|weeks&cursor=…`
+
+Searches **only this party** (P13.12, D33): its shared songs (title, artist, album), artists, current members (by
+name) and weeks (by date: `2026-10-05`, `October 5`, `Oct 5`, `week of October`). Nothing outside the party and no
+external music search. Code: `services/api/src/handlers/search.ts`, matching in `services/api/src/domain/search.ts`.
+Members only: a non-member gets `403 NOT_A_MEMBER` before the query is even checked.
+
+- `q`: 2–100 characters; case- and accent-insensitive; matches that start a word come first.
+- `type` (default `all`): `all` returns the best 5 of each category and `nextCursor: null`; a single category
+  returns 20 at a time (the other lists are empty) and `nextCursor` (a position, e.g. `"20"`) until the last page.
+- `200`: `{ q, type, songs, artists, members, weeks, totals: { songs, artists, members, weeks }, nextCursor,
+  truncated }`.
+  - `songs[]`: `{ recommendationId, roundId, submittedOn, title, artist, album, albumArtUrl, weekOpen, isMine,
+    recommendedBy? }`. While the song's week is open, `recommendedBy` is **left out** unless it's your song or that
+    week reveals sharers (D10). Search never returns ratings or averages (D9).
+  - `artists[]`: `{ artist, songCount }` (spelling-insensitive). `members[]`: `MemberName`. `weeks[]`: `{ roundId,
+    weekStart, status, songCount }` (status from the server clock).
+  - `truncated`: true when the party has more than 5,000 songs; the newest 5,000 were searched.
+- Errors: `400 VALIDATION_FAILED` (short/long `q`, unknown `type`, bad `cursor`), `403 NOT_A_MEMBER`. Rate limit: 5/s, bursts of 10.
 
 ### History
 

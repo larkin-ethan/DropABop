@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.11 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home); next is **P13.12** (search). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.12 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search); next is **P13.13** (navigation). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -58,6 +58,17 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.12 done: party search** — `GET /parties/{partyId}/search?q=&type=all|songs|artists|members|weeks&cursor=`
+  (D33): membership checked first; the party's songs read with one descending key query on `REC#`, capped at 5,000
+  (`truncated`), plus weeks and members; pure matching in `domain/search.ts` (case- and accent-insensitive, word
+  starts first). Open-week songs leave out who shared them unless yours or that week reveals sharers (D10); no
+  ratings at all (D9). `all` = best 5 per category; one category pages 20 at a time. New read-only Lambda
+  `SearchPartyFunction` (GetItem + Query on the table only), route limit 5/s burst 10. Website: `/search` (category
+  buttons with counts, query in the address, "Show more", artist → its songs, week → Week view), sidebar link
+  (mobile entry comes with P13.13's navigation). spec-reviewer: PASS; applied exact-fields test, accent-only query
+  guard, route limit, doc order. Verified: `npm run verify` (651 + 1 skipped), integration 226 (5 new), template
+  tests 15, `sam validate --lint`, e2e 33 passed (search at 7 widths), page checked in the browser pane. Not deployed.
 
 - 2026-10-09 — **P13.11 done: leaderboard periods, group stats, profile, home** — `GET …/leaderboard?period=week|month|all`
   (D30: latest closed week / weeks whose lock falls in this month, party timezone / all). Person boards are now

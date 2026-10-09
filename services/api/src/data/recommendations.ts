@@ -4,7 +4,7 @@
 // member of `parseRoundId(roundId).partyId`. Returned recommendations include `userId` (who shared it); handlers
 // must pass them through toOpenWeekSongView / calculateWeekResults, which hide it when required (D10).
 
-import { GetCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import type { Recommendation } from '@dropabop/shared';
 import { MESSAGES } from '../domain/messages';
 import type { DataContext } from './context';
@@ -142,6 +142,42 @@ export async function listMySubmissionDates(
 export async function listPartyRecommendations(ctx: DataContext, partyId: string): Promise<Recommendation[]> {
   const items = await queryByPrefix(ctx, partitionKeys.party(partyId), prefixes.allRecommendations());
   return items.map((item) => withoutKeys<Recommendation>(item));
+}
+
+/**
+ * The party's songs for search (D33): one key query on `REC#`, newest weeks first (the sort key starts with the
+ * week), following DynamoDB's pages until `max` songs. `truncated` says there were more.
+ */
+export async function listRecentPartyRecommendations(
+  ctx: DataContext,
+  partyId: string,
+  max: number,
+): Promise<{ recommendations: Recommendation[]; truncated: boolean }> {
+  const items: Record<string, unknown>[] = [];
+  let ExclusiveStartKey: Record<string, unknown> | undefined;
+  do {
+    const page = await ctx.db.send(
+      new QueryCommand({
+        TableName: ctx.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: {
+          ':pk': partitionKeys.party(partyId),
+          ':prefix': prefixes.allRecommendations(),
+        },
+        ScanIndexForward: false,
+        Limit: max - items.length,
+        ExclusiveStartKey,
+      }),
+    );
+    items.push(...(page.Items ?? []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey !== undefined && items.length < max);
+  return {
+    recommendations: items.map((item) => withoutKeys<Recommendation>(item)),
+    // DynamoDB can return a LastEvaluatedKey even when nothing is left, so this may rarely say "more" wrongly;
+    // that only shows a harmless "searched your latest songs" note.
+    truncated: ExclusiveStartKey !== undefined,
+  };
 }
 
 /**

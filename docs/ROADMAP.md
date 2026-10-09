@@ -474,7 +474,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   page (badges, top artists/genres, recent songs); home shows averages, latest achievement, last week's rank and a
   main button that matches the real state. *Done when:* unit tests for every new stat and minimum, integration tests
   for `period`, screen tests, STATISTICS updated.
-- [ ] **P13.12 — Search** (§24; D33) — `GET /parties/{partyId}/search?q=` over the party's songs, artists, members
+- [x] **P13.12 — Search** (§24; D33) — `GET /parties/{partyId}/search?q=` over the party's songs, artists, members
   and weeks (one key query, capped, paginated; D10 respected); web search screen with category tabs. *Done when:*
   unit + integration tests (membership, privacy of open weeks, cap), screen tests, API/DATABASE docs, spec-reviewer.
 - [ ] **P13.13 — Navigation** (§27, §40; D32) — desktop sidebar per D32; mobile bar Home · Drop · History · Stats ·

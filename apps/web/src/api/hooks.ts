@@ -12,6 +12,8 @@ import type {
   InviteCodeResponse,
   InvitePreviewResponse,
   LeaderboardPeriod,
+  PartySearchResponse,
+  PartySearchType,
   LeaderboardResponse,
   MeResponse,
   PartyResponse,
@@ -53,6 +55,8 @@ export const keys = {
   leaderboard: (partyId: string, period?: LeaderboardPeriod) =>
     period === undefined ? (['leaderboard', partyId] as const) : (['leaderboard', partyId, period] as const),
   search: (q: string) => ['search', q] as const,
+  partySearch: (partyId: string, q: string, type: PartySearchType) =>
+    ['partySearch', partyId, q, type] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -188,6 +192,27 @@ export function useSongSearch(q: string) {
     queryFn: () => api.get<SongSearchResponse>(`/songs/search?q=${enc(query)}`),
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+/**
+ * Party search (P13.12, D33). Runs for 2+ characters. Pages (for one category) load with "Show more"; results are
+ * kept for a minute so switching tabs back and forth doesn't ask again.
+ */
+export function usePartySearch(partyId: string | null, q: string, type: PartySearchType) {
+  const api = useApi();
+  const query = q.trim();
+  return useInfiniteQuery({
+    queryKey: keys.partySearch(partyId ?? '', query, type),
+    queryFn: ({ pageParam }) =>
+      api.get<PartySearchResponse>(
+        `/parties/${enc(partyId ?? '')}/search?q=${enc(query)}&type=${type}${pageParam ? `&cursor=${enc(pageParam)}` : ''}`,
+      ),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: partyId !== null && query.length >= 2,
+    staleTime: 60_000,
     retry: false,
   });
 }

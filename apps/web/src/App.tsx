@@ -30,6 +30,7 @@ import { HistoryCalendarScreen, HistoryDayScreen, HistoryWeekScreen } from './sc
 import { LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
 import { PartySettingsScreen } from './screens/SettingsScreens';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { SearchScreen } from './screens/SearchScreen';
 import { ShareScreen } from './screens/ShareScreen';
 import { SongDetailsScreen } from './screens/SongDetailsScreen';
 import { GroupStatsScreen, LeaderboardScreen, PersonalStatsScreen } from './screens/StatsScreens';
@@ -123,6 +124,7 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/stats/group" element={<GroupStatsScreen />} />
               <Route path="/leaderboard" element={<LeaderboardScreen />} />
               <Route path="/achievements" element={<AchievementsScreen />} />
+              <Route path="/search" element={<SearchScreen />} />
               <Route path="/settings" element={<SettingsHubScreen />} />
               <Route path="/settings/party" element={<PartySettingsScreen />} />
               <Route path="/settings/account" element={<AccountSettingsScreen />} />

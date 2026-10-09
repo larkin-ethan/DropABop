@@ -296,6 +296,23 @@ export const personalStatsQuerySchema = z.strictObject({
   partyId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' }),
 });
 
+/** GET /parties/{partyId}/search?q=&type=&cursor= (D33): searches only your current party. */
+export const partySearchQuerySchema = z.strictObject({
+  q: z
+    .string()
+    .trim()
+    .min(2, { error: 'Type at least 2 characters to search.' })
+    .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
+  type: z
+    .enum(['all', 'songs', 'artists', 'members', 'weeks'], { error: 'Pick a search category.' })
+    .default('all'),
+  /** Where the next page starts (a plain position from the previous response's nextCursor). */
+  cursor: z
+    .string()
+    .regex(/^\d{1,5}$/, { error: 'That page link isn’t valid.' })
+    .optional(),
+});
+
 /** GET /parties/{partyId}/leaderboard?period= (D30). Defaults to all time. */
 export const leaderboardQuerySchema = z.strictObject({
   period: z.enum(['week', 'month', 'all'], { error: 'Pick week, month or all.' }).default('all'),
@@ -317,6 +334,7 @@ export type CastVoteRequest = z.infer<typeof castVoteRequestSchema>;
 export type AddCommentRequest = z.infer<typeof addCommentRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
 export type HistoryQuery = z.infer<typeof historyQuerySchema>;
+export type PartySearchQuery = z.infer<typeof partySearchQuerySchema>;
 export type YouTubeSuggestionQuery = z.infer<typeof youtubeSuggestionQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
 export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

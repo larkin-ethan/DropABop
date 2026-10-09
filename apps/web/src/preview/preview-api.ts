@@ -15,7 +15,12 @@ import type {
   Party,
   PartyMember,
   PartyResponse,
+  PartySearchResponse,
+  PartySearchType,
   PersonalStatsResponse,
+  SearchArtistHit,
+  SearchSongHit,
+  SearchWeekHit,
   ResultsResponse,
   Round,
   RoundsResponse,
@@ -282,6 +287,99 @@ function memberNames(state: PreviewState) {
     avatarColor: m.avatarColor,
     avatarImage: m.avatarImage ?? null,
   }));
+}
+
+/**
+ * Party search in the sample world (P13.12). A simple stand-in for services/api/src/domain/search.ts with the same
+ * privacy: this week's songs show no sharer unless they're yours (D10), and nothing shows ratings.
+ */
+function sampleSearch(state: PreviewState, params: URLSearchParams): PartySearchResponse {
+  const fold = (t: string) =>
+    t
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+  const q = fold((params.get('q') ?? '').trim());
+  const type = (params.get('type') ?? 'all') as PartySearchType;
+  const offset = Number(params.get('cursor') ?? '0');
+  const hit = (...fields: (string | null | undefined)[]) => fields.some((f) => f && fold(f).includes(q));
+
+  const songs: SearchSongHit[] = [
+    ...state.songs.map((s) => ({
+      recommendationId: s.recommendationId,
+      roundId: state.round.roundId,
+      submittedOn: s.submittedOn,
+      title: s.song.title,
+      artist: s.song.artist,
+      album: s.song.album,
+      albumArtUrl: s.song.albumArtUrl,
+      weekOpen: !state.weekClosed,
+      isMine: s.isMine,
+      ...(s.isMine || state.weekClosed ? { recommendedBy: s.recommendedBy ?? ME } : {}),
+    })),
+    ...state.pastResults.map((r) => ({
+      recommendationId: r.recommendationId,
+      roundId: state.pastRound.roundId,
+      submittedOn: r.submittedOn,
+      title: r.song.title,
+      artist: r.song.artist,
+      album: r.song.album,
+      albumArtUrl: r.song.albumArtUrl,
+      weekOpen: false,
+      isMine: r.recommendedBy === ME,
+      recommendedBy: r.recommendedBy,
+    })),
+  ].filter((s) => hit(s.title, s.artist, s.album));
+  const artistCounts = new Map<string, SearchArtistHit>();
+  for (const s of songs) {
+    if (!hit(s.artist)) continue;
+    const entry = artistCounts.get(fold(s.artist)) ?? { artist: s.artist, songCount: 0 };
+    entry.songCount += 1;
+    artistCounts.set(fold(s.artist), entry);
+  }
+  const artists = [...artistCounts.values()];
+  const members = memberNames(state).filter((m) => hit(m.displayName));
+  const weeks: SearchWeekHit[] = [state.round, state.pastRound]
+    .filter((r) => hit(r.weekStart))
+    .map((r) => ({
+      roundId: r.roundId,
+      weekStart: r.weekStart,
+      status: r === state.round && !state.weekClosed ? 'OPEN' : 'CLOSED',
+      songCount: r === state.round ? state.songs.length : state.pastResults.length,
+    }));
+  const lists = { songs, artists, members, weeks };
+  const totals = {
+    songs: songs.length,
+    artists: artists.length,
+    members: members.length,
+    weeks: weeks.length,
+  };
+  if (type === 'all') {
+    return {
+      q,
+      type,
+      songs: songs.slice(0, 5),
+      artists: artists.slice(0, 5),
+      members: members.slice(0, 5),
+      weeks: weeks.slice(0, 5),
+      totals,
+      nextCursor: null,
+      truncated: false,
+    };
+  }
+  const page = 20;
+  return {
+    q,
+    type,
+    songs: [],
+    artists: [],
+    members: [],
+    weeks: [],
+    [type]: lists[type].slice(offset, offset + page),
+    totals,
+    nextCursor: offset + page < lists[type].length ? String(offset + page) : null,
+    truncated: false,
+  };
 }
 
 const notEnough = (sampleSize: number, required: number) =>
@@ -791,6 +889,9 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return {
         songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
       };
+    }
+    if (is('GET', 'parties', ':id', 'search')) {
+      return sampleSearch(state, params);
     }
     if (is('GET', 'parties', ':id', 'notifications')) {
       return sampleNotifications(state);

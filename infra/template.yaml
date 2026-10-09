@@ -282,6 +282,10 @@ Resources:
         'GET /songs/youtube':
           ThrottlingBurstLimit: 3
           ThrottlingRateLimit: 1
+        # Party search reads up to 5,000 songs per call (D33); typing is debounced in the app, so this is plenty.
+        'GET /parties/{partyId}/search':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
         # Invite codes: slow down anyone trying to guess codes (31^4 ≈ 920,000 possible).
         'GET /invites/{code}':
           ThrottlingBurstLimit: 5
@@ -964,6 +968,28 @@ Resources:
             ApiId: !Ref HttpApi
             Method: GET
             Path: /parties/{partyId}/history
+
+  # Party search (P13.12, D33): the party's songs (one capped key query), weeks and members. Read-only.
+  SearchPartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.searchPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/search
 
   # Brings the current week up to date first (ADR-0003).
   LeaderboardFunction:

@@ -10,7 +10,7 @@ FUNCTIONS = HealthFunction GetMeFunction UpdateMeFunction CreatePartyFunction Li
 	CastVoteFunction ListMyVotesFunction GetResultsFunction PersonalStatsFunction GroupStatsFunction \
 	LeaderboardFunction SearchSongsFunction ResolveSongFunction ListCommentsFunction AddCommentFunction \
 	DeleteCommentFunction SuggestYouTubeFunction \
-	GetHistoryFunction GetAchievementsFunction MarkAchievementsSeenFunction \
+	GetHistoryFunction SearchPartyFunction GetAchievementsFunction MarkAchievementsSeenFunction \
 	GetNotificationsFunction MarkNotificationsSeenFunction
 
 $(addprefix build-,$(FUNCTIONS)):

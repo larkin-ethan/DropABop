@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
   { to: '/stats', label: 'Stats', icon: 'chart', mobile: true },
   { to: '/leaderboard', label: 'Leaderboard', icon: 'list' },
   { to: '/history', label: 'History', icon: 'history' },
+  { to: '/search', label: 'Search', icon: 'search' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 

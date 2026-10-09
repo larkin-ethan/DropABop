@@ -1388,3 +1388,37 @@ describe('Notifications (P13.10)', () => {
     expect(screen.queryByRole('status', { name: 'Achievement unlocked' })).not.toBeInTheDocument();
   });
 });
+
+describe('Search (P13.12, D33)', () => {
+  it('finds songs in this party; an open week’s song hides who shared it (D10)', async () => {
+    renderApp('/search');
+    expect(await screen.findByText(/Type at least 2 characters/)).toBeInTheDocument();
+    await userEvent.type(await screen.findByLabelText('Search your party'), 'good 4');
+    const songs = (await screen.findByRole('heading', { name: 'Songs' })).closest('div')!;
+    const links = await within(songs).findAllByRole('link', { name: 'Good 4 U' });
+    expect(links).toHaveLength(2);
+    expect(within(songs).getByText(/Sharer revealed with the results · this week/)).toBeInTheDocument();
+    expect(within(songs).getByText(/Shared by Sarah Kim/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/search'));
+  });
+
+  it('switches category, keeps it in the address, and shows counts', async () => {
+    renderApp('/search?q=sarah');
+    const members = await screen.findByRole('button', { name: /Members\s*1/ });
+    await userEvent.click(members);
+    expect(members).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByText('Sarah Kim')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Songs' })).not.toBeInTheDocument();
+  });
+
+  it('finds a week by its date and links to it', async () => {
+    renderApp('/search?q=2026-09-28');
+    const link = await screen.findByRole('link', { name: /Week of Sep 28/ });
+    expect(link).toHaveAttribute('href', '/history/week/2026-09-28');
+  });
+
+  it('says so when nothing matches', async () => {
+    renderApp('/search?q=zzzz');
+    expect(await screen.findByText('No matches')).toBeInTheDocument();
+  });
+});
