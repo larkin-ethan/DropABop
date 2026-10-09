@@ -4,8 +4,8 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; next is **P13.4b [HUMAN]**: Ethan creates the YouTube API key (DEPLOYMENT.md §4e), then a dev deploy and a
-live check. P13.5 (Song Details) can go ahead meanwhile. **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). Next is **P13.5** (Song Details screen). Prod
+still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed. **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
 adds the "Play videos in Drop a Bop" switch (the privacy page already mentions it). P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -18,8 +18,6 @@ hand with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks 
 
 ## Blocked / Questions for Ethan
 
-- **YouTube API key (P13.4b, 2026-10-09).** Needed to turn on automatic YouTube videos: steps in DEPLOYMENT.md §4e.
-  Until then the share dialog simply shows no suggestion.
 - **CloudFront verification (blocks P9.2's deploy, 2026-10-04).** Creating the distribution failed: "Your account must
   be verified before you can add new CloudFront resources. ... contact AWS Support". Ethan opens a free Account and
   billing case (DEPLOYMENT.md §4c). Until then dev has `HostWebsite=false`.
@@ -55,6 +53,13 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.4b done (dev): YouTube API key** — Ethan created the Google Cloud key and stored it as SSM
+  SecureString `/dropabop/dev/youtube-api-key` (checked by metadata only: SecureString, `alias/aws/ssm`, Standard, v1)
+  and deployed dev from 6cb2ce5 (changeset: 3 adds for the new function, modifies only, no deletes). Live check:
+  invoked the deployed function with a test event (made-up user id, iTunes 828259377) → 3 real YouTube results,
+  official M83 video first, so SSM access and the `x-goog-api-key` header both work. Leftovers: prod key at prod
+  deploy time.
 
 - 2026-10-09 — **P13.4a done: auto-find the YouTube video (ADR-0012)** — Ethan asked for the video to be added
   automatically, and whether song search should move to YouTube: no (100 searches/day for the whole app; YouTube

@@ -437,7 +437,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   (title + channel, Play preview, pick another / paste / remove). Works quietly without a key. *Done when:* unit +
   integration tests (auth, cap, quota/no-key fallbacks, expiry, merge), screen tests, `sam validate --lint`,
   template tests, aws-change checks, API/DATABASE/API_COMPLIANCE/MUSIC_PROVIDERS updated, spec-reviewer.
-- [ ] **P13.4b — YouTube API key** [HUMAN] (ADR-0012) — Ethan creates the Google Cloud project + YouTube Data API v3
+- [x] **P13.4b — YouTube API key** [HUMAN] (dev done 2026-10-09; prod key goes in with the prod deploy, DEPLOYMENT.md §4e step 5) (ADR-0012) — Ethan creates the Google Cloud project + YouTube Data API v3
   key and stores it in SSM for dev (and later prod); then a dev deploy (approval) and a live check that choosing a
   song lists real YouTube results (not "busy": that would mean YouTube refused the `x-goog-api-key` header, see
   `providers/youtube-search.ts`), and that a kept video plays.

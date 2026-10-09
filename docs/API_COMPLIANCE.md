@@ -71,7 +71,7 @@ Full decision and sources: ADR-0011.
 | Caching / retention | Results cached ≤ 1 hour in memory. A kept video id is stored in a `YTVIDEO#` item deleted by DynamoDB TTL 29 days after sharing; reads ignore it after that [DP §III.E.4] |
 | Privacy | Only "artist title" of the chosen song is sent to Google; no user data. Disclosed in PRIVACY.md |
 | Known limitations | Can suggest a cover/live/lyric video (member sees title + channel and can change it); 100/day cap |
-| Not yet verified live | Needs the key (P13.4b). In particular: that the `x-goog-api-key` header is accepted (Google's documented alternative to `?key=`) |
+| Verified live (dev, 2026-10-09) | With Ethan's key: `search.list` for M83 "Midnight City" returned 3 real videos, official video first; the `x-goog-api-key` header is accepted |
 
 ## Spotify (links only)
 
@@ -133,6 +133,8 @@ Only tests that were actually run are listed.
   current privacy policy (a test fails if that check is removed); it shows on Rate, Results and the share preview,
   is labelled "YouTube video linked by the sharer", and rating stays available with the card open. Browser pane:
   pressing Play video on a Rate card opened the play card and played the linked video.
+- **2026-10-09 (P13.4b), live on dev:** the deployed `SuggestYouTubeFunction`, invoked with a test event for iTunes
+  track 828259377, read the key from SSM and returned 3 YouTube results (official video first), `unavailable: null`.
 - **Not yet checked:** iPhone Safari. Our Play button and the start-on-ready call happen after the script loads,
   which iOS may not count as the person's tap; YouTube's own play button inside the player still works. To check by
   hand on a phone in P13.4.
