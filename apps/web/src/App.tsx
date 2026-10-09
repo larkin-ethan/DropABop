@@ -24,7 +24,8 @@ import { LandingScreen } from './screens/LandingScreen';
 import { CreatePartyScreen, JoinByLinkScreen, JoinWithCodeScreen } from './screens/OnboardingScreens';
 import { PrivacyScreen } from './screens/PrivacyScreen';
 import { RateScreen } from './screens/RateScreen';
-import { HistoryScreen, LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
+import { HistoryCalendarScreen, HistoryDayScreen, HistoryWeekScreen } from './screens/HistoryScreens';
+import { LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
 import { PartySettingsScreen, ProfileScreen } from './screens/SettingsScreens';
 import { ShareScreen } from './screens/ShareScreen';
 import { SongDetailsScreen } from './screens/SongDetailsScreen';
@@ -112,7 +113,9 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/results" element={<LatestResultsScreen />} />
               <Route path="/results/:roundId" element={<ResultsScreen />} />
               <Route path="/songs/:roundId/:recommendationId" element={<SongDetailsScreen />} />
-              <Route path="/history" element={<HistoryScreen />} />
+              <Route path="/history" element={<HistoryCalendarScreen />} />
+              <Route path="/history/day/:date" element={<HistoryDayScreen />} />
+              <Route path="/history/week/:weekStart" element={<HistoryWeekScreen />} />
               <Route path="/stats" element={<PersonalStatsScreen />} />
               <Route path="/stats/group" element={<GroupStatsScreen />} />
               <Route path="/leaderboard" element={<LeaderboardScreen />} />

@@ -463,7 +463,7 @@ describe('Weekly results and history (P8.6, P8.7)', () => {
   });
 
   it('lists past weeks, linking finished ones to their results', async () => {
-    renderApp('/history');
+    renderApp('/history?view=list');
     expect(await screen.findByText('This week · in progress')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Week of Sep 28/ })).toHaveAttribute(
       'href',
@@ -1137,5 +1137,80 @@ describe('Settings (P13.6)', () => {
   it('help explains listening in the app', async () => {
     renderApp('/how-it-works', { auth: fakeAuth() });
     expect(await screen.findByRole('heading', { name: /Listening in Drop a Bop/ })).toBeInTheDocument();
+  });
+});
+
+describe('History calendar (P13.8)', () => {
+  it('shows the month with marked days and the weeks, and switches to the list', async () => {
+    renderApp('/history?month=2026-10');
+    expect(await screen.findByRole('heading', { name: 'October 2026' })).toBeInTheDocument();
+    // Days with songs are links to the Day view; their names say what's there.
+    const oct5 = await screen.findByRole('link', { name: /Monday, October 5, 2026, \d+ songs?/ });
+    expect(oct5).toHaveAttribute('href', '/history/day/2026-10-05');
+    expect(screen.getByRole('link', { name: /Week of Sep 28/ })).toHaveAttribute(
+      'href',
+      '/history/week/2026-09-28',
+    );
+    expect(screen.getByRole('link', { name: /Week of Oct 5/ })).toHaveTextContent('ratings open');
+    expect(screen.getByRole('link', { name: 'Previous month' })).toHaveAttribute(
+      'href',
+      '/history?month=2026-09',
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'List' }));
+    expect(await screen.findByText('This week · in progress')).toBeInTheDocument();
+  });
+
+  it('day view of a closed week: the numbers, Bop of the Day and the songs', async () => {
+    renderApp('/history/day/2026-09-28');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Monday, September 28, 2026' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Bop of the Day/ })).toBeInTheDocument();
+    expect(screen.getByText('Your average given')).toBeInTheDocument();
+    expect(screen.getByText('Songs you rated')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Midnight City/ })[0]).toHaveAttribute(
+      'href',
+      '/songs/p1.2026-09-28/past-r1',
+    );
+  });
+
+  it('day view of the open week: counts only, results after the lock (D9)', async () => {
+    renderApp('/history/day/2026-10-05');
+    expect(await screen.findByText('Results after ratings lock')).toBeInTheDocument();
+    expect(screen.queryByText('Your average given')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Rating distribution')).not.toBeInTheDocument();
+  });
+
+  it('week view with "Your week", highlights and the day-by-day list', async () => {
+    renderApp('/history/week/2026-09-28');
+    expect(await screen.findByRole('heading', { name: 'Your week' })).toBeInTheDocument();
+    expect(screen.getByText('Your rank')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Top artists' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Monday · Sep 28/ })).toHaveAttribute(
+      'href',
+      '/history/day/2026-09-28',
+    );
+    expect(screen.getByRole('link', { name: 'Next week' })).toHaveAttribute(
+      'href',
+      '/history/week/2026-10-05',
+    );
+  });
+
+  it('shows the lowest-rated song of a closed day', async () => {
+    const { state } = renderApp('/history/day/2026-09-30');
+    const wednesday = state.pastResults.filter((r) => r.weekday === 'WED');
+    expect(await screen.findByRole('heading', { name: 'Lowest rated' })).toBeInTheDocument();
+    expect(wednesday.length).toBeGreaterThan(1);
+  });
+
+  it('a link with an impossible date says so instead of failing', async () => {
+    renderApp('/history/day/2026-13-05');
+    expect(await screen.findByText('That isn’t a date')).toBeInTheDocument();
+  });
+
+  it('says so for a day without sharing', async () => {
+    renderApp('/history/day/2026-10-31');
+    expect(await screen.findByText('No sharing that day')).toBeInTheDocument();
   });
 });

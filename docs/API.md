@@ -350,6 +350,19 @@ Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRec
 `mostSurprising`, `mostPopular`: each a ranked list of `{ id, rank, value, sampleSize }` containing only entries
 that meet the minimum sample. Ties share a rank. Members only.
 
+### History
+
+#### `GET /parties/{partyId}/history?month=2026-10`
+
+The history calendar (P13.8, D31). Code: `services/api/src/handlers/history.ts`, numbers in
+`services/api/src/domain/history.ts` (definitions in STATISTICS.md → History). Members only. `month`: `YYYY-MM`.
+`200`: `{ "month", "weeks": HistoryWeek[], "members": MemberName[] }`: every week that overlaps the month (whole
+weeks, oldest first), each with `roundId`, `weekStart`, `endsAt`, `status` (from the server clock), `days` (every
+sharing day: `date`, `weekday`, `songCount`, `iShared`, `personalBest`, `stats`), `summary` and `yourWeek`.
+Ratings appear only for weeks whose ratings have locked (`status: CLOSED`); open weeks and weeks without results
+have `stats`, `summary` and `yourWeek` set to `null` (D9). Who rated what is never included. Errors: `400
+VALIDATION_FAILED` (bad month), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+
 ### Song search
 
 Code: `services/api/src/handlers/songs.ts`, catalog `services/api/src/providers/itunes.ts` (iTunes Search API,

@@ -18,5 +18,6 @@ export { submitRecommendationHandler, listRecommendationsHandler } from './handl
 export { castVoteHandler, listMyVotesHandler } from './handlers/votes';
 export { addCommentHandler, deleteCommentHandler, listCommentsHandler } from './handlers/comments';
 export { getResultsHandler } from './handlers/results';
+export { getHistoryHandler } from './handlers/history';
 export { personalStatsHandler, groupStatsHandler, leaderboardHandler } from './handlers/stats';
 export { searchSongsHandler, resolveSongHandler, suggestYouTubeHandler } from './handlers/songs';

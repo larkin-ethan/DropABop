@@ -51,3 +51,30 @@ needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.
 | Most Consistent | Smallest spread between the averages of a user's songs | 3 rated songs |
 | Most Surprising | Number of a user's songs that beat their own earlier average by 1 point or more | 1 such song |
 | Most Popular | Number of ratings of 8 or higher received | 3 songs shared |
+
+## History (calendar, Day view, Week view)
+
+Code: `services/api/src/domain/history.ts` (P13.8, D31). Same ground rules as above: ratings only for weeks whose
+ratings have locked; an open week shows how many songs were shared each day and nothing else. Ratings count toward
+the day **the song was shared**. Averages are shown to 1 decimal place. Ties are joint winners: every song or day
+tied for Bop of the Day, best song, lowest rated, most divisive or most agreeable day is listed.
+
+| Number | What it means | How it's calculated | Needs |
+|---|---|---|---|
+| Songs (day / week) | How many songs were shared | Count | — |
+| Ratings (day / week) | How many ratings those songs got | Count of valid ratings | — |
+| Group average (day) / Average rating (week) | How the group rated them | Mean of every rating on those songs | 1 rating |
+| Songs you rated (day) | How many of that day's songs you rated | Count | — |
+| Your average given (day) | How you rated that day's songs | Mean of your ratings on them | 1 rating |
+| Your average received (day) | How your song(s) that day did | Mean of the averages of your rated songs that day | 1 rated song |
+| Bop of the Day | The day's winner (D12) | Highest average that day; ties share it | 1 rating |
+| Lowest rated (day) | The day's least liked song | Lowest average that day (not if it's also the top) | 3 ratings |
+| Favourite artists (day) | An artist the group picked more than once | Artists with at least 2 songs that day (spelling-insensitive) | 2 songs |
+| Best song (week) | The week's #1 | Rank 1 in the week's results; ties share it | 1 rating |
+| Top artists (week) | Who got shared most | Artists by songs shared, top 3 (ties at 3rd all shown) | — |
+| Most agreeable day (week) | The day people agreed most | Lowest mean spread of that day's songs | songs with 4 ratings, at least 2 of them that day |
+| Most divisive (week) | The week's most split song | Largest spread | 4 ratings |
+| Your week: songs rated, average given | Your ratings that week | Count and mean of your valid ratings | 1 rating for the average |
+| Your week: average received | How your songs did | Mean of your rated songs' averages | 1 rated song |
+| Your week: rank | Your place among that week's sharers | Sharers ranked by average received (shown values), ties share a rank | 1 rated song |
+| Calendar ★ | Your best song yet | Days where one of your songs got your best-ever song average (shown value; ties all count), across every closed week | 1 rated song |

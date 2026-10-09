@@ -24,6 +24,10 @@ import type {
   User,
   Weekday,
   WeekSongsResponse,
+  HistoryDay,
+  HistoryResponse,
+  HistorySong,
+  HistoryWeek,
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
@@ -668,6 +672,9 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
       };
     }
+    if (is('GET', 'parties', ':id', 'history')) {
+      return sampleHistory(state, params.get('month') ?? '');
+    }
     if (is('GET', 'songs', 'youtube')) {
       // Sample YouTube suggestions (ADR-0012). M7lc1UVf-VE is the sample video in YouTube's IFrame API reference.
       return {
@@ -702,4 +709,129 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     patch: (path, body) => request('PATCH', path, body),
     delete: (path) => request('DELETE', path),
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Sample history (P13.8): last week closed (from the sample results), this week open (counts only, D9).
+// ---------------------------------------------------------------------------------------------------------------
+
+const WEEK_ORDER: Weekday[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+function dayDate(weekStart: string, weekday: Weekday): string {
+  const [y = 1970, m = 1, d = 1] = weekStart.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + WEEK_ORDER.indexOf(weekday))).toISOString().slice(0, 10);
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10;
+}
+
+function ratingsFrom(distribution: number[]): number[] {
+  return distribution.flatMap((count, i) => new Array<number>(count).fill(i + 1));
+}
+
+function sampleHistory(state: PreviewState, month: string): HistoryResponse {
+  const members = state.members.map((m) => ({
+    userId: m.userId,
+    displayName: m.displayName,
+    avatarColor: m.avatarColor,
+    avatarImage: m.avatarImage ?? null,
+  }));
+  if (month !== '2026-10' && month !== '2026-09') return { month, weeks: [], members };
+
+  const past = state.pastRound;
+  const pastSongs: HistorySong[] = state.pastResults.map((r) => ({
+    recommendationId: r.recommendationId,
+    title: r.song.title,
+    artist: r.song.artist,
+    albumArtUrl: r.song.albumArtUrl,
+    average: r.averageRating,
+    ratingCount: r.ratingCount,
+    rank: r.rank,
+    myRating: r.myRating,
+    recommendedBy: r.recommendedBy,
+    isMine: r.recommendedBy === ME,
+  }));
+  const allPastRatings = state.pastResults.flatMap((r) => ratingsFrom(r.distribution));
+  const pastDays: HistoryDay[] = DEFAULT_SHARE_DAYS.map((weekday) => {
+    const results = state.pastResults.filter((r) => r.weekday === weekday);
+    const songs = pastSongs.filter((s) => results.some((r) => r.recommendationId === s.recommendationId));
+    const ratings = results.flatMap((r) => ratingsFrom(r.distribution));
+    const distribution = new Array<number>(10).fill(0);
+    for (const r of ratings) distribution[r - 1] = (distribution[r - 1] ?? 0) + 1;
+    const top = songs[0]?.average ?? null;
+    return {
+      date: dayDate(past.weekStart, weekday),
+      weekday,
+      songCount: songs.length,
+      iShared: songs.some((s) => s.isMine),
+      personalBest: songs.some((s) => s.isMine && s.rank === 1),
+      stats: {
+        songs,
+        ratingCount: ratings.length,
+        groupAverage: average(ratings),
+        myAverageGiven: average(songs.flatMap((s) => (s.myRating === null ? [] : [s.myRating]))),
+        myAverageReceived: average(
+          songs.filter((s) => s.isMine && s.average !== null).map((s) => s.average ?? 0),
+        ),
+        bopOfTheDay:
+          top === null ? [] : songs.filter((s) => s.average === top).map((s) => s.recommendationId),
+        lowestRated: songs.length > 1 ? [songs.at(-1)?.recommendationId ?? ''] : [],
+        myRatingCount: songs.filter((s) => s.myRating !== null).length,
+        distribution,
+        favoriteArtists: [],
+      },
+    };
+  });
+  const pastDistribution = new Array<number>(10).fill(0);
+  for (const r of allPastRatings) pastDistribution[r - 1] = (pastDistribution[r - 1] ?? 0) + 1;
+  const pastWeek: HistoryWeek = {
+    roundId: past.roundId,
+    weekStart: past.weekStart,
+    endsAt: past.endsAt,
+    status: 'CLOSED',
+    days: pastDays,
+    summary: {
+      songCount: pastSongs.length,
+      ratingCount: allPastRatings.length,
+      averageRating: average(allPastRatings),
+      bestSongs: pastSongs.filter((s) => s.rank === 1).map((s) => s.recommendationId),
+      topArtists: pastSongs.slice(0, 3).map((s) => ({ artist: s.artist, songs: 1 })),
+      mostAgreeableDays: pastDays[1] === undefined ? [] : [pastDays[1].date],
+      mostDivisive: pastSongs.length > 0 ? [pastSongs.at(-1)?.recommendationId ?? ''] : [],
+      distribution: pastDistribution,
+    },
+    yourWeek: {
+      songsRated: pastSongs.filter((s) => s.myRating !== null).length,
+      averageGiven: average(pastSongs.flatMap((s) => (s.myRating === null ? [] : [s.myRating]))),
+      averageReceived: average(
+        pastSongs.filter((s) => s.isMine && s.average !== null).map((s) => s.average ?? 0),
+      ),
+      topSong: pastSongs.find((s) => s.isMine)?.recommendationId ?? null,
+      rank: { position: 1, of: members.length },
+    },
+  };
+
+  const current = state.round;
+  const openWeek: HistoryWeek = {
+    roundId: current.roundId,
+    weekStart: current.weekStart,
+    endsAt: current.endsAt,
+    status: state.weekClosed ? 'CLOSED' : 'OPEN',
+    days: shareDaysOf(current).map((weekday) => {
+      const songs = state.songs.filter((s) => s.weekday === weekday);
+      return {
+        date: dayDate(current.weekStart, weekday),
+        weekday,
+        songCount: songs.length,
+        iShared: songs.some((s) => s.isMine),
+        personalBest: false,
+        stats: null,
+      };
+    }),
+    summary: null,
+    yourWeek: null,
+  };
+  return { month, weeks: month === '2026-09' ? [pastWeek] : [pastWeek, openWeek], members };
 }

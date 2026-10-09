@@ -252,6 +252,11 @@ export const songSearchQuerySchema = z.strictObject({
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
 });
 
+/** GET /parties/{partyId}/history?month=YYYY-MM (P13.8). */
+export const historyQuerySchema = z.strictObject({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: 'Pick a month like 2026-10.' }),
+});
+
 /** GET /songs/youtube?providerSongId= (ADR-0012): the iTunes track id of the song being shared. */
 export const youtubeSuggestionQuerySchema = z.strictObject({
   providerSongId: z
@@ -289,6 +294,7 @@ export type SubmitRecommendationRequest = z.infer<typeof submitRecommendationReq
 export type CastVoteRequest = z.infer<typeof castVoteRequestSchema>;
 export type AddCommentRequest = z.infer<typeof addCommentRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
+export type HistoryQuery = z.infer<typeof historyQuerySchema>;
 export type YouTubeSuggestionQuery = z.infer<typeof youtubeSuggestionQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
 export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

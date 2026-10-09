@@ -26,6 +26,7 @@ import type {
   VoteResponse,
   WeekSongsResponse,
   YouTubeSuggestionsResponse,
+  HistoryResponse,
 } from '@dropabop/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
@@ -183,6 +184,18 @@ export function useSongSearch(q: string) {
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
     retry: false,
+  });
+}
+
+/** One month of the history calendar (P13.8). Past months don't change, so they're kept for a while. */
+export function useHistory(partyId: string | null, month: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['history', partyId ?? '', month] as const,
+    queryFn: () => api.get<HistoryResponse>(`/parties/${enc(partyId ?? '')}/history?month=${enc(month)}`),
+    enabled: partyId !== null,
+    // Months before this one only change when a week closes, so they're kept longer (ADR-0006: computed on read).
+    staleTime: month < new Date().toISOString().slice(0, 7) ? 10 * 60_000 : 60_000,
   });
 }
 

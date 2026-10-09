@@ -10,6 +10,7 @@ import type {
   Party,
   PartyMember,
   Round,
+  RoundStatus,
   Song,
   User,
   Weekday,
@@ -302,4 +303,105 @@ export interface YouTubeSuggestionsResponse {
 
 export interface ResolveSongResponse {
   song: Song;
+}
+
+// ---------------------------------------------------------------------------
+// History calendar (P13.8, D31). Ratings only for weeks whose ratings have locked (D9).
+// ---------------------------------------------------------------------------
+
+/** One song in a closed week, as the history views show it. Sharers are revealed once the week ends (D10). */
+export interface HistorySong {
+  recommendationId: string;
+  title: string;
+  artist: string;
+  albumArtUrl: string | null;
+  /** Rounded to 1 decimal (D12), or null if nobody rated it. */
+  average: number | null;
+  ratingCount: number;
+  /** Rank in its week (1 = best; ties share a rank). */
+  rank: number;
+  myRating: number | null;
+  recommendedBy: string;
+  isMine: boolean;
+}
+
+/** A closed day's numbers (D31). */
+export interface HistoryDayStats {
+  /** That day's songs, best first. */
+  songs: HistorySong[];
+  ratingCount: number;
+  /** Mean of every rating on that day's songs. */
+  groupAverage: number | null;
+  /** Mean of your ratings on that day's songs. */
+  myAverageGiven: number | null;
+  /** Mean of the averages of your songs that day. */
+  myAverageReceived: number | null;
+  /** Bop of the Day (D12): the day's highest average; ties share it. */
+  bopOfTheDay: string[];
+  /** Lowest average with at least 3 ratings (ties all listed); empty if none, or if it's also the top. */
+  lowestRated: string[];
+  /** How many of that day's songs you rated. */
+  myRatingCount: number;
+  /** Count of each rating 1–10 on that day's songs. */
+  distribution: number[];
+  /** Artists with at least 2 songs that day. */
+  favoriteArtists: string[];
+}
+
+export interface HistoryDay {
+  date: IsoDate;
+  weekday: Weekday;
+  songCount: number;
+  /** You shared a song that day. */
+  iShared: boolean;
+  /** One of your songs that day got your best-ever song average (closed weeks only). */
+  personalBest: boolean;
+  /** Null while the week is open, or if it ended without results. */
+  stats: HistoryDayStats | null;
+}
+
+export interface HistoryWeekSummary {
+  songCount: number;
+  ratingCount: number;
+  averageRating: number | null;
+  /** Rank-1 songs (ties share it). */
+  bestSongs: string[];
+  /** Artists with the most songs shared that week, top 3 (ties shared). */
+  topArtists: { artist: string; songs: number }[];
+  /** The day(s) whose songs had the lowest average spread (songs with ≥ 4 ratings; needs 2 such songs). */
+  mostAgreeableDays: IsoDate[];
+  /** The song(s) with the widest spread of ratings (≥ 4 ratings); ties all listed. */
+  mostDivisive: string[];
+  distribution: number[];
+}
+
+/** "Your week" (spec §23, D26). */
+export interface HistoryYourWeek {
+  songsRated: number;
+  averageGiven: number | null;
+  averageReceived: number | null;
+  /** Your best song that week. */
+  topSong: string | null;
+  /** Your place among that week's sharers, by average received (needs 1 rated song). */
+  rank: { position: number; of: number } | null;
+}
+
+export interface HistoryWeek {
+  roundId: string;
+  weekStart: IsoDate;
+  endsAt: IsoDateTime;
+  /** OPEN, CLOSED, or NOT_ENOUGH_SONGS (decided from the server clock). */
+  status: RoundStatus;
+  /** Every sharing day of the week, in order. */
+  days: HistoryDay[];
+  /** Closed weeks only. */
+  summary: HistoryWeekSummary | null;
+  yourWeek: HistoryYourWeek | null;
+}
+
+export interface HistoryResponse {
+  month: string;
+  /** Weeks that overlap the month (whole weeks), oldest first. */
+  weeks: HistoryWeek[];
+  members: MemberName[];
 }

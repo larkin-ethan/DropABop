@@ -454,9 +454,10 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
 - [x] **P13.7 — Genre on new songs** (§8) — store iTunes `primaryGenreName` in the song snapshot for new shares
   (type, schema, provider mapping); old songs have none. *Done when:* unit + integration tests; MUSIC_PROVIDERS and
   DATABASE updated.
-- [ ] **P13.8 — Calendar history** (§16, §23; D31) — pure `domain/history.ts` (day/week aggregates, "Your week",
-  calendar marks) with unit tests; `GET /parties/{partyId}/history?month=YYYY-MM` (new Lambda + route; key queries
-  per week, at most 6 weeks per call, server clock decides closed weeks); web `/history` (calendar + List toggle),
+- [x] **P13.8 — Calendar history** (§16, §23; D31) — pure `domain/history.ts` (day/week aggregates, "Your week",
+  calendar marks) with unit tests; `GET /parties/{partyId}/history?month=YYYY-MM` (new Lambda + route; loads the
+  party's data like stats, ADR-0006, because the ★ needs every closed week; server clock decides closed weeks); web
+  `/history` (calendar + List toggle),
   `/history/day/:date`, `/history/week/:weekStart`, charts reuse `RatingDistribution` with text alternatives.
   *Done when:* unit + integration tests (auth, membership, month validation, aggregation), screen tests,
   STATISTICS/API docs updated, spec-reviewer run.

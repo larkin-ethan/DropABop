@@ -75,6 +75,7 @@ Notes:
 | 13 | All ratings in a week (results) | `Query PK=PARTY#p, SK begins_with VOTE#week#` |
 | 14 | My ratings in a week | `Query PK=PARTY#p, SK begins_with VOTE#week#u#` |
 | 15 | Party stats / user stats (closed weeks) | Pattern 9 (all weeks), then `Query SK begins_with REC#` and `SK begins_with VOTE#`, keeping only closed weeks |
+| 16 | History calendar for a month (P13.8) | Same as 15 (every week, because the ★ compares with your best ever), then the month's weeks are picked in code (ADR-0006) |
 | 16 | Week results | Patterns 8, 10, 13 |
 | 22 | A week's comments, oldest first (D25) | `Query PK=PARTY#p, SK begins_with COMMENT#week#` |
 | 23 | Add a comment | `Put` with `attribute_not_exists(PK)` (random id; never overwrites) |
