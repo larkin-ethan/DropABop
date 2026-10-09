@@ -88,7 +88,9 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 Body (`updateProfileRequestSchema`, at least one field): `displayName` (1–40 chars, trimmed), `avatarColor`
 (`#RRGGBB`), `avatarImage` (profile picture: a `data:image/jpeg|webp;base64,…` URL up to 9,000 characters, or
 `null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22), `playInApp` (`true` |
-`false`: the "Play videos in Drop a Bop" switch, D27; missing on a profile = on),
+`false`: the "Play videos in Drop a Bop" switch, D27; missing on a profile = on), `notificationPrefs` (an object of
+`toRate`, `shareToday`, `results`, `weeklyRank`, `comments`, `achievements`, each `true`/`false`; D29; missing = on;
+the object you send replaces the saved one, so send every type you care about),
 `acceptPrivacy` (only `true`: agree to the privacy policy and terms, ADR-0011; the server saves `privacyAcceptedAt`
 from its own clock and `privacyVersion` = the current `PRIVACY_POLICY_VERSION`, so neither can be sent).
 Updates only the given fields; your name/color in party member lists updates too. `privacyAcceptedAt` /
@@ -362,6 +364,25 @@ sharing day: `date`, `weekday`, `songCount`, `iShared`, `personalBest`, `stats`)
 Ratings appear only for weeks whose ratings have locked (`status: CLOSED`); open weeks and weeks without results
 have `stats`, `summary` and `yourWeek` set to `null` (D9). Who rated what is never included. Errors: `400
 VALIDATION_FAILED` (bad month), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+
+### Notifications
+
+#### `GET /parties/{partyId}/notifications`
+
+In-app notifications for one party (P13.10, D29). Code: `services/api/src/handlers/notifications.ts`, rules in
+`domain/notifications.ts`. Members only. Worked out on request from this week and the latest week with results
+(key queries only), so the bell can check every few minutes. `200`: `{ "notifications": [{ "id", "type", "time",
+"title", "detail", "link" }], "unreadCount", "seenAt" }`, newest first. Types: `toRate` (songs waiting for your
+rating), `shareToday` (a sharing day and you haven't shared), `comments` (others' comments on your songs this
+week), `results` (latest weekly results), `weeklyRank` (your place last week). Types switched off in your
+`notificationPrefs` are left out. Unread = newer than when you last opened your notifications in this party
+(`seenAt`; all of them if you've never looked). Achievement news isn't here (it needs the whole history): the website
+adds it from the achievements endpoint on the Notifications page, and it isn't counted in the bell.
+
+#### `POST /parties/{partyId}/notifications/seen`
+
+Members only, no body. Records "seen now" (server time) on your own party link, so it's per party. `200`:
+`{ "seenAt": "…" }`.
 
 ### Achievements
 

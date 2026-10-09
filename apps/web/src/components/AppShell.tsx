@@ -8,6 +8,7 @@ import { useMe } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { forgetSignUpAgreement } from '../lib/privacy-consent';
 import { forgetCurrentParty, useCurrentParty } from '../party/CurrentParty';
+import { NotificationBell } from '../screens/NotificationsScreen';
 import { DockedPlayer } from '../player/DockedPlayer';
 import { useMusicPlayer } from '../player/MusicPlayerContext';
 import { Icon, type IconName } from './Icon';
@@ -215,6 +216,7 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
+          <NotificationBell withLabel />
           <ProfileLink />
           <SignOutButton />
         </div>
@@ -225,6 +227,7 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
         <Logo compact />
         <PartySwitcher compact />
         <div className="flex shrink-0 items-center gap-3">
+          <NotificationBell />
           <NavLink to="/settings" aria-label="Settings" className="text-muted">
             <Icon name="settings" />
           </NavLink>

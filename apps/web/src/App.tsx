@@ -18,6 +18,7 @@ import {
   SettingsHubScreen,
 } from './screens/AccountSettingsScreens';
 import { AchievementsScreen } from './screens/AchievementsScreen';
+import { NotificationSettingsScreen, NotificationsScreen } from './screens/NotificationsScreen';
 import { ComponentGallery } from './screens/ComponentGallery';
 import { HelpScreen } from './screens/HelpScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -125,6 +126,8 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/settings/party" element={<PartySettingsScreen />} />
               <Route path="/settings/account" element={<AccountSettingsScreen />} />
               <Route path="/settings/music" element={<MusicSettingsScreen />} />
+              <Route path="/settings/notifications" element={<NotificationSettingsScreen />} />
+              <Route path="/notifications" element={<NotificationsScreen />} />
               <Route path="/profile" element={<ProfileScreen />} />
               {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
             </Route>

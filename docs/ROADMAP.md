@@ -466,8 +466,8 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   party link (private) for the unlock banner; web `/achievements` grid, detail dialog, a calm banner (not a pop-up)
   on Home/Results only, 🏆 on calendar unlock days. *Done when:* unit + integration tests, screen tests, STATISTICS/API/DATABASE docs updated,
   spec-reviewer run.
-- [ ] **P13.10 — Notifications** (§22; D29) — Settings → Notifications switches (moved here from P13.6); `GET /users/me/notifications` built on read for the current party;
-  `notificationsSeenAt` via `PATCH`; per-type switches respected; bell with unread count in `AppShell` (refetch on
+- [x] **P13.10 — Notifications** (§22; D29) — Settings → Notifications switches (moved here from P13.6); `GET /parties/{partyId}/notifications` (party in the path like the other party routes; this week and last week only, so the bell's checks stay cheap; achievement news comes from the achievements data on the list page) built on read for the current party;
+  `notificationsSeenAt` per party via `POST /parties/{partyId}/notifications/seen`; per-type switches respected; bell with unread count in `AppShell` (refetch on
   focus, ≤ every 5 min) and `/notifications`. *Done when:* unit + integration tests, screen tests, API/DATABASE docs.
 - [ ] **P13.11 — Leaderboard, group stats, profile, home** (§18–§20, §26; D30) — leaderboard `period` and the new
   boards with a "Provisional" list; group stats counts, weekly/monthly activity, top artists; profile as a stats

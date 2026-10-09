@@ -84,6 +84,19 @@ export const PRIVACY_POLICY_VERSION = '2026-10-09';
  */
 export const IN_APP_VIDEO_MAX_AGE_DAYS = 30;
 
+/**
+ * In-app notification types (D29). Each can be switched off in Settings → Notifications. `achievements` covers the
+ * "Achievement unlocked" banner and the achievements listed on the Notifications page.
+ */
+export const NOTIFICATION_TYPES = [
+  'toRate',
+  'shareToday',
+  'results',
+  'weeklyRank',
+  'comments',
+  'achievements',
+] as const;
+
 /** ADR-0012: YouTube allows the whole app 100 searches a day, so each person gets at most this many. */
 export const YOUTUBE_SEARCHES_PER_PERSON_PER_DAY = 15;
 /** ADR-0012: every stored YouTube video id is deleted this many days after the song is shared (30-day rule). */

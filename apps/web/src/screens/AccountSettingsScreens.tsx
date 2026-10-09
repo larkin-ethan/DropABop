@@ -36,6 +36,12 @@ const SECTIONS: Section[] = [
     description: 'Name, picture, email and password',
   },
   { to: '/settings/music', icon: 'music', title: 'Music', description: 'Preferred app and in-app videos' },
+  {
+    to: '/settings/notifications',
+    icon: 'bell',
+    title: 'Notifications',
+    description: 'What shows up under the bell',
+  },
   { to: '/settings/party', icon: 'users', title: 'Party', description: 'Invites, members, days and privacy' },
   { to: '/privacy', icon: 'check', title: 'Privacy', description: 'What we keep and who sees it' },
   { to: '/how-it-works', icon: 'list', title: 'Help', description: 'How Drop a Bop works' },

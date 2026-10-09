@@ -200,6 +200,9 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
   last week · new comments on your songs (a count). A bell shows the unread count; "read" means newer than the time
   you last opened the list. Each type can be switched off in Settings → Notifications. The app checks when the
   window regains focus and at most every 5 minutes while it's open. No streak notifications (D28).
+  *Built in P13.10:* "last opened" is kept per party (so one party's list doesn't mark another's as read). The
+  bell's check reads only this week and last week, so it stays cheap; achievement news (which needs the whole
+  history) appears on the Notifications page and in the "Achievement unlocked" banner but isn't counted in the bell.
 - **D30 — Leaderboard periods and provisional rankings.** Periods: **This week** = the most recent closed week;
   **This month** = closed weeks whose lock falls in the current calendar month (party timezone); **All time**
   (the spec's "Overall" is the same as All time). Boards: Highest Average Received, Highest Average Given, Most Bops,

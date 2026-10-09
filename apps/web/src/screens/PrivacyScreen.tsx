@@ -43,7 +43,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
         </li>
         <li>
           <strong className="text-ink">Your settings</strong>: preferred music app, whether videos play in
-          Drop a Bop, notification choices (once notifications arrive), and when you agreed to this policy.
+          Drop a Bop, notification choices, and when you agreed to this policy.
         </li>
         <li>
           <strong className="text-ink">What you do in a party</strong>: the parties you belong to, the songs

@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import { parseAppleMusicSongUrl, parseSpotifyTrackUrl, parseYouTubeUrl } from './links';
+import type { NotificationType } from './types';
 import {
   AVATAR_IMAGE_MAX_LENGTH,
   COMMENT_MAX_LENGTH,
@@ -17,6 +18,7 @@ import {
   MIN_PARTY_SIZE,
   MIN_RATING,
   MUSIC_PROVIDERS,
+  NOTIFICATION_TYPES,
   PARTY_NAME_MAX_LENGTH,
   PROVIDER_SONG_ID_MAX_LENGTH,
   SEARCH_QUERY_MAX_LENGTH,
@@ -139,6 +141,13 @@ export const updateProfileRequestSchema = z
     avatarImage: avatarImageSchema.nullable(),
     preferredProvider: musicProviderSchema.nullable(),
     playInApp: z.boolean({ error: 'Play videos must be on or off.' }),
+    // D29: which notification types are on. Only the known types, each true or false.
+    notificationPrefs: z.strictObject(
+      Object.fromEntries(NOTIFICATION_TYPES.map((type) => [type, z.boolean().optional()])) as Record<
+        NotificationType,
+        z.ZodOptional<z.ZodBoolean>
+      >,
+    ),
     // Agreeing to the privacy policy and terms (ADR-0011). Only `true`: the server records the time and the current
     // version itself, so a browser can't back-date it or claim a version it never saw.
     acceptPrivacy: z.literal(true, { error: 'To agree to the privacy policy, send acceptPrivacy: true.' }),

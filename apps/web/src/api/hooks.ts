@@ -28,6 +28,7 @@ import type {
   YouTubeSuggestionsResponse,
   HistoryResponse,
   AchievementsResponse,
+  NotificationsResponse,
 } from '@dropabop/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
@@ -185,6 +186,32 @@ export function useSongSearch(q: string) {
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
     retry: false,
+  });
+}
+
+/**
+ * In-app notifications (P13.10, D29). Checked when you come back to the app and at most every 5 minutes while it's
+ * open (no real-time connection). The server reads only this week and last week, so this stays cheap.
+ */
+export function useNotifications(partyId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['notifications', partyId ?? ''] as const,
+    queryFn: () => api.get<NotificationsResponse>(`/parties/${enc(partyId ?? '')}/notifications`),
+    enabled: partyId !== null,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+/** "I've read my notifications" in this party: the server records the time. */
+export function useMarkNotificationsSeen(partyId: string | null) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ seenAt: string }>(`/parties/${enc(partyId ?? '')}/notifications/seen`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', partyId ?? ''] }),
   });
 }
 

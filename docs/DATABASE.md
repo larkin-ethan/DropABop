@@ -22,8 +22,8 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 
 | Item | PK | SK | Main attributes |
 |---|---|---|---|
-| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, playInApp (missing = true), privacyAcceptedAt, privacyVersion (P13.2a; set only by the server), createdAt |
-| "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt, achievementsSeenAt (P13.9: when you last looked at your achievements; yours only) |
+| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, playInApp (missing = true), notificationPrefs, privacyAcceptedAt, privacyVersion (P13.2a; set only by the server), createdAt |
+| "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt, achievementsSeenAt (P13.9) and notificationsSeenAt (P13.10): when you last looked at your achievements / notifications in this party (server time; yours only) |
 | Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime; missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
 | Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, revealRecommenderDuringVoting, showWhoRatedWhat (fixed when the week starts), status |

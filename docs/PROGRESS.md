@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.9 are done (genre, calendar history, achievements); next is **P13.10** (notifications). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.10 are done (genre, calendar history, achievements, notifications); next is **P13.11** (leaderboard periods, group stats, profile, home). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -52,6 +52,19 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.10 done: notifications** — in-app only (D29). `GET /parties/{partyId}/notifications` worked
+  out from this week and the latest week with results (key queries only, so the bell's 5-minute checks stay cheap):
+  songs to rate, share reminder on sharing days, comments on your songs, results ready, your rank last week; types
+  you switched off are left out; unread = newer than when you last opened them in that party (`POST …/notifications/
+  seen`, stored on your party link, so per party). Profile gets `notificationPrefs`. Website: bell with unread count
+  in the header and sidebar (checks on focus and every 5 min), `/notifications` (marks read once loaded, keeps this
+  visit's "new" markers, adds recent achievements), Settings → Notifications switches; the achievement banner obeys its
+  switch; privacy text updated (not yet deployed, so the policy version is unchanged). spec-reviewer: PASS; applied
+  per-party "seen", consistent read after a week closes, more tests (rank switched off, comments, no other members'
+  ids), docs (prefs replace the saved set; D29 note that achievements aren't in the bell count). Verified: `npm run
+  verify` (607 + 1 skipped), integration 218, template tests 15, `sam validate --lint`, e2e 32 passed (notifications
+  and its settings page at 7 widths). Not deployed.
 
 - 2026-10-09 — **P13.9 done: achievements** — the 26 achievements of D28 in pure `domain/achievements.ts`: closed
   weeks replayed oldest first with running totals; each records the lock time and lock day (party timezone) of the

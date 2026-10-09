@@ -1,7 +1,7 @@
 // User profiles (docs/DATABASE.md patterns 1–2). Email is never stored here; it lives in Cognito (D19).
 
 import { GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import type { MusicProviderId, User } from '@dropabop/shared';
+import type { MusicProviderId, NotificationType, User } from '@dropabop/shared';
 import type { DataContext } from './context';
 import { withoutKeys } from './context';
 import { isConditionalCheckFailed } from './errors';
@@ -44,6 +44,7 @@ export interface ProfileChanges {
   avatarImage?: string | null;
   preferredProvider?: MusicProviderId | null;
   playInApp?: boolean;
+  notificationPrefs?: Partial<Record<NotificationType, boolean>>;
   /** Set only by the server, from `acceptPrivacy` (ADR-0011). */
   privacyAcceptedAt?: string;
   privacyVersion?: string;
@@ -127,6 +128,7 @@ const PROFILE_FIELDS: (keyof ProfileChanges)[] = [
   'avatarImage',
   'preferredProvider',
   'playInApp',
+  'notificationPrefs',
   'privacyAcceptedAt',
   'privacyVersion',
 ];

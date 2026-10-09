@@ -1265,3 +1265,58 @@ describe('Achievements (P13.9)', () => {
     expect(screen.queryByRole('status', { name: 'Achievement unlocked' })).not.toBeInTheDocument();
   });
 });
+
+describe('Notifications (P13.10)', () => {
+  it('the bell shows how many are unread', async () => {
+    renderApp('/');
+    const bells = await screen.findAllByRole('link', { name: /Notifications, \d+ unread/ });
+    expect(bells[0]).toHaveAttribute('href', '/notifications');
+  });
+
+  it('the list shows this week’s news and recent achievements, and opening it marks them read', async () => {
+    const { state } = renderApp('/notifications');
+    expect(await screen.findByRole('link', { name: /songs are waiting for your rating/ })).toHaveAttribute(
+      'href',
+      '/rate?show=unrated',
+    );
+    expect(screen.getByRole('link', { name: /Weekly results are ready/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Achievement unlocked: Top Bop/ })).toHaveAttribute(
+      'href',
+      '/achievements',
+    );
+    expect(screen.getAllByText('(new)').length).toBeGreaterThan(0); // still shown as new on this visit
+    await waitFor(() => expect(state.notificationsSeenAt).not.toBeNull());
+  });
+
+  it('settings switches turn types off, and the list leaves them out', async () => {
+    const { state, unmount } = renderApp('/settings/notifications');
+    const results = await screen.findByRole('switch', { name: /Weekly results/ });
+    expect(results).toBeChecked();
+    await userEvent.click(results);
+    expect(results).not.toBeChecked();
+    await waitFor(() => expect(state.user.notificationPrefs?.results).toBe(false));
+    expect(screen.getByText(/never sends push notifications or emails/)).toBeInTheDocument();
+    unmount();
+
+    renderApp('/notifications', {
+      setup: (s) => {
+        s.user.notificationPrefs = { results: false, achievements: false };
+      },
+    });
+    expect(
+      await screen.findByRole('link', { name: /songs are waiting for your rating/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Weekly results are ready/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Achievement unlocked/ })).not.toBeInTheDocument();
+  });
+
+  it('the achievement banner respects the switch', async () => {
+    renderApp('/', {
+      setup: (s) => {
+        s.user.notificationPrefs = { achievements: false };
+      },
+    });
+    expect(await screen.findByText('Wednesday · Day 3 of 5')).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Achievement unlocked' })).not.toBeInTheDocument();
+  });
+});

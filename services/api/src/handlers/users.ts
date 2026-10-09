@@ -20,6 +20,7 @@ export const getMe: HandlerFn = async (event, { data, now }) => {
 export const updateMe: HandlerFn = async (event, { data, now }) => {
   const { userId } = getAuthenticatedUser(event);
   const { acceptPrivacy, ...profileChanges } = parseBody(event, updateProfileRequestSchema);
+  // The agreement time always comes from the server clock, never the browser (ADR-0011).
   const changes = acceptPrivacy === true ? { ...profileChanges, ...privacyAgreement(now()) } : profileChanges;
   await getOrCreateUserProfile(data, buildNewUser(userId, now())); // PATCH before the first GET still works
   const user = await updateUserProfile(data, userId, changes);

@@ -895,6 +895,52 @@ Resources:
             Method: POST
             Path: /parties/{partyId}/achievements/seen
 
+  # In-app notifications (P13.10, D29): this week and last week only, so the bell's regular check stays cheap.
+  GetNotificationsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getNotificationsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/notifications
+
+  # Records when you last opened your notifications in a party (on your own party link item).
+  MarkNotificationsSeenFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.markNotificationsSeenHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/notifications/seen
+
   # The history calendar (P13.8). Brings the current week up to date first (ADR-0003).
   GetHistoryFunction:
     Type: AWS::Serverless::Function

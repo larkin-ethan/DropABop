@@ -30,6 +30,8 @@ import type {
   HistoryWeek,
   Achievement,
   AchievementsResponse,
+  AppNotification,
+  NotificationsResponse,
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
@@ -56,6 +58,8 @@ export interface PreviewState {
   pastResults: SongResult[];
   /** When "you" last looked at your achievements (sample world; P13.9). */
   achievementsSeenAt: string | null;
+  /** When "you" last opened your notifications in this party (P13.10). */
+  notificationsSeenAt: string | null;
   /** A party you're not in yet, joinable with its code (for trying the invite flow). */
   otherParty: Party;
   /** Set by closeWeek(): the current week has ended (ratings locked, results out). */
@@ -175,6 +179,7 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
     },
     pastResults: pastSongs,
     achievementsSeenAt: '2026-10-01T00:00:00.000Z',
+    notificationsSeenAt: null,
     weekClosed: false,
     comments: [
       {
@@ -677,6 +682,13 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
       };
     }
+    if (is('GET', 'parties', ':id', 'notifications')) {
+      return sampleNotifications(state);
+    }
+    if (is('POST', 'parties', ':id', 'notifications', 'seen')) {
+      state.notificationsSeenAt = new Date().toISOString();
+      return { seenAt: state.notificationsSeenAt };
+    }
     if (is('GET', 'parties', ':id', 'achievements')) {
       return sampleAchievements(state);
     }
@@ -953,6 +965,61 @@ function sampleAchievements(state: PreviewState): AchievementsResponse {
       seenAt === null
         ? []
         : achievements.filter((a) => a.unlockedOn !== null && a.unlockedOn > seenAt).map((a) => a.id),
+    seenAt,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Sample notifications (P13.10): what the sample world's week would produce.
+// ---------------------------------------------------------------------------------------------------------------
+
+function sampleNotifications(state: PreviewState): NotificationsResponse {
+  const unrated = state.songs.filter((s) => !s.isMine && s.myRating === null);
+  const all: AppNotification[] = [
+    ...(unrated.length > 0
+      ? [
+          {
+            id: `toRate:${state.round.roundId}`,
+            type: 'toRate' as const,
+            time: '2026-10-07T15:00:00.000Z',
+            title: `${unrated.length} songs are waiting for your rating`,
+            detail: null,
+            link: '/rate?show=unrated',
+          },
+        ]
+      : []),
+    {
+      id: `comments:${state.round.roundId}`,
+      type: 'comments',
+      time: '2026-10-07T16:02:00.000Z',
+      title: '2 comments on your songs this week',
+      detail: null,
+      link: '/rate',
+    },
+    {
+      id: `weeklyRank:${state.pastRound.roundId}`,
+      type: 'weeklyRank',
+      time: state.pastRound.endsAt,
+      title: `You finished #1 of ${state.members.length} last week`,
+      detail: 'By the average your songs received.',
+      link: `/history/week/${state.pastRound.weekStart}`,
+    },
+    {
+      id: `results:${state.pastRound.roundId}`,
+      type: 'results',
+      time: state.pastRound.endsAt,
+      title: 'Weekly results are ready',
+      detail: null,
+      link: `/results/${state.pastRound.roundId}`,
+    },
+  ];
+  const notifications = all
+    .filter((n) => state.user.notificationPrefs?.[n.type] !== false)
+    .sort((a, b) => b.time.localeCompare(a.time));
+  const seenAt = state.notificationsSeenAt;
+  return {
+    notifications,
+    unreadCount: notifications.filter((n) => seenAt === null || n.time > seenAt).length,
     seenAt,
   };
 }

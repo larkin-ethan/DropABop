@@ -7,6 +7,7 @@ import type {
   IsoDate,
   IsoDateTime,
   MemberRole,
+  NotificationType,
   Party,
   PartyMember,
   Round,
@@ -441,5 +442,29 @@ export interface AchievementsResponse {
   /** Yours only: unlocked since you last opened them (for the "Achievement unlocked" banner). */
   newlyUnlocked: string[];
   /** Yours only: when you last saw your achievements, or null if never (no banner the first time). */
+  seenAt: IsoDateTime | null;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (P13.10, D29): in-app only, worked out when you open the app.
+// ---------------------------------------------------------------------------
+
+export interface AppNotification {
+  /** Stable for the same news (e.g. "results:<roundId>"), so the app can list it without duplicates. */
+  id: string;
+  type: NotificationType;
+  /** When it happened; newer than your last visit to Notifications = unread. */
+  time: IsoDateTime;
+  title: string;
+  detail: string | null;
+  /** Where tapping it goes, e.g. "/rate". */
+  link: string;
+}
+
+export interface NotificationsResponse {
+  /** Newest first. Only types you have switched on. */
+  notifications: AppNotification[];
+  unreadCount: number;
+  /** When you last opened your notifications, or null if never. */
   seenAt: IsoDateTime | null;
 }

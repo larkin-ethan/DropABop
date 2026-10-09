@@ -3,7 +3,7 @@
 
 import type { AchievementsResponse } from '@dropabop/shared';
 import { achievementsQuerySchema } from '@dropabop/shared';
-import { getAchievementsSeenAt, markAchievementsSeen } from '../data/achievements-seen';
+import { getAchievementsSeenAt, markAchievementsSeen } from '../data/party-link-seen';
 import { getMembership } from '../data/parties';
 import { listPartyRecommendations } from '../data/recommendations';
 import { listAllRounds } from '../data/rounds';

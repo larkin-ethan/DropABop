@@ -122,6 +122,13 @@ export function getSubmissionDay(
   };
 }
 
+/** Midnight at the start of a date in a timezone, as an instant (e.g. for "you haven't shared today"). */
+export function startOfDay(date: IsoDate, timezone: string): IsoDateTime {
+  const local = DateTime.fromISO(date, { zone: timezone }).startOf('day');
+  if (!local.isValid) throw new Error(`Invalid date or timezone: ${date} ${timezone}`);
+  return local.toUTC().toISO();
+}
+
 /** True while ratings and (sharing-day) submissions are accepted for this round. */
 export function isWeekOpen(round: Pick<Round, 'endsAt'>, now: Date): boolean {
   return now.getTime() < new Date(round.endsAt).getTime();

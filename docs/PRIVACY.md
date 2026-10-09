@@ -19,8 +19,8 @@ picks. It's run by one person for a small group; it isn't a company and doesn't 
   is never sent to us; only a protected form is stored. Your email isn't shown to anyone.
 - **Your display name, avatar colour and optional profile picture** — so your party knows who you are. A profile
   picture is shrunk to a small copy in your browser before it's uploaded; the original never leaves your device.
-- **Your settings** — preferred music app, whether videos play in Drop a Bop, notification choices (once notifications arrive), and
-  when you
+- **Your settings** — preferred music app, whether videos play in Drop a Bop, notification choices, and when
+  you
   agreed to this policy.
 - **What you do in a party** — the parties you belong to, the songs you share (with any links you paste), your
   ratings and your comments. Your party uses these for results and stats.
@@ -90,9 +90,8 @@ Questions or complaints about privacy: **droppa.bop@gmail.com**.
   using the features (sign-up checkbox + one-time prompt for existing members) [III.A.2]. Our terms of use link the
   YouTube Terms of Service and say users agree to be bound by them [III.A.1]. We use no Google "Authorized Data",
   so the revoke-access link requirement doesn't apply.
-- **Settings named in the policy:** the "Play videos in Drop a Bop" switch exists (Settings → Music, P13.6), so the
-  P13.4 prod hold is lifted. Notification choices arrive with notifications (P13.10); until then the policy says
-  "once notifications arrive".
+- **Settings named in the policy:** the "Play videos in Drop a Bop" switch (Settings → Music, P13.6) and the
+  notification switches (Settings → Notifications, P13.10) both exist.
 - **Policy version:** the YouTube search wording was added on 2026-10-09 before the policy was ever deployed, so the
   version stayed 2026-10-09. After it's live, any such change bumps the version.
 - **Album art from Apple (Ethan, 2026-10-09: keep as is).** Artwork loads straight from Apple's servers, which see

@@ -2,10 +2,10 @@
 // unlocked" banner shown on Home and Results only, never while rating (§17: don't interrupt voting). No animation, so
 // reduced-motion settings are respected by default.
 
-import type { Achievement, AchievementGroup } from '@dropabop/shared';
+import { wantsNotification, type Achievement, type AchievementGroup } from '@dropabop/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { useAchievements, useMarkAchievementsSeen } from '../api/hooks';
+import { useAchievements, useMarkAchievementsSeen, useMe } from '../api/hooks';
 import { Modal } from '../components/Modal';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { EmptyState } from '../components/States';
@@ -167,6 +167,7 @@ export function AchievementsScreen() {
  */
 export function AchievementBanner({ partyId }: { partyId: string }) {
   const achievements = useAchievements(partyId);
+  const me = useMe();
   const seen = useMarkAchievementsSeen(partyId);
   const data = achievements.data;
   const startedBaseline = useRef(false);
@@ -178,6 +179,8 @@ export function AchievementBanner({ partyId }: { partyId: string }) {
   }, [data?.seenAt, seen]);
 
   if (data === undefined || data.newlyUnlocked.length === 0 || seen.isSuccess) return null;
+  // Switched off in Settings → Notifications (D29).
+  if (me.data !== undefined && !wantsNotification(me.data.user, 'achievements')) return null;
   const first = data.achievements.find((a) => a.id === data.newlyUnlocked[0]);
   if (first === undefined) return null;
   const more = data.newlyUnlocked.length - 1;
