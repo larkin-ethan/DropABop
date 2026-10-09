@@ -87,6 +87,23 @@ describe('PATCH /users/me', () => {
   });
 });
 
+describe('Play videos setting (D27, P13.6)', () => {
+  it('saves playInApp and rejects anything but true/false', async () => {
+    const userId = newId();
+    const off = await runHandler(updateMe, apiEvent({ userId, body: { playInApp: false } }), deps);
+    expect(off.statusCode).toBe(200);
+    expect(bodyOf(off)).toMatchObject({ user: { playInApp: false } });
+    for (const playInApp of ['no', null, 1]) {
+      const bad = await runHandler(updateMe, apiEvent({ userId, body: { playInApp } }), deps);
+      expect(bad.statusCode).toBe(400);
+    }
+    const after = bodyOf(await runHandler(getMe, apiEvent({ userId }), deps)) as {
+      user: { playInApp: boolean };
+    };
+    expect(after.user.playInApp).toBe(false);
+  });
+});
+
 describe('privacy agreement (ADR-0011, P13.2a)', () => {
   it('records the server time and the current version, and returns them from GET', async () => {
     const userId = newId();

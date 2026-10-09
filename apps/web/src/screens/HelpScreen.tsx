@@ -84,6 +84,23 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
     ),
   },
   {
+    title: 'Listening in Drop a Bop',
+    body: (
+      <>
+        <p>
+          Every song links to Apple Music, Spotify and YouTube Music, with your favourite first (pick it in
+          Settings → Music). When you share a song, Drop a Bop also finds its YouTube video so friends can
+          play it right here.
+        </p>
+        <p>
+          Some songs can’t play in the app: there’s no video for them, the video’s owner doesn’t allow it, or
+          it was shared more than about a month ago. Use the links instead. You never need to play a song to
+          rate it, and you can turn in-app videos off in Settings → Music.
+        </p>
+      </>
+    ),
+  },
+  {
     title: 'Your privacy',
     body: (
       <p>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PRIVACY_POLICY_VERSION } from './limits';
-import { hasAcceptedCurrentPrivacy } from './privacy';
+import { hasAcceptedCurrentPrivacy, wantsInAppVideos } from './privacy';
 
 describe('hasAcceptedCurrentPrivacy (ADR-0011)', () => {
   it('is true only for an agreement to the current version', () => {
@@ -13,5 +13,13 @@ describe('hasAcceptedCurrentPrivacy (ADR-0011)', () => {
       hasAcceptedCurrentPrivacy({ privacyAcceptedAt: null, privacyVersion: PRIVACY_POLICY_VERSION }),
     ).toBe(false);
     expect(hasAcceptedCurrentPrivacy({})).toBe(false);
+  });
+});
+
+describe('wantsInAppVideos (D27)', () => {
+  it('is on unless switched off', () => {
+    expect(wantsInAppVideos({})).toBe(true);
+    expect(wantsInAppVideos({ playInApp: true })).toBe(true);
+    expect(wantsInAppVideos({ playInApp: false })).toBe(false);
   });
 });

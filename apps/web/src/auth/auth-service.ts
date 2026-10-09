@@ -20,6 +20,10 @@ export interface AuthService {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  /** The signed-in person's email, read from Cognito (we don't store it ourselves, D19). */
+  getEmail: () => Promise<string | null>;
+  /** Change the password while signed in (Settings → Account). */
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 /** For the sample-data preview (dev only): always signed in as the sample user, no network. */
@@ -33,4 +37,6 @@ export const previewAuthService: AuthService = {
   signOut: () => Promise.resolve(),
   resetPassword: () => Promise.resolve(),
   confirmResetPassword: () => Promise.resolve(),
+  getEmail: () => Promise.resolve('you@example.com'),
+  changePassword: () => Promise.resolve(),
 };

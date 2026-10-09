@@ -1,8 +1,14 @@
 // "▶ Play video" on a song card (P13.4). Shown only when the sharer linked a YouTube video, the song was shared in
-// the last 30 days, and you've agreed to the privacy policy and terms (ADR-0011). Otherwise nothing: the card's
+// the last 30 days, you've agreed to the privacy policy and terms (ADR-0011), and you haven't switched videos off
+// in Settings → Music (D27). Otherwise nothing: the card's
 // "Listen on …" links are always there, and rating never depends on playback (spec v2 §14).
 
-import { hasAcceptedCurrentPrivacy, type MusicProviderId, type Song } from '@dropabop/shared';
+import {
+  hasAcceptedCurrentPrivacy,
+  wantsInAppVideos,
+  type MusicProviderId,
+  type Song,
+} from '@dropabop/shared';
 import { useMe } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { useNow } from '../lib/useNow';
@@ -31,7 +37,7 @@ export function PlayVideoButton({
   const now = useNow();
   const { song: current, playSong } = useMusicPlayer();
   const user = me.data?.user;
-  if (user === undefined || !hasAcceptedCurrentPrivacy(user)) return null;
+  if (user === undefined || !hasAcceptedCurrentPrivacy(user) || !wantsInAppVideos(user)) return null;
   const playable = toPlayableSong({ key: songKey, song, submittedOn, preferred, now });
   if (playable === null) return null;
 

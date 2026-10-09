@@ -41,7 +41,7 @@ import { inviteLink } from '../lib/pending-invite';
 import { useCurrentParty } from '../party/CurrentParty';
 import { NoPartyCard } from './ResultsScreens';
 
-function Alert({ children }: { children: ReactNode }) {
+export function Alert({ children }: { children: ReactNode }) {
   return (
     <p
       role="alert"
@@ -52,7 +52,7 @@ function Alert({ children }: { children: ReactNode }) {
   );
 }
 
-function Saved({ show }: { show: boolean }) {
+export function Saved({ show }: { show: boolean }) {
   return show ? (
     <p role="status" className="text-sm text-success">
       Saved
@@ -60,7 +60,7 @@ function Saved({ show }: { show: boolean }) {
   ) : null;
 }
 
-function Toggle({
+export function Toggle({
   label,
   description,
   checked,
@@ -615,6 +615,7 @@ export function ProfileScreen() {
 export function ProfileForm({
   user,
   compact = false,
+  showPreferredApp = true,
 }: {
   user: {
     displayName: string;
@@ -624,6 +625,8 @@ export function ProfileForm({
   };
   /** Onboarding's short version: just the name. */
   compact?: boolean;
+  /** Settings → Account leaves the preferred app to Settings → Music (D27). */
+  showPreferredApp?: boolean;
 }) {
   const update = useUpdateProfile();
   const [name, setName] = useState(user.displayName === DEFAULT_DISPLAY_NAME ? '' : user.displayName);
@@ -668,7 +671,7 @@ export function ProfileForm({
             displayName: parsed.data,
             avatarColor: color,
             avatarImage: image,
-            preferredProvider: preferred === '' ? null : preferred,
+            ...(showPreferredApp ? { preferredProvider: preferred === '' ? null : preferred } : {}),
           },
       { onSuccess: () => setSaved(true) },
     );
@@ -749,26 +752,28 @@ export function ProfileForm({
                 ))}
               </div>
             </fieldset>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="preferred-app" className="text-sm font-medium">
-                Preferred music app
-              </label>
-              <select
-                id="preferred-app"
-                value={preferred}
-                onChange={(e) => setPreferred(e.target.value as MusicProviderId | '')}
-                className="rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 text-ink focus:border-blue focus:outline-none"
-              >
-                <option value="">No preference</option>
-                {/* Plain YouTube is offered as YouTube Music (the app the links open), unless already chosen. */}
-                {MUSIC_PROVIDERS.filter((p) => p !== 'youtube' || preferred === 'youtube').map((p) => (
-                  <option key={p} value={p}>
-                    {PROVIDER_NAMES[p]}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted">Its “Listen” link shows first on every song.</p>
-            </div>
+            {showPreferredApp && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="preferred-app" className="text-sm font-medium">
+                  Preferred music app
+                </label>
+                <select
+                  id="preferred-app"
+                  value={preferred}
+                  onChange={(e) => setPreferred(e.target.value as MusicProviderId | '')}
+                  className="rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 text-ink focus:border-blue focus:outline-none"
+                >
+                  <option value="">No preference</option>
+                  {/* Plain YouTube is offered as YouTube Music (the app the links open), unless already chosen. */}
+                  {MUSIC_PROVIDERS.filter((p) => p !== 'youtube' || preferred === 'youtube').map((p) => (
+                    <option key={p} value={p}>
+                      {PROVIDER_NAMES[p]}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted">Its “Listen” link shows first on every song.</p>
+              </div>
+            )}
           </>
         )}
         {update.error && <Alert>{errorMessage(update.error)}</Alert>}

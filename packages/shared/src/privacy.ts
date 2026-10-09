@@ -3,6 +3,11 @@
 import { PRIVACY_POLICY_VERSION } from './limits';
 import type { User } from './types';
 
+/** D27: in-app videos are on unless the person switched them off in Settings → Music. */
+export function wantsInAppVideos(user: Pick<User, 'playInApp'>): boolean {
+  return user.playInApp !== false;
+}
+
 export function hasAcceptedCurrentPrivacy(user: Pick<User, 'privacyAcceptedAt' | 'privacyVersion'>): boolean {
   return (
     typeof user.privacyAcceptedAt === 'string' &&

@@ -4,9 +4,8 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 (Song Details) is done; next is **P13.6** (Settings hub + Music Services, incl. the "Play videos" switch that lifts the prod hold). Prod
-still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed. **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
-adds the "Play videos in Drop a Bop" switch (the privacy page already mentions it). P13.2a (privacy page + agreement) still needs a dev deploy and
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; next is **P13.7** (genre on new songs). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
 (cost check after a week of use), P12.3 (launch).
@@ -53,6 +52,17 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.6 done: Settings hub + Music Services** — `/settings` is now a list (Account, Music, Party,
+  Privacy, Help + contact line); party settings moved to `/settings/party` (nav label "Settings"; tests and the dev
+  smoke updated). Account: name/picture/colour, email read-only (Amplify `fetchUserAttributes`), change password
+  (`updatePassword`; wrong current password vs lockout messages). Music: preferred app, "Play videos in Drop a Bop"
+  switch (`playInApp` on the profile; Play video buttons hide when off), what each service does. Help: "Listening in
+  Drop a Bop". Notification switches moved to P13.10 (§29: no controls that don't work yet). The P13.4 prod hold is
+  lifted. spec-reviewer: PASS; applied its fixes (lockout message, switch keeps its position, one save at a time,
+  stale docs). Verified: `npm run verify` (541 + 1 skipped), integration 204 (+ users file re-run after fixes, 14),
+  e2e 26 passed (3 new settings pages at 7 widths), 6 new screen tests. Leftovers: Profile still has the full edit form until
+  P13.11 turns it into a stats page.
 
 - 2026-10-09 — **P13.5 done: Song Details screen** — `/songs/:roundId/:recommendationId`: large artwork, title,
   artist, album · year, shared day, sharer (only when the API reveals it, D10) or "Your pick", links + Play video,

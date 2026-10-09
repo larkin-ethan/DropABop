@@ -23,6 +23,8 @@ export function fakeAuth(overrides: Partial<AuthService> = {}): AuthService {
     signOut: vi.fn(() => Promise.resolve()),
     resetPassword: vi.fn(() => Promise.resolve()),
     confirmResetPassword: vi.fn(() => Promise.resolve()),
+    getEmail: vi.fn(() => Promise.resolve('me@example.com')),
+    changePassword: vi.fn(() => Promise.resolve()),
     ...overrides,
   };
 }

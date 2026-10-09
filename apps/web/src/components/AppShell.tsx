@@ -29,7 +29,7 @@ const NAV: NavItem[] = [
   { to: '/stats', label: 'Stats', icon: 'chart', mobile: true },
   { to: '/leaderboard', label: 'Leaderboard', icon: 'list' },
   { to: '/history', label: 'History', icon: 'history' },
-  { to: '/settings', label: 'Party settings', icon: 'settings' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
 /** Signs out, forgets every cached answer (the next person on this device starts clean), and goes to the welcome page. */
@@ -225,7 +225,7 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
         <Logo compact />
         <PartySwitcher compact />
         <div className="flex shrink-0 items-center gap-3">
-          <NavLink to="/settings" aria-label="Party settings" className="text-muted">
+          <NavLink to="/settings" aria-label="Settings" className="text-muted">
             <Icon name="settings" />
           </NavLink>
           <ProfileLink compact />

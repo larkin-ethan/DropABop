@@ -47,7 +47,7 @@ async function signIn(browser: Browser, user: TestUser, name: string): Promise<P
 
 /** Makes `PARTY` the current party for this person (creating it if they host none). */
 async function openParty(page: Page) {
-  await page.goto('/settings');
+  await page.goto('/settings/party');
   const switcher = page.getByRole('button', { name: /Party/ }).first();
   await switcher.click();
   const existing = page.getByRole('menuitemradio', { name: PARTY });
@@ -72,7 +72,7 @@ test('host and friend: invite → join → share → rate (weekdays) → leave',
 
   const hostPage = await signIn(browser, host!, 'Smoke One');
   await openParty(hostPage);
-  await hostPage.goto('/settings');
+  await hostPage.goto('/settings/party');
   const code = (await hostPage.getByText(/^Code: /).textContent())?.replace('Code: ', '').trim() ?? '';
   expect(code).toMatch(/^SONG-/);
 
@@ -113,7 +113,7 @@ test('host and friend: invite → join → share → rate (weekdays) → leave',
   }
 
   // Clean up: the friend leaves, so the next run can join again.
-  await friendPage.goto('/settings');
+  await friendPage.goto('/settings/party');
   await friendPage.getByRole('button', { name: 'Leave' }).click();
   await friendPage.getByRole('dialog').getByRole('button', { name: 'Leave party' }).click();
   await expect(friendPage).toHaveURL(/\/$/);

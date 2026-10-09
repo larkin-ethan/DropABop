@@ -12,6 +12,11 @@ import { takePendingInvite } from './lib/pending-invite';
 import { CurrentPartyProvider } from './party/CurrentParty';
 import { MusicPlayerProvider } from './player/MusicPlayerContext';
 import { ForgotPasswordScreen, SignInScreen, SignUpScreen, VerifyEmailScreen } from './screens/AuthScreens';
+import {
+  AccountSettingsScreen,
+  MusicSettingsScreen,
+  SettingsHubScreen,
+} from './screens/AccountSettingsScreens';
 import { ComponentGallery } from './screens/ComponentGallery';
 import { HelpScreen } from './screens/HelpScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -111,7 +116,10 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/stats" element={<PersonalStatsScreen />} />
               <Route path="/stats/group" element={<GroupStatsScreen />} />
               <Route path="/leaderboard" element={<LeaderboardScreen />} />
-              <Route path="/settings" element={<PartySettingsScreen />} />
+              <Route path="/settings" element={<SettingsHubScreen />} />
+              <Route path="/settings/party" element={<PartySettingsScreen />} />
+              <Route path="/settings/account" element={<AccountSettingsScreen />} />
+              <Route path="/settings/music" element={<MusicSettingsScreen />} />
               <Route path="/profile" element={<ProfileScreen />} />
               {import.meta.env.DEV && <Route path="/dev/components" element={<ComponentGallery />} />}
             </Route>

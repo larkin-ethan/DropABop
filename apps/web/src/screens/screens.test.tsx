@@ -4,12 +4,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PRIVACY_POLICY_VERSION } from '@dropabop/shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../api/client';
 import { ApiError } from '../api/client';
 import { createPreviewApi, createPreviewState } from '../preview/preview-api';
 import { rememberSignUpAgreement } from '../lib/privacy-consent';
-import { fakeAuth, renderApp } from '../test/render-app';
+import { fakeAuth, renderApp, signedInAuth } from '../test/render-app';
 
 describe('Home (P8.3)', () => {
   it('shows today, rating progress, and today’s songs first', async () => {
@@ -504,7 +504,7 @@ describe('Stats and leaderboard (P8.8, P8.9)', () => {
 
 describe('Party settings and profile (P8.10, P8.11)', () => {
   it('lets the host change settings and explains the timezone', async () => {
-    const { state } = renderApp('/settings');
+    const { state } = renderApp('/settings/party');
     expect(await screen.findByText(/days run midnight to midnight in/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('switch', { name: /Show who rated what/ }));
     await waitFor(() => expect(state.parties[0]?.settings.showWhoRatedWhat).toBe(true));
@@ -517,7 +517,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
   });
 
   it('lets the host choose the sharing days and when ratings lock (D1, D2)', async () => {
-    const { state } = renderApp('/settings');
+    const { state } = renderApp('/settings/party');
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Friday' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Saturday' }));
     await userEvent.selectOptions(screen.getByLabelText('Ratings lock on'), 'Sunday');
@@ -535,7 +535,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
   });
 
   it('won’t let ratings lock before 11:59 pm on the last sharing day', async () => {
-    const { state } = renderApp('/settings');
+    const { state } = renderApp('/settings/party');
     await userEvent.selectOptions(await screen.findByLabelText('Ratings lock on'), 'Wednesday');
     expect(screen.getByRole('alert')).toHaveTextContent('11:59 pm on the last sharing day at the earliest');
     // Friday is the last sharing day: only 11:59 pm is allowed on it.
@@ -549,7 +549,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
   });
 
   it('shows members the schedule without letting them change it', async () => {
-    renderApp('/settings', {
+    renderApp('/settings/party', {
       setup: (s) => {
         s.parties[0]!.hostUserId = 'someone-else';
         s.members = s.members.map((m, i) => (i === 0 ? { ...m, role: 'member' } : m));
@@ -564,7 +564,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
   });
 
   it('after removing someone, offers a new invite link (D17)', async () => {
-    const { state } = renderApp('/settings');
+    const { state } = renderApp('/settings/party');
     await userEvent.click(await screen.findByRole('button', { name: 'Remove Sarah Kim' }));
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }));
     expect(await screen.findByRole('dialog', { name: 'Make a new invite link?' })).toBeInTheDocument();
@@ -576,7 +576,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
   });
 
   it('is read-only for members, who can leave instead', async () => {
-    renderApp('/settings', {
+    renderApp('/settings/party', {
       setup: (s) => {
         s.parties[0]!.hostUserId = 'u2';
         s.members[0]!.role = 'member';
@@ -591,7 +591,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
   });
 
   it('lets a member leave the party and takes them home', async () => {
-    const { state } = renderApp('/settings', {
+    const { state } = renderApp('/settings/party', {
       setup: (s) => {
         s.parties[0]!.hostUserId = 'u2';
         s.members[0]!.role = 'member';
@@ -719,7 +719,7 @@ describe('How it works guide and invite message (2026-10-04)', () => {
       configurable: true,
       value: { writeText: (text: string) => ((copied = text), Promise.resolve()) },
     });
-    renderApp('/settings', {
+    renderApp('/settings/party', {
       setup: (s) => {
         s.parties[0]!.settings.shareDays = ['MON', 'WED', 'FRI'];
         s.parties[0]!.settings.ratingCloseDay = 'SAT';
@@ -1048,5 +1048,94 @@ describe('Song Details (P13.5)', () => {
       'href',
       '/songs/p1.2026-10-05/r1',
     );
+  });
+});
+
+describe('Settings (P13.6)', () => {
+  it('lists the sections, each going to a working page', async () => {
+    renderApp('/settings');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Account/ })).toHaveAttribute('href', '/settings/account');
+    expect(screen.getByRole('link', { name: /Music/ })).toHaveAttribute('href', '/settings/music');
+    expect(screen.getByRole('link', { name: /^Party/ })).toHaveAttribute('href', '/settings/party');
+    expect(screen.getByRole('link', { name: /^Privacy/ })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: /^Help/ })).toHaveAttribute('href', '/how-it-works');
+  });
+
+  it('account: shows your email read-only and changes your password', async () => {
+    const auth = signedInAuth();
+    renderApp('/settings/account', { auth });
+    expect(await screen.findByText('me@example.com')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Preferred music app')).not.toBeInTheDocument(); // that's in Music now
+    await userEvent.type(screen.getByLabelText('Current password'), 'OldPass123');
+    await userEvent.type(screen.getByLabelText('New password'), 'NewPass123');
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'NewPass124');
+    await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('The new passwords don’t match.');
+    expect(auth.changePassword).not.toHaveBeenCalled();
+
+    await userEvent.clear(screen.getByLabelText('Confirm new password'));
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'NewPass123');
+    await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    await waitFor(() => expect(auth.changePassword).toHaveBeenCalledWith('OldPass123', 'NewPass123'));
+    expect(await screen.findByText('Saved')).toBeInTheDocument();
+  });
+
+  it('account: a wrong current password gets a clear message', async () => {
+    const auth = signedInAuth();
+    auth.changePassword = vi.fn(() =>
+      Promise.reject(
+        Object.assign(new Error('Incorrect username or password.'), { name: 'NotAuthorizedException' }),
+      ),
+    );
+    renderApp('/settings/account', { auth });
+    await userEvent.type(await screen.findByLabelText('Current password'), 'Wrong123');
+    await userEvent.type(screen.getByLabelText('New password'), 'NewPass123');
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'NewPass123');
+    await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your current password isn’t right.');
+  });
+
+  it('music: saves the preferred app and the Play videos switch, which hides Play video buttons', async () => {
+    const { state, unmount } = renderApp('/settings/music');
+    await userEvent.selectOptions(await screen.findByLabelText('Preferred music app'), 'spotify');
+    await waitFor(() => expect(state.user.preferredProvider).toBe('spotify'));
+    const toggle = screen.getByRole('switch', { name: /Play videos in Drop a Bop/ });
+    expect(toggle).toBeChecked();
+    await userEvent.click(toggle);
+    expect(toggle).not.toBeChecked(); // stays where you put it while saving
+    await waitFor(() => expect(state.user.playInApp).toBe(false));
+    expect(screen.getByText('Plays in the app')).toBeInTheDocument();
+    unmount();
+
+    const today = new Date().toISOString().slice(0, 10);
+    renderApp('/rate', {
+      setup: (s) => {
+        s.user.playInApp = false;
+        for (const song of s.songs) song.submittedOn = today;
+      },
+    });
+    expect(await screen.findByText('Blinding Lights')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Play the YouTube video/ })).not.toBeInTheDocument();
+  });
+
+  it('account: a lockout after too many tries says so (not "wrong password")', async () => {
+    const auth = signedInAuth();
+    auth.changePassword = vi.fn(() =>
+      Promise.reject(
+        Object.assign(new Error('Password attempts exceeded'), { name: 'NotAuthorizedException' }),
+      ),
+    );
+    renderApp('/settings/account', { auth });
+    await userEvent.type(await screen.findByLabelText('Current password'), 'Wrong123');
+    await userEvent.type(screen.getByLabelText('New password'), 'NewPass123');
+    await userEvent.type(screen.getByLabelText('Confirm new password'), 'NewPass123');
+    await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts');
+  });
+
+  it('help explains listening in the app', async () => {
+    renderApp('/how-it-works', { auth: fakeAuth() });
+    expect(await screen.findByRole('heading', { name: /Listening in Drop a Bop/ })).toBeInTheDocument();
   });
 });

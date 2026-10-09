@@ -87,7 +87,8 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 
 Body (`updateProfileRequestSchema`, at least one field): `displayName` (1–40 chars, trimmed), `avatarColor`
 (`#RRGGBB`), `avatarImage` (profile picture: a `data:image/jpeg|webp;base64,…` URL up to 9,000 characters, or
-`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22),
+`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22), `playInApp` (`true` |
+`false`: the "Play videos in Drop a Bop" switch, D27; missing on a profile = on),
 `acceptPrivacy` (only `true`: agree to the privacy policy and terms, ADR-0011; the server saves `privacyAcceptedAt`
 from its own clock and `privacyVersion` = the current `PRIVACY_POLICY_VERSION`, so neither can be sent).
 Updates only the given fields; your name/color in party member lists updates too. `privacyAcceptedAt` /

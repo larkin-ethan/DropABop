@@ -43,6 +43,7 @@ export interface ProfileChanges {
   /** A data URL, or null to go back to the initials avatar. */
   avatarImage?: string | null;
   preferredProvider?: MusicProviderId | null;
+  playInApp?: boolean;
   /** Set only by the server, from `acceptPrivacy` (ADR-0011). */
   privacyAcceptedAt?: string;
   privacyVersion?: string;
@@ -125,6 +126,7 @@ const PROFILE_FIELDS: (keyof ProfileChanges)[] = [
   'avatarColor',
   'avatarImage',
   'preferredProvider',
+  'playInApp',
   'privacyAcceptedAt',
   'privacyVersion',
 ];

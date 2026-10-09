@@ -424,7 +424,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   in `infra/template.yaml`) via the `aws-change` check. *Done when:* unit tests with a mocked `window.YT` cover lazy
   load, one-at-a-time, error → fallback, hidden unsupported controls and cleanup; template tests pass;
   `npm run verify` passes.
-- [x] **P13.4 — YouTube video on songs** (**prod hold:** don't `deploy.sh prod` until P13.6 adds the "Play videos" switch the privacy page already mentions) (§12, §13) — a `youtubeVideoId()` helper in `packages/shared` (watch,
+- [x] **P13.4 — YouTube video on songs** (prod hold lifted 2026-10-09: P13.6 added the "Play videos" switch) (§12, §13) — a `youtubeVideoId()` helper in `packages/shared` (watch,
   youtu.be, music.youtube.com) with tests; Rate, Results and confirmation cards show "▶ Play video" when the sharer
   linked YouTube, labelled "YouTube video linked by the sharer", only for songs shared in the last 30 days and only after the
   user agreed to the privacy policy (ADR-0011), otherwise the existing links; honours the user's
@@ -445,12 +445,12 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   fallback, links, Apple badge; closed week: average, "#n of N", distribution, your rating, comments; open week:
   your rating only (D9), sharer hidden per D10. Reuses existing results/week/comments data. Linked from every song
   card. *Done when:* screen tests for open/closed/not-found, 320 px screenshot, e2e still green.
-- [ ] **P13.6 — Settings hub + Music Services** (§9, §29, §30) — `/settings` becomes sections (Account, Music,
-  Notifications, Privacy, Party, Help, About) with only working controls: name/picture (moved from Profile), change
-  password (Amplify, check the installed version supports it), email read-only; `/settings/music` (D27); notification
-  switches (D29); help gains "Listening in Drop a Bop". Backend: `PATCH /users/me` accepts `playInApp` and
-  notification switches (shared zod schema). *Done when:* unit + integration tests for the new fields, screen tests,
-  DATABASE/API docs updated.
+- [x] **P13.6 — Settings hub + Music Services** (§9, §29, §30) — `/settings` becomes sections (Account, Music,
+  Party, Privacy, Help; the old party settings move to `/settings/party`) with only working controls: name/picture,
+  change password (Amplify), email read-only; `/settings/music` (D27: preferred app, "Play videos" switch, what each
+  service does); help gains "Listening in Drop a Bop". Backend: `PATCH /users/me` accepts `playInApp`. Notification
+  switches moved to P13.10 and no About page (a contact line instead), so nothing that doesn't work yet is shown
+  (§29). *Done when:* unit + integration tests for the new field, screen tests, DATABASE/API docs updated.
 - [ ] **P13.7 — Genre on new songs** (§8) — store iTunes `primaryGenreName` in the song snapshot for new shares
   (type, schema, provider mapping); old songs have none. *Done when:* unit + integration tests; MUSIC_PROVIDERS and
   DATABASE updated.
@@ -465,7 +465,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   membership for the unlock toast; web `/achievements` grid, detail dialog, toast on Home/Results only (reduced
   motion respected). *Done when:* unit + integration tests, screen tests, STATISTICS/API/DATABASE docs updated,
   spec-reviewer run.
-- [ ] **P13.10 — Notifications** (§22; D29) — `GET /users/me/notifications` built on read for the current party;
+- [ ] **P13.10 — Notifications** (§22; D29) — Settings → Notifications switches (moved here from P13.6); `GET /users/me/notifications` built on read for the current party;
   `notificationsSeenAt` via `PATCH`; per-type switches respected; bell with unread count in `AppShell` (refetch on
   focus, ≤ every 5 min) and `/notifications`. *Done when:* unit + integration tests, screen tests, API/DATABASE docs.
 - [ ] **P13.11 — Leaderboard, group stats, profile, home** (§18–§20, §26; D30) — leaderboard `period` and the new
