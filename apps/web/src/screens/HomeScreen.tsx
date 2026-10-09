@@ -13,6 +13,7 @@ import { useCurrentWeek, useMe, useParty, useWeekSongs } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
+import { songDetailsPath } from './SongDetailsScreen';
 import { EmptyState } from '../components/States';
 import { Avatar, Card, ProgressBar, buttonClassName } from '../components/ui';
 import { DAY_NAMES, formatDayList, formatLockTime, formatTimeLeft, nextWeekSharingText } from '../lib/format';
@@ -227,6 +228,7 @@ function OpenWeekHome({ partyId, week }: { partyId: string; week: OpenWeek }) {
         >
           {() => (
             <SongsByDay
+              roundId={week.round.roundId}
               sharedBy={sharers.sharedBy}
               songs={songs.data?.songs ?? []}
               today={today?.weekday ?? null}
@@ -320,11 +322,13 @@ function MembersToday({ week, members }: { week: OpenWeek; members: PartyMember[
 
 /** Today's songs first, then the rest of the week in day order (roadmap P8.3). */
 function SongsByDay({
+  roundId,
   songs,
   today,
   preferred,
   sharedBy,
 }: {
+  roundId: string;
   sharedBy: (song: OpenWeekSongView) => string | null;
   songs: OpenWeekSongView[];
   today: Weekday | null;
@@ -367,6 +371,7 @@ function SongsByDay({
                   id={s.recommendationId}
                   song={s.song}
                   preferred={preferred}
+                  href={songDetailsPath(roundId, s.recommendationId)}
                   detail={sharedBy(s) ?? undefined}
                   right={
                     s.isMine ? (

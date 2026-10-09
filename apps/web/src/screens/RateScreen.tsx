@@ -11,7 +11,7 @@ import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { RatingControl } from '../components/RatingControl';
 import { SongComments } from '../components/SongComments';
-import { ListenLinks, MyPickBadge } from '../components/SongRow';
+import { ListenLinks, MyPickBadge, SongTitleLink } from '../components/SongRow';
 import { EmptyState } from '../components/States';
 import { AlbumArt, Card, ProgressBar, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
@@ -22,6 +22,7 @@ import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
 import { PlayVideoButton } from '../player/PlayVideoButton';
+import { songDetailsPath } from './SongDetailsScreen';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
 
@@ -308,7 +309,9 @@ function RateCard({
       <div className="flex items-start gap-3 sm:items-center">
         <AlbumArt url={item.song.albumArtUrl} hue={hueFor(item.recommendationId)} />
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 font-semibold break-words">{item.song.title}</p>
+          <p className="line-clamp-2 font-semibold break-words">
+            <SongTitleLink to={songDetailsPath(roundId, item.recommendationId)} title={item.song.title} />
+          </p>
           <p className="truncate text-sm text-muted">{item.song.artist}</p>
           {sharedBy && <p className="mt-0.5 text-xs text-muted">{sharedBy}</p>}
           <div className="mt-1.5 flex flex-col items-start gap-1.5">

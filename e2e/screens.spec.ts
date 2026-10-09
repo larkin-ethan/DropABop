@@ -28,6 +28,8 @@ const SCREENS = [
   { name: 'forgot-password', path: '/forgot-password' },
   { name: 'how-it-works', path: '/how-it-works' },
   { name: 'privacy', path: '/privacy' },
+  { name: 'song-open-week', path: '/songs/p1.2026-10-05/r2' },
+  { name: 'song-closed-week', path: '/songs/p1.2026-09-28/past-r1' },
 ];
 
 /** Interactive elements and images that a screen reader would announce with no name. */

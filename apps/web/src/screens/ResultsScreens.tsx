@@ -9,7 +9,7 @@ import { useMe, useParty, useResults, useRounds, useWeekComments } from '../api/
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { SongComments } from '../components/SongComments';
-import { ListenLinks } from '../components/SongRow';
+import { ListenLinks, SongTitleLink } from '../components/SongRow';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { RatingDistribution } from '../components/Stats';
 import { AlbumArt, Avatar, Button, Card, buttonClassName } from '../components/ui';
@@ -25,6 +25,7 @@ import {
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useCurrentParty } from '../party/CurrentParty';
 import { PlayVideoButton } from '../player/PlayVideoButton';
+import { songDetailsPath } from './SongDetailsScreen';
 
 // ---------------------------------------------------------------------------
 // /results: the most recent finished week
@@ -348,7 +349,10 @@ function ResultCard({
         <AlbumArt url={result.song.albumArtUrl} hue={hueFor(result.recommendationId)} />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 font-semibold break-words">
-            {result.song.title}
+            <SongTitleLink
+              to={songDetailsPath(commentsOn.roundId, result.recommendationId)}
+              title={result.song.title}
+            />
             {dayWinner && (
               <span className="ml-2 align-middle text-xs font-semibold text-gold">
                 <Icon name="crown" className="inline size-3.5" /> Bop of the Day

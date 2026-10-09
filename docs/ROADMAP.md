@@ -441,7 +441,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   key and stores it in SSM for dev (and later prod); then a dev deploy (approval) and a live check that choosing a
   song lists real YouTube results (not "busy": that would mean YouTube refused the `x-goog-api-key` header, see
   `providers/youtube-search.ts`), and that a kept video plays.
-- [ ] **P13.5 — Song Details screen** (§21) — `/songs/:week/:songId`: artwork, title, artist, album, year, player or
+- [x] **P13.5 — Song Details screen** (§21) — `/songs/:week/:songId`: artwork, title, artist, album, year, player or
   fallback, links, Apple badge; closed week: average, "#n of N", distribution, your rating, comments; open week:
   your rating only (D9), sharer hidden per D10. Reuses existing results/week/comments data. Linked from every song
   card. *Done when:* screen tests for open/closed/not-found, 320 px screenshot, e2e still green.

@@ -90,9 +90,9 @@ export function AlbumArt({
 }: {
   url?: string | null;
   hue?: number;
-  size?: 'md' | 'lg';
+  size?: 'md' | 'lg' | 'xl';
 }) {
-  const sizes = { md: 'size-14', lg: 'size-20' };
+  const sizes = { md: 'size-14', lg: 'size-20', xl: 'size-32 sm:size-40' };
   if (url) {
     return (
       <img src={url} alt="" className={`${sizes[size]} shrink-0 rounded-lg object-cover`} loading="lazy" />

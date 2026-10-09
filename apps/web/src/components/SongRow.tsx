@@ -3,6 +3,7 @@
 
 import type { MusicProviderId, Song } from '@dropabop/shared';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { hueFor } from '../lib/format';
 import { musicLinks } from '../lib/music-links';
 import { Icon } from './Icon';
@@ -49,6 +50,7 @@ export function SongRow({
   detail,
   right,
   showLinks = true,
+  href,
 }: {
   /** Seeds the placeholder artwork colour. */
   id: string;
@@ -58,12 +60,16 @@ export function SongRow({
   detail?: ReactNode;
   right?: ReactNode;
   showLinks?: boolean;
+  /** The song's details page (P13.5); the title becomes a link to it. */
+  href?: string;
 }) {
   return (
     <li className="flex items-start gap-3 rounded-xl border border-transparent p-2 transition hover:border-line hover:bg-surface-raised sm:items-center sm:gap-4">
       <AlbumArt url={song.albumArtUrl} hue={hueFor(id)} />
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 font-semibold break-words">{song.title}</p>
+        <p className="line-clamp-2 font-semibold break-words">
+          {href === undefined ? song.title : <SongTitleLink to={href} title={song.title} />}
+        </p>
         <p className="truncate text-sm text-muted">{song.artist}</p>
         {detail && <div className="mt-0.5 text-xs text-muted">{detail}</div>}
         {showLinks && (
@@ -95,5 +101,14 @@ export function RatingBadge({ rating, label = 'Your rating' }: { rating: number;
       {rating}
       <span className="text-xs font-medium text-primary/70">/10</span>
     </span>
+  );
+}
+
+/** A song title that opens its details page (P13.5). */
+export function SongTitleLink({ to, title }: { to: string; title: string }) {
+  return (
+    <Link to={to} className="hover:text-blue hover:underline focus-visible:underline">
+      {title}
+    </Link>
   );
 }

@@ -995,3 +995,58 @@ describe('YouTube video found automatically when sharing (ADR-0012)', () => {
     expect(await within(second).findByText('No more video searches today.')).toBeInTheDocument();
   });
 });
+
+describe('Song Details (P13.5)', () => {
+  it('open week: shows the song, your own rating only, and keeps the sharer hidden (D9, D10)', async () => {
+    const { state } = renderApp('/songs/p1.2026-10-05/r2');
+    const song = state.songs.find((s) => s.recommendationId === 'r2')!;
+    expect(await screen.findByRole('heading', { level: 1, name: song.song.title })).toBeInTheDocument();
+    expect(screen.getByText(song.song.artist)).toBeInTheDocument();
+    expect(screen.getByText(/The group’s average and ranking appear when ratings lock/)).toBeInTheDocument();
+    expect(screen.queryByText(/Week result/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Rating distribution')).not.toBeInTheDocument();
+    expect(screen.queryByText(/· by/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Back to this week’s songs/ })).toHaveAttribute('href', '/rate');
+  });
+
+  it('closed week: shows the average, rank, distribution and who shared it', async () => {
+    const { state } = renderApp('/songs/p1.2026-09-28/past-r1');
+    const result = state.pastResults[0]!;
+    expect(await screen.findByRole('heading', { level: 1, name: result.song.title })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Week result' })).toBeInTheDocument();
+    expect(screen.getByText(`#${result.rank}`, { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(`of ${state.pastResults.length}`)).toBeInTheDocument();
+    expect(screen.getByText(`Average of ${result.ratingCount} ratings`)).toBeInTheDocument();
+    expect(screen.getByLabelText('Rating distribution')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Back to the week’s results/ })).toHaveAttribute(
+      'href',
+      '/results/p1.2026-09-28',
+    );
+  });
+
+  it('says so when the song isn’t there', async () => {
+    renderApp('/songs/p1.2026-10-05/nope');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Song not found' })).toBeInTheDocument();
+    expect(screen.getByText('We couldn’t find that song')).toBeInTheDocument();
+  });
+
+  it('is linked from the song titles on Rate, Results and Home', async () => {
+    const { unmount } = renderApp('/rate');
+    expect(await screen.findByRole('link', { name: 'Midnight City' })).toHaveAttribute(
+      'href',
+      '/songs/p1.2026-10-05/r1',
+    );
+    unmount();
+    const results = renderApp('/results/p1.2026-09-28');
+    expect(await screen.findByRole('link', { name: 'Midnight City' })).toHaveAttribute(
+      'href',
+      '/songs/p1.2026-09-28/past-r1',
+    );
+    results.unmount();
+    renderApp('/');
+    expect((await screen.findAllByRole('link', { name: 'Midnight City' }))[0]).toHaveAttribute(
+      'href',
+      '/songs/p1.2026-10-05/r1',
+    );
+  });
+});

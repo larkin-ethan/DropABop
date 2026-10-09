@@ -531,6 +531,22 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return response;
     }
     if (is('GET', 'rounds', ':id', 'recommendations')) {
+      // Last week's songs (closed: sharers revealed, D10), for Song Details from the results (P13.5).
+      if (parts[1] === state.pastRound.roundId) {
+        const response: WeekSongsResponse = {
+          round: state.pastRound,
+          songs: state.pastResults.map((r) => ({
+            recommendationId: r.recommendationId,
+            weekday: r.weekday,
+            submittedOn: r.submittedOn,
+            song: r.song,
+            isMine: r.recommendedBy === ME,
+            recommendedBy: r.recommendedBy,
+            myRating: r.myRating,
+          })),
+        };
+        return response;
+      }
       if (parts[1] !== state.round.roundId) notFound();
       // Like the real API (D10): who shared each song only for your own songs, or when this week reveals them.
       const reveal = weekPrivacyOf(state.round).revealRecommenderDuringVoting;

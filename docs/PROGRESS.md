@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). Next is **P13.5** (Song Details screen). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 (Song Details) is done; next is **P13.6** (Settings hub + Music Services, incl. the "Play videos" switch that lifts the prod hold). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed. **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
 adds the "Play videos in Drop a Bop" switch (the privacy page already mentions it). P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
@@ -53,6 +53,15 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.5 done: Song Details screen** — `/songs/:roundId/:recommendationId`: large artwork, title,
+  artist, album · year, shared day, sharer (only when the API reveals it, D10) or "Your pick", links + Play video,
+  comments; open week: your rating only (D9) with "Rate this song"/"Change it" and when results appear; closed
+  week: average, "#n of N", distribution, your rating, who rated what if the party shows it (D11); not-found state.
+  No new API (week songs + results + comments). Song titles on Rate, Results and Home now link to it (SongRow
+  `href`, `SongTitleLink`); sample mode serves last week's songs too. Verified: `npm run verify` (533 + 1 skipped),
+  4 new screen tests, e2e 23 passed (both song pages added to the 7-width sweep), browser pane at 375 px (no
+  overflow). Leftovers: none.
 
 - 2026-10-09 — **P13.4b done (dev): YouTube API key** — Ethan created the Google Cloud key and stored it as SSM
   SecureString `/dropabop/dev/youtube-api-key` (checked by metadata only: SecureString, `alias/aws/ssm`, Standard, v1)

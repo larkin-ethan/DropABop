@@ -22,6 +22,7 @@ import { RateScreen } from './screens/RateScreen';
 import { HistoryScreen, LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
 import { PartySettingsScreen, ProfileScreen } from './screens/SettingsScreens';
 import { ShareScreen } from './screens/ShareScreen';
+import { SongDetailsScreen } from './screens/SongDetailsScreen';
 import { GroupStatsScreen, LeaderboardScreen, PersonalStatsScreen } from './screens/StatsScreens';
 
 function PreviewBanner() {
@@ -105,6 +106,7 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/rate" element={<RateScreen />} />
               <Route path="/results" element={<LatestResultsScreen />} />
               <Route path="/results/:roundId" element={<ResultsScreen />} />
+              <Route path="/songs/:roundId/:recommendationId" element={<SongDetailsScreen />} />
               <Route path="/history" element={<HistoryScreen />} />
               <Route path="/stats" element={<PersonalStatsScreen />} />
               <Route path="/stats/group" element={<GroupStatsScreen />} />
