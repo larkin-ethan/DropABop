@@ -53,6 +53,11 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-09 — **Play card: close X above the video** (Ethan) — a "Now playing" row with the X now sits above the
+  video; on short screens the same single X moves to the card's top-right corner (no room above). Verified: player +
+  screen tests 108 passed, `npm run verify`, browser pane (X above the video on a phone width; at 568 × 320 one X,
+  on screen, not over the video, video fully visible).
+
 - 2026-10-09 — **P13.3 follow-up: play-card layout** — Ethan asked for controls without the video; YouTube forbids
   hidden players and separating audio from video (ADR-0011), so he chose to keep the video and restack the card:
   video on top (card width × 200 px), song + controls below; short screens keep video beside the controls. Offered

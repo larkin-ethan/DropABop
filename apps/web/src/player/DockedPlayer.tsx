@@ -83,12 +83,12 @@ function PlayCard({ song, onClose }: { song: PlayableSong; onClose: () => void }
 
   const header = (
     <div className="flex items-start gap-2">
-      <div className="min-w-0 flex-1">
+      {/* Room for the X, which sits in this corner on short screens. */}
+      <div className="min-w-0 flex-1 [@media(max-height:520px)]:pr-8">
         <p className="truncate font-semibold">{song.title}</p>
         <p className="truncate text-sm text-muted">{song.artist}</p>
         <p className="mt-0.5 text-xs text-muted">YouTube video linked by the sharer</p>
       </div>
-      <CloseButton onClose={onClose} />
     </div>
   );
 
@@ -99,13 +99,24 @@ function PlayCard({ song, onClose }: { song: PlayableSong; onClose: () => void }
     >
       {failed ? (
         <div className="flex flex-col gap-3">
+          <div className="-mt-1 -mb-1 flex items-center justify-between">
+            <span className="text-xs font-semibold tracking-wide text-muted uppercase">Now playing</span>
+            <CloseButton onClose={onClose} />
+          </div>
           {header}
           <PlaybackFallback error={state.error ?? 'failed'} links={song.links} />
         </div>
       ) : (
-        // Video on top, then the song and its controls (Ethan, 2026-10-09). Short screens (landscape phones) put the
-        // video beside them instead, so the whole video always fits on screen.
+        // Close (X) above the video, then the video, then the song and its controls (Ethan, 2026-10-09). Short screens
+        // (landscape phones) put the video beside them instead, so the whole video always fits on screen.
         <div className="flex flex-col gap-3 [@media(max-height:520px)]:flex-row">
+          {/* One X: above the video, or in the card's top-right corner on short screens (no room above). */}
+          <div className="-mt-1 -mb-1 flex items-center justify-between [@media(max-height:520px)]:absolute [@media(max-height:520px)]:top-2 [@media(max-height:520px)]:right-2 [@media(max-height:520px)]:m-0">
+            <span className="text-xs font-semibold tracking-wide text-muted uppercase [@media(max-height:520px)]:hidden">
+              Now playing
+            </span>
+            <CloseButton onClose={onClose} />
+          </div>
           {/* The YouTube player is created inside this box. */}
           <div
             ref={videoBox}

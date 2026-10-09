@@ -57,7 +57,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
   return (
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center ${
-        playerOpen ? 'pb-[28rem] md:pb-[24rem]' : ''
+        playerOpen ? 'pb-[30rem] md:pb-[26rem]' : ''
       }`}
       onClick={onClose}
     >
