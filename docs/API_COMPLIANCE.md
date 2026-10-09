@@ -112,6 +112,11 @@ Only tests that were actually run are listed.
 - **2026-10-09 (P13.3), production CSP:** a production build's `_headers` policy, served on a local test page,
   loaded `www.youtube.com/iframe_api`, its `www-widgetapi.js` and the player frame with no CSP violations; the
   player reached `onReady`. Repeated with `script-src` narrowed to `/iframe_api` and `/s/player/` (what ships).
+- **2026-10-09 (P13.4):** unit + screen tests: "Play video" appears only for songs with a linked YouTube video,
+  shared within the 30-day window (29 days + one day of timezone margin), and only after the person agreed to the
+  current privacy policy (a test fails if that check is removed); it shows on Rate, Results and the share preview,
+  is labelled "YouTube video linked by the sharer", and rating stays available with the card open. Browser pane:
+  pressing Play video on a Rate card opened the play card and played the linked video.
 - **Not yet checked:** iPhone Safari. Our Play button and the start-on-ready call happen after the script loads,
   which iOS may not count as the person's tap; YouTube's own play button inside the player still works. To check by
   hand on a phone in P13.4.

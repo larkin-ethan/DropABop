@@ -135,7 +135,20 @@ export const sampleSongs: SongView[] = [
     recommendationId: 'r13',
     weekday: 'WED',
     submittedOn: '2026-10-07',
-    song: song('r13', 'Blinding Lights', 'The Weeknd', 'After Hours'),
+    // Has a linked YouTube video, so the preview shows "Play video" (P13.4). M7lc1UVf-VE is the sample video in
+    // YouTube's IFrame API reference, not this song's real video. Like the rest of the sample week, its date is fixed,
+    // so the button disappears from the preview 29 days after it (the 30-day rule, ADR-0011); tests set their own dates.
+    song: {
+      ...song('r13', 'Blinding Lights', 'The Weeknd', 'After Hours'),
+      providers: [
+        { provider: 'appleMusic', providerSongId: 'r13', externalUrl: 'https://music.apple.com/us/song/r13' },
+        {
+          provider: 'youtube',
+          providerSongId: 'M7lc1UVf-VE',
+          externalUrl: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
+        },
+      ],
+    },
     isMine: false,
     myRating: null,
   },

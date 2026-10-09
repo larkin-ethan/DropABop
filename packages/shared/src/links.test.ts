@@ -5,6 +5,7 @@ import {
   parseSpotifyTrackUrl,
   parseYouTubeUrl,
   searchLinks,
+  youtubeVideoId,
 } from './links';
 
 describe('parseSpotifyTrackUrl', () => {
@@ -26,6 +27,36 @@ describe('parseSpotifyTrackUrl', () => {
     'not a url',
   ])('rejects %s', (url) => {
     expect(parseSpotifyTrackUrl(url)).toBeNull();
+  });
+});
+
+describe('youtubeVideoId (P13.4)', () => {
+  const song = (providers: { provider: string; externalUrl: string }[]) => ({ providers });
+  it('reads the video id from a linked YouTube or YouTube Music video', () => {
+    expect(
+      youtubeVideoId(
+        song([{ provider: 'youtube', externalUrl: 'https://www.youtube.com/watch?v=dX3k_QDnzHE' }]),
+      ),
+    ).toBe('dX3k_QDnzHE');
+    expect(
+      youtubeVideoId(
+        song([{ provider: 'youtubeMusic', externalUrl: 'https://music.youtube.com/watch?v=dX3k_QDnzHE' }]),
+      ),
+    ).toBe('dX3k_QDnzHE');
+  });
+
+  it('is null without a valid YouTube link', () => {
+    expect(
+      youtubeVideoId(song([{ provider: 'appleMusic', externalUrl: 'https://music.apple.com/us/song/x/1' }])),
+    ).toBeNull();
+    expect(
+      youtubeVideoId(song([{ provider: 'youtube', externalUrl: 'https://www.youtube.com/watch?v=short' }])),
+    ).toBeNull();
+    expect(
+      youtubeVideoId(
+        song([{ provider: 'youtube', externalUrl: 'http://www.youtube.com/watch?v=dX3k_QDnzHE' }]),
+      ),
+    ).toBeNull();
   });
 });
 

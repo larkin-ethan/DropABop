@@ -424,7 +424,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   in `infra/template.yaml`) via the `aws-change` check. *Done when:* unit tests with a mocked `window.YT` cover lazy
   load, one-at-a-time, error → fallback, hidden unsupported controls and cleanup; template tests pass;
   `npm run verify` passes.
-- [ ] **P13.4 — YouTube video on songs** (§12, §13) — a `youtubeVideoId()` helper in `packages/shared` (watch,
+- [x] **P13.4 — YouTube video on songs** (**prod hold:** don't `deploy.sh prod` until P13.6 adds the "Play videos" switch the privacy page already mentions) (§12, §13) — a `youtubeVideoId()` helper in `packages/shared` (watch,
   youtu.be, music.youtube.com) with tests; Rate, Results and confirmation cards show "▶ Play video" when the sharer
   linked YouTube, labelled "YouTube video linked by the sharer", only for songs shared in the last 30 days and only after the
   user agreed to the privacy policy (ADR-0011), otherwise the existing links; honours the user's

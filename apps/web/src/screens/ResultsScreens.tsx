@@ -24,6 +24,7 @@ import {
 } from '../lib/format';
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useCurrentParty } from '../party/CurrentParty';
+import { PlayVideoButton } from '../player/PlayVideoButton';
 
 // ---------------------------------------------------------------------------
 // /results: the most recent finished week
@@ -379,7 +380,15 @@ function ResultCard({
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <ListenLinks song={result.song} preferred={preferred} />
+        <div className="flex flex-col items-start gap-1.5">
+          <ListenLinks song={result.song} preferred={preferred} />
+          <PlayVideoButton
+            songKey={result.recommendationId}
+            song={result.song}
+            submittedOn={result.submittedOn}
+            preferred={preferred}
+          />
+        </div>
         <div className="flex items-center gap-3 text-sm">
           {result.myRating !== null && (
             <span className="text-muted">

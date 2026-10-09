@@ -3,6 +3,7 @@
 // links to the same song. A confirm step makes clear the pick is final for today.
 
 import {
+  canonicalLinks,
   parseAppleMusicSongUrl,
   parseSpotifyTrackUrl,
   parseYouTubeUrl,
@@ -35,6 +36,7 @@ import { errorMessage } from '../lib/errors';
 import { DAY_NAMES, formatDayList, formatLockTime, hueFor, nextWeekSharingText } from '../lib/format';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
+import { PlayVideoButton } from '../player/PlayVideoButton';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
 
@@ -464,6 +466,8 @@ function ConfirmShare({
               <p className="text-xs text-muted">
                 Without these, people get a search link on those apps instead.
               </p>
+              {/* Spec v2 §12: a preview of the video you're about to link. Never required to share. */}
+              <SharePreview song={song} youtubeLink={youtube} />
             </div>
           </details>
           <p className="rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold">
@@ -491,5 +495,26 @@ function ConfirmShare({
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Lets the sharer check the YouTube link they typed is the right video before sharing (P13.4). */
+function SharePreview({ song, youtubeLink }: { song: Song; youtubeLink: string }) {
+  const videoId = parseYouTubeUrl(youtubeLink.trim());
+  if (videoId === null) return null;
+  const preview: Song = {
+    ...song,
+    providers: [
+      ...song.providers.filter((p) => p.provider !== 'youtube'),
+      { provider: 'youtube', providerSongId: videoId, externalUrl: canonicalLinks.youtube(videoId) },
+    ],
+  };
+  return (
+    <PlayVideoButton
+      songKey={`preview-${song.songId}-${videoId}`}
+      song={preview}
+      submittedOn={null}
+      preferred={null}
+    />
   );
 }

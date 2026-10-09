@@ -21,6 +21,7 @@ import { WEEKDAYS } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
+import { PlayVideoButton } from '../player/PlayVideoButton';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
 
@@ -310,8 +311,14 @@ function RateCard({
           <p className="line-clamp-2 font-semibold break-words">{item.song.title}</p>
           <p className="truncate text-sm text-muted">{item.song.artist}</p>
           {sharedBy && <p className="mt-0.5 text-xs text-muted">{sharedBy}</p>}
-          <div className="mt-1.5">
+          <div className="mt-1.5 flex flex-col items-start gap-1.5">
             <ListenLinks song={item.song} preferred={preferred} />
+            <PlayVideoButton
+              songKey={item.recommendationId}
+              song={item.song}
+              submittedOn={item.submittedOn}
+              preferred={preferred}
+            />
           </div>
         </div>
         {item.isMine && <MyPickBadge />}

@@ -3,8 +3,9 @@
 ## Current focus
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
-It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.3
-are done; next is **P13.4** (YouTube video on songs: the Play buttons on Rate/Results cards). P13.2a (privacy page + agreement) still needs a dev deploy and
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4
+are done; next is **P13.5** (Song Details screen). **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
+adds the "Play videos in Drop a Bop" switch (the privacy page already mentions it). P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
 (cost check after a week of use), P12.3 (launch).
@@ -51,6 +52,17 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.4 done: YouTube video on songs** — shared `youtubeVideoId(song)` (re-parses the stored link)
+  and `IN_APP_VIDEO_MAX_AGE_DAYS`; web `toPlayableSong` / `withinInAppPlayWindow` (29 days + a day of margin for
+  parties east of UTC, spec-reviewer catch) and `PlayVideoButton` ("Play video" · "YouTube video linked by the
+  sharer"; hidden without a linked video, after the window, or before the privacy agreement) on Rate cards, Results
+  cards and the share confirmation (preview of the typed YouTube link; never required to share). Sample song r13
+  links YouTube's API sample video for the preview. No backend change. Verified: `npm run verify` passed; e2e 21
+  passed (run before the review fixes, which touched only tests, a comment and the date margin); the privacy-check
+  test fails if the check is removed (tried, then restored); browser pane: Play video on a Rate card played the video
+  in the play card. Not checked: iPhone Safari, an embed-disabled real video (the missing-video fallback was checked
+  in P13.3). Leftovers: prod hold until P13.6.
 
 - 2026-10-09 — **P13.3 done: player layer (play-card style)** — Ethan asked for a play card instead of a video
   window. `apps/web/src/player/`: capabilities (YouTube embed; Apple/Spotify links only), `youtube-player.ts` (loads

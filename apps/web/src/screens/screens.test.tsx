@@ -811,3 +811,86 @@ describe('Privacy policy and agreement (P13.2a, ADR-0011)', () => {
     expect(window.localStorage.getItem('dropabop.privacyAgreedAtSignUp')).toBeNull();
   });
 });
+
+describe('Play video on song cards (P13.4, ADR-0011)', () => {
+  /** Today's date as the API writes it, so the 30-day rule holds whenever these tests run. */
+  const today = new Date().toISOString().slice(0, 10);
+
+  it('shows Play video only on songs whose sharer linked a YouTube video, and opens the play card', async () => {
+    renderApp('/rate', {
+      setup: (s) => {
+        for (const song of s.songs) song.submittedOn = today;
+      },
+    });
+    const buttons = await screen.findAllByRole('button', {
+      name: /Play the YouTube video linked by the sharer/,
+    });
+    expect(buttons).toHaveLength(1); // only Blinding Lights has a linked video in the sample data
+    expect(buttons[0]).toHaveAccessibleName(
+      'Play the YouTube video linked by the sharer for Blinding Lights',
+    );
+    await userEvent.click(buttons[0]!);
+    const card = await screen.findByRole('region', { name: 'Now playing' });
+    expect(within(card).getAllByText('Blinding Lights').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Blinding Lights is in the player' })).toBeDisabled();
+    // Rating still works with the card open.
+    expect(screen.getAllByRole('radiogroup').length).toBeGreaterThan(0);
+  });
+
+  it('offers no in-app video for songs shared more than 30 days ago (links only)', async () => {
+    renderApp('/rate', {
+      setup: (s) => {
+        for (const song of s.songs) song.submittedOn = '2020-01-06';
+      },
+    });
+    expect(await screen.findByText('Blinding Lights')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Play the YouTube video/ })).not.toBeInTheDocument();
+  });
+
+  it('shows Play video on results cards too', async () => {
+    renderApp('/results/p1.2026-09-28', {
+      setup: (s) => {
+        const first = s.pastResults[0]!;
+        first.submittedOn = today;
+        first.song = {
+          ...first.song,
+          providers: [
+            ...first.song.providers,
+            {
+              provider: 'youtube',
+              providerSongId: 'dX3k_QDnzHE',
+              externalUrl: 'https://www.youtube.com/watch?v=dX3k_QDnzHE',
+            },
+          ],
+        };
+      },
+    });
+    expect(
+      await screen.findByRole('button', {
+        name: /Play the YouTube video linked by the sharer for Midnight City/,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('lets the sharer preview the YouTube link they typed before sharing', async () => {
+    renderApp('/share', {
+      setup: (s) => {
+        s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
+      },
+    });
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'blue sky');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Mr. Blue Sky' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    expect(within(dialog).queryByRole('button', { name: /Play the YouTube video/ })).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByText('Add your Spotify or YouTube Music link (optional)'));
+    await userEvent.type(
+      within(dialog).getByLabelText('YouTube Music link'),
+      'https://music.youtube.com/watch?v=dX3k_QDnzHE',
+    );
+    expect(
+      within(dialog).getByRole('button', {
+        name: 'Play the YouTube video linked by the sharer for Mr. Blue Sky',
+      }),
+    ).toBeInTheDocument();
+  });
+});

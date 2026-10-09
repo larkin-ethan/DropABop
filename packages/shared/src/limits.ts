@@ -78,6 +78,12 @@ export const DEFAULT_DISPLAY_NAME = 'New member';
  */
 export const PRIVACY_POLICY_VERSION = '2026-10-09';
 
+/**
+ * In-app YouTube playback is offered only for songs shared in the last 30 days (ADR-0011: cautious reading of
+ * YouTube's 30-day rule). Older songs keep their plain link.
+ */
+export const IN_APP_VIDEO_MAX_AGE_DAYS = 30;
+
 /** Avatar background colors from the design palette (docs/design), D18. Also the choices on the Profile screen. */
 export const AVATAR_COLORS = [
   '#3B82F6',
