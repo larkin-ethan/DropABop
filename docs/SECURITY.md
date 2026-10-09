@@ -37,6 +37,12 @@ risk with local storage is malicious script on the page reading it; the Content 
 app's own scripts (plus YouTube's player script, loaded only when someone presses Play; ADR-0011), which is the main
 defence.
 
+**The YouTube API key (ADR-0012).** A Google API key restricted to the YouTube Data API, stored as an SSM Parameter
+Store SecureString that only the YouTube search function may read (one parameter, decrypted only through SSM). It's
+read at runtime, kept in memory, sent to Google in a header (never in a URL), never logged, and never sent to
+browsers. If it leaks, the worst case is someone using up the day's 100 searches; replace it with
+`aws ssm put-parameter … --overwrite` (DEPLOYMENT.md §4e) and delete the old key in Google Cloud.
+
 **The API (API Gateway + Lambda).**
 
 - Every route requires a valid Cognito **access** token: API Gateway checks its signature, issuer, app client, and

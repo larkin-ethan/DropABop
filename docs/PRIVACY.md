@@ -42,8 +42,10 @@ that on. Nobody outside your parties can see anything.
 - **Apple (iTunes Search and album art)** — when you search for a song, our server sends the search words to Apple.
   Album artwork is loaded by your browser straight from Apple's servers, which (like any website) see your IP
   address and browser type.
-- **YouTube** — Drop a Bop uses **YouTube API Services** to play videos that members link. Nothing is loaded from
-  YouTube until you press Play. Once a video loads, YouTube may set cookies and collect data about the playback, as
+- **YouTube** — Drop a Bop uses **YouTube API Services** to find and play videos for shared songs. When you choose
+  a song to share, our server asks YouTube for matching videos, sending only the song's artist and title. Videos
+  kept with a song are forgotten 29 days after it was shared. In your browser, nothing is loaded from YouTube until
+  you press Play. Once a video loads, YouTube may set cookies and collect data about the playback, as
   it does on any site with a YouTube video. That's covered by the **YouTube Terms of Service**
   (https://www.youtube.com/t/terms) and the **Google Privacy Policy** (https://www.google.com/policies/privacy).
   You can switch in-app videos off in Settings → Music and use links instead.
@@ -90,6 +92,8 @@ Questions or complaints about privacy: **droppa.bop@gmail.com**.
 - **Settings named in the policy:** the "Play videos in Drop a Bop" switch (Settings → Music) and notification
   choices arrive in P13.6 / P13.10. The player itself (P13.3–P13.4) ships no earlier than that switch, so the
   policy is accurate by the time videos can play; don't deploy P13.4 to prod before P13.6.
+- **Policy version:** the YouTube search wording was added on 2026-10-09 before the policy was ever deployed, so the
+  version stayed 2026-10-09. After it's live, any such change bumps the version.
 - **Data minimisation:** no listening history, no provider tokens (no accounts are connected), no IP addresses in
   our logs. The agreement is stored as a timestamp + policy version on the user's profile.
 - **No account deletion is offered yet** (Ethan, 2026-10-09). If that changes, first decide what is removed (D17 keeps

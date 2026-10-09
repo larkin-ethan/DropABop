@@ -199,6 +199,8 @@ Expected total at 10–20 users: **well under $1/month**.
 | AWS Budgets | `dropabop-monthly` $5 alert | Budgets without actions are free | $0 |
 | CloudFront | Serves the website over HTTPS | 1 TB + 10M requests/month, always | $0 |
 | S3 | Website files; SAM's upload bucket (`aws-sam-cli-managed-default`) | 5 GB for 12 months only | A few MB: under $0.01/month |
+| SSM Parameter Store | The YouTube API key (one standard SecureString per stage, ADR-0012) | Standard parameters are free | $0 |
+| YouTube Data API (Google) | One search per shared song (ADR-0012) | Free; 100 searches/day per project | $0 (it stops, it doesn't bill) |
 
 Prices checked 2026-10-02 on aws.amazon.com/{api-gateway,lambda,cognito,cloudwatch}/pricing (US East).
 Full resource list: `docs/ARCHITECTURE.md`.
@@ -296,6 +298,40 @@ After that, `bash scripts/deploy.sh prod` deploys the prod stack and uploads the
 **Moving to CloudFront later:** once AWS verifies the account, change the prod line in `infra/samconfig.toml` to
 `parameter_overrides = "Stage=prod"`, run `bash scripts/deploy.sh prod`, and send the group the new address (the
 stack output `WebsiteUrl`). Accounts and data don't change. Then delete the Cloudflare project in its dashboard.
+
+## 4e. YouTube API key (ADR-0012, roadmap P13.4b)
+
+This turns on "find the YouTube video automatically" when someone shares a song. Without it, sharing works as
+before (people can still paste a link). The key is a secret: it goes straight from Google into AWS, never into chat,
+the repo, or the website.
+
+1. **Create a Google Cloud project** at https://console.cloud.google.com/projectcreate (name it e.g. "Drop a Bop").
+   One project for this app only (YouTube's Developer Policies).
+2. **Turn on the API:** *APIs & Services → Library*, search **YouTube Data API v3**, click **Enable**.
+3. **Create the key:** *APIs & Services → Credentials → Create credentials → API key*. Then click the key to edit it:
+   - **API restrictions → Restrict key →** tick only **YouTube Data API v3**, then **Save**.
+   - **Application restrictions:** leave **None**. The key is only used from AWS Lambda, which has no fixed IP
+     address or website to restrict to; it never reaches anyone's browser.
+   - Copy the key (you'll paste it in the next step).
+4. **Store it in AWS for dev.** Sign in, then run this and paste the key when it waits (nothing is shown as you
+   paste; press Enter after):
+
+   ```bash
+   aws login --profile dropabop-dev
+   ```
+
+   ```bash
+   read -rs YT_KEY && aws ssm put-parameter --profile dropabop-dev --region us-east-2 --name /dropabop/dev/youtube-api-key --type SecureString --value "$YT_KEY" && unset YT_KEY
+   ```
+
+   It should print a `Version` number. To replace the key later, add `--overwrite`.
+5. **Prod:** the same command with `/dropabop/prod/youtube-api-key` once prod has this feature. The same key is fine.
+6. **Check:** after the next deploy, choose a song on the Share screen: "Video to play in the app" should list
+   YouTube videos within a few minutes (the app re-checks for a missing key every 5 minutes).
+
+Quota: YouTube allows 100 searches a day for the whole project (resets at midnight Pacific time). Each person can
+use 15 a day. When they run out, sharing still works, just without a suggestion. Usage: Google Cloud console →
+*APIs & Services → YouTube Data API v3 → Quotas*.
 
 ## 5. Shutting things down
 

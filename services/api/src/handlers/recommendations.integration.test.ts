@@ -255,3 +255,66 @@ describe('GET /rounds/{roundId}/recommendations', () => {
     expect((await list(other.hostId, round.roundId)).status).toBe(403);
   });
 });
+
+describe('YouTube videos expire after 29 days (ADR-0012)', () => {
+  it('keeps the sharer’s YouTube link out of the song record and shows it only until it expires', async () => {
+    const { round, hostId, memberId } = await setup();
+    const result = await share(hostId, round.roundId, {
+      provider: 'appleMusic',
+      providerSongId: '100',
+      links: { youtube: 'https://www.youtube.com/watch?v=dX3k_QDnzHE' },
+      youtubeSource: 'search',
+    });
+    expect(result.statusCode).toBe(201);
+    const list = async () =>
+      (
+        bodyOf(
+          await runHandler(
+            listRecommendationsFn,
+            apiEvent({ userId: memberId, pathParameters: { roundId: round.roundId } }),
+            deps,
+          ),
+        ) as { songs: { song: { providers: { provider: string; providerSongId: string }[] } }[] }
+      ).songs;
+    expect((await list())[0]!.song.providers).toContainEqual(
+      expect.objectContaining({ provider: 'youtube', providerSongId: 'dX3k_QDnzHE' }),
+    );
+
+    // The song item itself never holds the video id.
+    const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    const { keys } = await import('../data/keys');
+    const recommendationId = (bodyOf(result) as { song: { recommendationId: string } }).song.recommendationId;
+    const [partyId, weekStart] = round.roundId.split('.') as [string, string];
+    const stored = await deps.data.db.send(
+      new GetCommand({
+        TableName: deps.data.tableName,
+        Key: keys.recommendation(partyId, weekStart, recommendationId),
+      }),
+    );
+    expect(JSON.stringify(stored.Item)).not.toContain('dX3k_QDnzHE');
+    const video = await deps.data.db.send(
+      new GetCommand({
+        TableName: deps.data.tableName,
+        Key: keys.youtubeVideo(partyId, weekStart, recommendationId),
+      }),
+    );
+    expect(video.Item).toMatchObject({ videoId: 'dX3k_QDnzHE', source: 'search' });
+    expect(video.Item?.expiresAt).toBe(Math.floor(Date.parse(WEDNESDAY) / 1000) + 29 * 24 * 60 * 60);
+
+    // 30 days later (before DynamoDB's TTL gets round to deleting it), reads already leave it out.
+    deps.setNow('2026-11-06T17:00:00.000Z');
+    const later = await list();
+    expect(later[0]!.song.providers.some((p) => p.provider === 'youtube')).toBe(false);
+  });
+
+  it('marks a link without youtubeSource as the sharer’s own', async () => {
+    const { round, hostId } = await setup();
+    const result = await share(hostId, round.roundId, {
+      provider: 'appleMusic',
+      providerSongId: '100',
+      links: { youtube: 'https://youtu.be/dX3k_QDnzHE' },
+    });
+    const song = (bodyOf(result) as { song: { song: { providers: { provider: string }[] } } }).song.song;
+    expect(song.providers.map((p) => p.provider)).toContain('youtube');
+  });
+});

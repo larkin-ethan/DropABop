@@ -22,7 +22,7 @@ export const getResultsFn: HandlerFn = async (event, { data, now }) => {
   const { round, party } = await loadRoundForMember(event, data, userId);
   const current = now();
 
-  const songs = await listWeekRecommendations(data, round.roundId);
+  const songs = await listWeekRecommendations(data, round.roundId, current);
   assertAllowed(canViewResults(round, current, songs.length));
 
   const change = getPendingStatusChange(round, current, songs.length);

@@ -6,7 +6,9 @@ end). Provider rules change often: re-check before relying on anything here, and
 
 **Decision:** [ADR-0007](decisions/0007-music-provider-plan.md), approved by Ethan on 2026-10-01. **Update 2026-10-09:**
 sharer-linked YouTube videos play in YouTube's embedded player ([ADR-0011](decisions/0011-youtube-embedded-player.md));
-the per-provider compliance checklist is in [API_COMPLIANCE.md](API_COMPLIANCE.md). The player layer is documented here in P13.15.
+the per-provider compliance checklist is in [API_COMPLIANCE.md](API_COMPLIANCE.md). **Update 2026-10-09 (ADR-0012):**
+when a song is chosen to share, the server makes one YouTube Data API search for it and suggests the top results;
+song search itself stays on iTunes (YouTube allows 100 searches a day). The player layer is documented here in P13.15.
 
 ## Summary
 

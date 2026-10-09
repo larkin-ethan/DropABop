@@ -13,6 +13,7 @@ import {
   type CurrentWeekResponse,
   type Song,
   type SubmitRecommendationRequest,
+  type YouTubeSuggestionsResponse,
 } from '@dropabop/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -22,6 +23,7 @@ import {
   useParty,
   useResolveSong,
   useShareSong,
+  useYouTubeSuggestions,
   useSongSearch,
   useWeekSongs,
 } from '../api/hooks';
@@ -396,6 +398,13 @@ function ConfirmShare({
   const [spotify, setSpotify] = useState('');
   const [youtube, setYoutube] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
+  // ADR-0012: the YouTube search result the sharer keeps (first one by default), or null for no video.
+  const appleId = song?.providers.find((p) => p.provider === 'appleMusic')?.providerSongId ?? null;
+  const suggestions = useYouTubeSuggestions(appleId);
+  const [chosenVideo, setChosenVideo] = useState<string | null>(null);
+  const firstSuggestion = suggestions.data?.videos[0]?.videoId ?? null;
+  useEffect(() => setChosenVideo(firstSuggestion), [firstSuggestion]);
+  const ownYouTubeLink = youtube.trim() !== '';
 
   // Each time a song is chosen, start from the pasted link (if any) so it's attached without retyping.
   useEffect(() => {
@@ -406,9 +415,7 @@ function ConfirmShare({
   }, [song, pastedLinks]);
 
   function handleShare() {
-    if (song === null) return;
-    const appleId = song.providers.find((p) => p.provider === 'appleMusic')?.providerSongId;
-    if (appleId === undefined) return;
+    if (song === null || appleId === null) return;
     const links: NonNullable<SubmitRecommendationRequest['links']> = {};
     if (spotify.trim() !== '') {
       const parsed = spotifyLinkSchema.safeParse(spotify.trim());
@@ -420,6 +427,8 @@ function ConfirmShare({
       if (!parsed.success)
         return setLinkError(parsed.error.issues[0]?.message ?? 'Check the YouTube Music link.');
       links.youtube = parsed.data;
+    } else if (chosenVideo !== null) {
+      links.youtube = canonicalLinks.youtube(chosenVideo); // the search result the sharer kept (ADR-0012)
     }
     setLinkError(null);
     share.mutate(
@@ -427,6 +436,7 @@ function ConfirmShare({
         provider: 'appleMusic',
         providerSongId: appleId,
         ...(Object.keys(links).length > 0 ? { links } : {}),
+        ...(links.youtube === undefined ? {} : { youtubeSource: ownYouTubeLink ? 'pasted' : 'search' }),
       },
       { onSuccess: () => void navigate('/', { replace: true }) },
     );
@@ -444,6 +454,16 @@ function ConfirmShare({
               {song.album && <p className="truncate text-sm text-muted">{song.album}</p>}
             </div>
           </div>
+          {!ownYouTubeLink && (
+            <YouTubeChoice
+              song={song}
+              suggestions={suggestions.data}
+              loading={suggestions.isLoading}
+              failed={suggestions.isError}
+              chosen={chosenVideo}
+              onChoose={setChosenVideo}
+            />
+          )}
           <details className="rounded-xl border border-line px-3 py-2" open={pastedLinks !== null}>
             <summary className="cursor-pointer text-sm font-medium text-blue">
               Add your Spotify or YouTube Music link (optional)
@@ -514,7 +534,110 @@ function SharePreview({ song, youtubeLink }: { song: Song; youtubeLink: string }
       songKey={`preview-${song.songId}-${videoId}`}
       song={preview}
       submittedOn={null}
+      label="Preview video"
+      showSource={false}
       preferred={null}
     />
+  );
+}
+
+/**
+ * The video that will play in the app for this song (ADR-0012): YouTube's results for it, exactly as YouTube returned
+ * them, with the first one picked. The sharer can pick another, preview it, or choose no video. Their own pasted
+ * link (below) replaces all of this.
+ */
+function YouTubeChoice({
+  song,
+  suggestions,
+  loading,
+  failed,
+  chosen,
+  onChoose,
+}: {
+  song: Song;
+  suggestions: YouTubeSuggestionsResponse | undefined;
+  loading: boolean;
+  failed: boolean;
+  chosen: string | null;
+  onChoose: (videoId: string | null) => void;
+}) {
+  // No key set up yet: the feature is simply off, nothing to explain.
+  if (suggestions?.unavailable === 'notConfigured') return null;
+
+  let note: string | null = null;
+  if (loading) note = 'Finding a video…';
+  else if (failed || suggestions?.unavailable === 'busy') note = 'Couldn’t reach YouTube.';
+  else if (suggestions?.unavailable === 'dailyLimit') note = 'No more video searches today.';
+  else if (suggestions?.videos.length === 0) note = 'No video found.';
+
+  const chosenSong: Song | null =
+    chosen === null
+      ? null
+      : {
+          ...song,
+          providers: [
+            ...song.providers.filter((p) => p.provider !== 'youtube'),
+            { provider: 'youtube', providerSongId: chosen, externalUrl: canonicalLinks.youtube(chosen) },
+          ],
+        };
+
+  return (
+    <fieldset className="rounded-xl border border-line px-3 py-2">
+      <legend className="px-1 text-sm font-medium">Video from YouTube</legend>
+      {note !== null ? (
+        <p role={loading ? 'status' : undefined} className="text-sm text-muted">
+          {note}
+        </p>
+      ) : (
+        <>
+          <ul className="flex flex-col gap-1">
+            {(suggestions?.videos ?? []).map((video) => (
+              <li key={video.videoId}>
+                <label className="flex cursor-pointer items-start gap-2 rounded-lg p-1.5 hover:bg-surface-raised">
+                  <input
+                    type="radio"
+                    name="youtube-video"
+                    className="mt-1 accent-[var(--color-primary)]"
+                    checked={chosen === video.videoId}
+                    onChange={() => onChoose(video.videoId)}
+                  />
+                  <span className="min-w-0">
+                    {/* One line each: the full title is still there (and in the tooltip), just not wrapped. */}
+                    <span className="block truncate text-sm" title={video.title}>
+                      {video.title}
+                    </span>
+                    <span className="block text-xs text-muted">{video.channelTitle}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+            <li>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg p-1.5 hover:bg-surface-raised">
+                <input
+                  type="radio"
+                  name="youtube-video"
+                  className="accent-[var(--color-primary)]"
+                  checked={chosen === null}
+                  onChange={() => onChoose(null)}
+                />
+                <span className="text-sm">No video</span>
+              </label>
+            </li>
+          </ul>
+          {chosenSong !== null && chosen !== null && (
+            <div className="mt-2">
+              <PlayVideoButton
+                songKey={`preview-${song.songId}-${chosen}`}
+                song={chosenSong}
+                submittedOn={null}
+                label="Preview video"
+                showSource={false}
+                preferred={null}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </fieldset>
   );
 }

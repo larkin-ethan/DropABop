@@ -12,6 +12,7 @@ import {
 } from '@dropabop/shared';
 import { parseRoundId } from '../data/keys';
 import { listMySubmissionDates, listWeekRecommendations, putRecommendation } from '../data/recommendations';
+import { withYouTubeVideo } from '../data/youtube-videos';
 import { listMyWeekVotes } from '../data/votes';
 import { toOpenWeekSongView } from '../domain/results';
 import { canSubmitRecommendation } from '../domain/rules';
@@ -22,7 +23,10 @@ import { getAuthenticatedUser, parseBody, pathParam } from '../http/request';
 import { loadPartyForMember } from './parties';
 import { loadRoundForMember, resolveCurrentWeek } from './weeks';
 
-/** Turns pasted links into SongProvider entries. The schema already checked they're real Spotify/YouTube links. */
+/**
+ * Turns a pasted Spotify link into a SongProvider entry. The schema already checked it's a real Spotify link.
+ * YouTube links aren't stored in the song any more: they go in their own item that expires (ADR-0012).
+ */
 function pastedLinks(links: SubmitRecommendationRequest['links']): SongProvider[] {
   const result: SongProvider[] = [];
   const spotifyId = links?.spotify === undefined ? null : parseSpotifyTrackUrl(links.spotify);
@@ -31,14 +35,6 @@ function pastedLinks(links: SubmitRecommendationRequest['links']): SongProvider[
       provider: 'spotify',
       providerSongId: spotifyId,
       externalUrl: canonicalLinks.spotify(spotifyId),
-    });
-  }
-  const youtubeId = links?.youtube === undefined ? null : parseYouTubeUrl(links.youtube);
-  if (youtubeId !== null) {
-    result.push({
-      provider: 'youtube',
-      providerSongId: youtubeId,
-      externalUrl: canonicalLinks.youtube(youtubeId),
     });
   }
   return result;
@@ -93,9 +89,20 @@ export const submitRecommendationFn: HandlerFn = async (event, { data, now, newI
     song: song.data,
     createdAt: now().toISOString(),
   };
-  await putRecommendation(data, recommendation);
+  // ADR-0012: the YouTube video (pasted, or the search result the sharer kept) is deleted after 29 days.
+  const youtubeId = request.links?.youtube === undefined ? null : parseYouTubeUrl(request.links.youtube);
+  const video =
+    youtubeId === null
+      ? undefined
+      : { videoId: youtubeId, source: request.youtubeSource ?? ('pasted' as const) };
+  await putRecommendation(data, recommendation, video, current);
   return created({
-    song: toOpenWeekSongView(recommendation, userId, undefined, party.settings),
+    song: toOpenWeekSongView(
+      withYouTubeVideo(recommendation, youtubeId ?? undefined),
+      userId,
+      undefined,
+      party.settings,
+    ),
   } satisfies ShareSongResponse);
 };
 
@@ -109,7 +116,7 @@ export const listRecommendationsFn: HandlerFn = async (event, { data, now }) => 
   const { round } = await loadRoundForMember(event, data, userId);
 
   const [songs, myVotes] = await Promise.all([
-    listWeekRecommendations(data, round.roundId),
+    listWeekRecommendations(data, round.roundId, now()),
     listMyWeekVotes(data, round.roundId, userId),
   ]);
   const voteBySong = new Map(myVotes.map((v) => [v.recommendationId, v]));

@@ -19,4 +19,4 @@ export { castVoteHandler, listMyVotesHandler } from './handlers/votes';
 export { addCommentHandler, deleteCommentHandler, listCommentsHandler } from './handlers/comments';
 export { getResultsHandler } from './handlers/results';
 export { personalStatsHandler, groupStatsHandler, leaderboardHandler } from './handlers/stats';
-export { searchSongsHandler, resolveSongHandler } from './handlers/songs';
+export { searchSongsHandler, resolveSongHandler, suggestYouTubeHandler } from './handlers/songs';

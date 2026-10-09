@@ -148,7 +148,10 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
 - **D27 — Provider plan v2** (Ethan's answers, 2026-10-09; compliance to be confirmed in P13.2 / ADR-0011).
   - **Apple Music:** stays links only (iTunes Search + "Listen on Apple Music" badge, ADR-0007). MusicKit needs a paid
     Apple Developer membership, so it is **deferred** (roadmap P13.L). The player layer keeps a slot for it.
-  - **YouTube:** the **sharer pastes a YouTube / YouTube Music link** (already supported, D21) and the app plays it in
+  - **YouTube (updated 2026-10-09, ADR-0012):** when a song is chosen, the server makes **one YouTube search** for
+    it and the share dialog suggests the top result, which the sharer can keep, change or remove. Song search stays
+    on iTunes (YouTube allows only 100 searches a day). Every YouTube video id is deleted after 29 days.
+    Original plan: the **sharer pastes a YouTube / YouTube Music link** (already supported, D21) and the app plays it in
     **YouTube's official embedded player** (IFrame Player API). No Google API key, no YouTube Data API search, no
     quota, no Google account connection. Because a pasted video isn't verified as the official recording, it's labelled
     **"YouTube video linked by the sharer"** (spec §4).

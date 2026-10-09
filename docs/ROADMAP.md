@@ -430,6 +430,17 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   user agreed to the privacy policy (ADR-0011), otherwise the existing links; honours the user's
   "Play videos" setting once P13.6 adds it (default on). No backend change. *Done when:* unit + screen tests; manual
   check in the browser pane that a real pasted video plays and an embed-disabled one falls back; e2e still green.
+- [x] **P13.4a — Auto-find the YouTube video** (ADR-0012; Ethan, 2026-10-09) — `GET /songs/youtube` (new Lambda +
+  route + throttle; reads the key from SSM; one `search.list` per chosen song, top 3 results unchanged; 15 searches
+  per person per day; 1-hour cache); every new YouTube video id stored in its own item that DynamoDB deletes after
+  29 days (pasted or found), merged into the week's songs on read; share dialog pre-selects YouTube's first result
+  (title + channel, Play preview, pick another / paste / remove). Works quietly without a key. *Done when:* unit +
+  integration tests (auth, cap, quota/no-key fallbacks, expiry, merge), screen tests, `sam validate --lint`,
+  template tests, aws-change checks, API/DATABASE/API_COMPLIANCE/MUSIC_PROVIDERS updated, spec-reviewer.
+- [ ] **P13.4b — YouTube API key** [HUMAN] (ADR-0012) — Ethan creates the Google Cloud project + YouTube Data API v3
+  key and stores it in SSM for dev (and later prod); then a dev deploy (approval) and a live check that choosing a
+  song lists real YouTube results (not "busy": that would mean YouTube refused the `x-goog-api-key` header, see
+  `providers/youtube-search.ts`), and that a kept video plays.
 - [ ] **P13.5 — Song Details screen** (§21) — `/songs/:week/:songId`: artwork, title, artist, album, year, player or
   fallback, links, Apple badge; closed week: average, "#n of N", distribution, your rating, comments; open week:
   your rating only (D9), sharer hidden per D10. Reuses existing results/week/comments data. Linked from every song

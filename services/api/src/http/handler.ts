@@ -7,6 +7,8 @@ import { createDataContext, type DataContext } from '../data/context';
 import { DomainError } from '../data/errors';
 import { createItunesCatalog } from '../providers/itunes';
 import type { SongLookup } from '../providers/song-lookup';
+import { createYouTubeApiKeyReader } from '../providers/youtube-api-key';
+import { createYouTubeSearch, type YouTubeSearch } from '../providers/youtube-search';
 import { GENERIC_ERROR_MESSAGE, STATUS_BY_CODE } from './errors';
 import { logger } from './logger';
 import type { ApiEvent } from './request';
@@ -20,6 +22,8 @@ export interface Deps {
   newId: () => string;
   /** Song search and lookup (iTunes Search API, ADR-0007). */
   music: SongLookup;
+  /** One YouTube search for a chosen song (YouTube Data API, ADR-0012). */
+  youtube: YouTubeSearch;
 }
 
 export type ApiResult = APIGatewayProxyStructuredResultV2;
@@ -34,6 +38,7 @@ function getProductionDeps(): Deps {
     now: () => new Date(),
     newId: () => randomUUID(),
     music: createItunesCatalog(), // ADR-0007
+    youtube: createYouTubeSearch({ getApiKey: createYouTubeApiKeyReader() }), // ADR-0012
   };
   return productionDeps;
 }

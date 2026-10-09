@@ -217,11 +217,16 @@ Share today's song. Body:
 
 ```json
 { "provider": "appleMusic", "providerSongId": "828259377",
-  "links": { "spotify": "https://open.spotify.com/track/…", "youtube": "https://youtu.be/…" } }
+  "links": { "spotify": "https://open.spotify.com/track/…", "youtube": "https://youtu.be/…" },
+  "youtubeSource": "search" }
 ```
 
 `providerSongId` is the iTunes/Apple Music track id from song search (ADR-0007). `links` is optional: the sharer's
 own Spotify/YouTube links to the same song, validated and stored as clean URLs (tracking parameters removed).
+`youtubeSource` (optional, `pasted` | `search`) says whether the YouTube link is the sharer's own or the
+`GET /songs/youtube` result they kept. It's an informational label stored with the video, never shown or used for
+any decision, so it isn't verified. Since ADR-0012 the YouTube video is stored in its own item that DynamoDB
+deletes 29 days after sharing; song lists include it (as a `youtube` provider) only until then.
 Nothing else is accepted (no title, artwork, or date). The server decides today's date in the week's timezone and
 looks the song up itself.
 
@@ -361,4 +366,15 @@ it). Errors: `400 VALIDATION_FAILED`, `502 PROVIDER_UNAVAILABLE` ("Song search i
 Paste an Apple Music song link instead of searching (D21). Body: `{ "url": "https://music.apple.com/us/album/…?i=…" }`
 (or `…/song/<name>/<id>`). `200`: `{ "song": Song }`. Errors: `400 VALIDATION_FAILED` (not an Apple Music song
 link, or Apple doesn't have the song), `502 PROVIDER_UNAVAILABLE`.
+
+#### `GET /songs/youtube?providerSongId=828259377`
+
+Suggest YouTube videos for the song being shared (ADR-0012). `providerSongId`: the iTunes track id (digits). The
+server looks the song up in iTunes and makes one YouTube Data API `search.list` call for "artist title" (embeddable
+music videos, up to 3), cached for an hour per song. `200`:
+`{ "videos": [{ "videoId": "…", "title": "…", "channelTitle": "…" }], "unavailable": null }`, in YouTube's order
+with text as YouTube returned it. Instead of an error, `videos` is empty and `unavailable` says why:
+`notConfigured` (no API key set up), `dailyLimit` (this person's 15 YouTube searches for today are used; cached answers don't count), `busy` (YouTube's
+daily quota used up, or YouTube didn't answer). Errors: `400 VALIDATION_FAILED`, `404 NOT_FOUND` (no such song),
+`502 PROVIDER_UNAVAILABLE` (iTunes). Rate limit: 1/s, bursts of 3.
 

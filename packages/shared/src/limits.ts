@@ -84,6 +84,11 @@ export const PRIVACY_POLICY_VERSION = '2026-10-09';
  */
 export const IN_APP_VIDEO_MAX_AGE_DAYS = 30;
 
+/** ADR-0012: YouTube allows the whole app 100 searches a day, so each person gets at most this many. */
+export const YOUTUBE_SEARCHES_PER_PERSON_PER_DAY = 15;
+/** ADR-0012: every stored YouTube video id is deleted this many days after the song is shared (30-day rule). */
+export const YOUTUBE_VIDEO_KEEP_DAYS = 29;
+
 /** Avatar background colors from the design palette (docs/design), D18. Also the choices on the Profile screen. */
 export const AVATAR_COLORS = [
   '#3B82F6',

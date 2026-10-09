@@ -3,8 +3,9 @@
 ## Current focus
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
-It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4
-are done; next is **P13.5** (Song Details screen). **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
+are done; next is **P13.4b [HUMAN]**: Ethan creates the YouTube API key (DEPLOYMENT.md §4e), then a dev deploy and a
+live check. P13.5 (Song Details) can go ahead meanwhile. **Prod hold:** don't run `deploy.sh prod` with P13.4 until P13.6
 adds the "Play videos in Drop a Bop" switch (the privacy page already mentions it). P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -17,6 +18,8 @@ hand with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks 
 
 ## Blocked / Questions for Ethan
 
+- **YouTube API key (P13.4b, 2026-10-09).** Needed to turn on automatic YouTube videos: steps in DEPLOYMENT.md §4e.
+  Until then the share dialog simply shows no suggestion.
 - **CloudFront verification (blocks P9.2's deploy, 2026-10-04).** Creating the distribution failed: "Your account must
   be verified before you can add new CloudFront resources. ... contact AWS Support". Ethan opens a free Account and
   billing case (DEPLOYMENT.md §4c). Until then dev has `HostWebsite=false`.
@@ -52,6 +55,22 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.4a done: auto-find the YouTube video (ADR-0012)** — Ethan asked for the video to be added
+  automatically, and whether song search should move to YouTube: no (100 searches/day for the whole app; YouTube
+  data must be deleted after 30 days), so iTunes stays and one `search.list` runs per chosen song. New
+  `GET /songs/youtube` (new Lambda; key from SSM SecureString `/dropabop/<stage>/youtube-api-key`, read only by that
+  function via `ssm:GetParameter` + `kms:Decrypt` through SSM for that parameter; 15 real searches per person per
+  day; 1-hour cache; route 1/s); new runtime dependency `@aws-sdk/client-ssm`. Every new YouTube video id (found or
+  pasted) is now stored in a `YTVIDEO#` item that DynamoDB deletes 29 days after sharing, merged into the week's
+  songs on read. Share dialog (Ethan: fewer words for end users): "Video from YouTube", one-line titles + channel,
+  first one picked, "No video", "Preview video"; hidden when no key is set up. Docs: ADR-0012, D27, API, DATABASE,
+  DEPLOYMENT §4e (key steps), API_COMPLIANCE, PRIVACY + in-app privacy text, SECURITY, ARCHITECTURE,
+  MUSIC_PROVIDERS. spec-reviewer: PASS; applied its suggestions (non-JSON → busy, only real searches count, hex
+  escapes, exact-permission test, header citation). Verified: `npm run verify` (529 + 1 skipped), integration 203,
+  template tests, `sam validate --lint`, Lambda bundle builds and exports the handler, e2e 21 passed (before the
+  wording tweak), browser pane: dialog suggestions + Preview video in sample mode. Not verified: real YouTube calls
+  (needs the key, P13.4b), including that YouTube accepts the `x-goog-api-key` header.
 
 - 2026-10-09 — **Play card: close X above the video** (Ethan) — a "Now playing" row with the X now sits above the
   video; on short screens the same single X moves to the card's top-right corner (no room above). Verified: player +

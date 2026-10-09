@@ -217,6 +217,8 @@ export const submitRecommendationRequestSchema = z.strictObject({
       youtube: youtubeLinkSchema.optional(),
     })
     .optional(),
+  /** Where links.youtube came from (ADR-0012): the sharer's own link, or the YouTube search result they kept. */
+  youtubeSource: z.enum(['pasted', 'search']).optional(),
 });
 
 /**
@@ -248,6 +250,14 @@ export const songSearchQuerySchema = z.strictObject({
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
 });
 
+/** GET /songs/youtube?providerSongId= (ADR-0012): the iTunes track id of the song being shared. */
+export const youtubeSuggestionQuerySchema = z.strictObject({
+  providerSongId: z
+    .string()
+    .trim()
+    .regex(/^\d{1,20}$/, { error: 'Please choose a song.' }),
+});
+
 /** GET /parties/{partyId}/rounds?limit=&cursor= (week history). Query strings arrive as text. */
 export const roundHistoryQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(50).optional(),
@@ -277,5 +287,6 @@ export type SubmitRecommendationRequest = z.infer<typeof submitRecommendationReq
 export type CastVoteRequest = z.infer<typeof castVoteRequestSchema>;
 export type AddCommentRequest = z.infer<typeof addCommentRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
+export type YouTubeSuggestionQuery = z.infer<typeof youtubeSuggestionQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
 export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

@@ -278,6 +278,10 @@ Resources:
         'POST /songs/resolve':
           ThrottlingBurstLimit: 5
           ThrottlingRateLimit: 2
+        # One YouTube search per chosen song; YouTube allows the whole app 100 a day (ADR-0012).
+        'GET /songs/youtube':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
         # Invite codes: slow down anyone trying to guess codes (31^4 ≈ 920,000 possible).
         'GET /invites/{code}':
           ThrottlingBurstLimit: 5
@@ -898,6 +902,46 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /songs/resolve
+
+  # One YouTube search for the song being shared (ADR-0012). Reads the API key that Ethan stores as an SSM
+  # SecureString (/dropabop/<stage>/youtube-api-key; DEPLOYMENT.md), and counts each person's searches per day.
+  # Without the parameter the function answers "not configured" and sharing works as before.
+  SuggestYouTubeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.suggestYouTubeHandler
+      Environment:
+        Variables:
+          YOUTUBE_API_KEY_PARAMETER: !Sub /dropabop/${Stage}/youtube-api-key
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+        # Only this one parameter, and decrypting it only through SSM for that parameter.
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/dropabop/${Stage}/youtube-api-key
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+              Condition:
+                StringEquals:
+                  kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+                  kms:EncryptionContext:PARAMETER_ARN: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/dropabop/${Stage}/youtube-api-key
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /songs/youtube
 
   # ---------------------------------------------------------------------------------------------------------------
   # Alerts (spec §7, §33; roadmap P4.4). Email when something is failing or the bill moves. Alarms stay quiet when

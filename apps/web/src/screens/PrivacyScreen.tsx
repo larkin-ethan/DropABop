@@ -87,10 +87,13 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           from Apple’s servers, which (like any website) see your IP address and browser type.
         </li>
         <li>
-          <strong className="text-ink">YouTube.</strong> Drop a Bop uses YouTube API Services to play videos
-          that members link. Nothing is loaded from YouTube until you press Play. Once a video loads, YouTube
-          may set cookies and collect data about the playback, as it does on any site with a YouTube video.
-          That’s covered by the <External href={YOUTUBE_TERMS_URL}>YouTube Terms of Service</External> and the{' '}
+          <strong className="text-ink">YouTube.</strong> Drop a Bop uses YouTube API Services to find and play
+          videos for shared songs. When you choose a song to share, our server asks YouTube for matching
+          videos, sending only the song’s artist and title. Videos kept with a song are forgotten 29 days
+          after it was shared. In your browser, nothing is loaded from YouTube until you press Play. Once a
+          video loads, YouTube may set cookies and collect data about the playback, as it does on any site
+          with a YouTube video. That’s covered by the{' '}
+          <External href={YOUTUBE_TERMS_URL}>YouTube Terms of Service</External> and the{' '}
           <External href={GOOGLE_PRIVACY_URL}>Google Privacy Policy</External>. You can switch in-app videos
           off in Settings → Music and use links instead.
         </li>

@@ -11,10 +11,10 @@ change, flag the section here for review **before** changing the integration (§
 | Provider / API | Used for | Account or key | Status |
 |---|---|---|---|
 | iTunes Search API | Song search and details, Apple Music link | None | Live since P6 |
-| YouTube IFrame Player API | Playing videos that a sharer linked | None | Building in Phase 13 |
+| YouTube IFrame Player API | Playing videos that a sharer linked or kept | None | Building in Phase 13 |
 | Spotify | A link the sharer pastes; no API calls | None | Live (links only) |
 | Apple MusicKit on the Web / Apple Music API | — | Paid Apple Developer membership | **Deferred** (P13.L) |
-| YouTube Data API | — | Google Cloud key | **Not used** (D27) |
+| YouTube Data API v3 (`search.list`) | One search per shared song (ADR-0012) | Google Cloud API key (Ethan, P13.4b) | Built; off until the key exists |
 
 ## iTunes Search API
 
@@ -58,6 +58,21 @@ Full decision and sources: ADR-0011.
 | Known limitations | Only songs with a pasted YouTube link; the video may not be the official recording (labelled "YouTube video linked by the sharer"); browsers may block unmuted autoplay, so play always starts from a tap |
 | Compliance tests | Planned in P13.3 / P13.4: mocked `window.YT` unit tests (lazy load, one at a time, error → fallback, cleanup, size); one manual check with a real and an embed-disabled video. Results recorded here when run |
 
+## YouTube Data API v3 (ADR-0012)
+
+| Item | Detail |
+|---|---|
+| Docs / terms (checked 2026-10-09) | search.list reference (2026-09-14), quota page (2026-10-08), revision history (2026-06-01 quota buckets), Developer Policies (2026-09-14) — URLs in ADR-0012 |
+| Approved use | Suggest up to 3 embeddable music videos for the song a member is sharing; the member keeps one or none |
+| Endpoints | `GET https://www.googleapis.com/youtube/v3/search` only (`part=snippet`, `type=video`, `videoEmbeddable=true`, `videoCategoryId=10`, `maxResults=3`, `safeSearch=moderate`, `fields` trimmed), called from Lambda |
+| Authentication | API key (no OAuth, no user data). Kept in SSM SecureString, read only by `SuggestYouTubeFunction`, sent in the `x-goog-api-key` header, never logged or sent to browsers [DP §III.D.1]. One Google project for this app |
+| Quota | 100 `search.list` calls/day for the project (own bucket since 2026-06-01), reset at midnight Pacific. Our limits: one call per chosen song, 1-hour cache per song, 15 per person per day, route throttled 1/s. Quota errors → "busy", no retries |
+| Search results | Shown as returned: same order, title and channel as YouTube gave them (HTML escapes decoded only), marked "From YouTube" [DP §III.C.5, §III.F.2]. Nothing attached unless the member keeps it and presses Share [DP §III.I.2] |
+| Caching / retention | Results cached ≤ 1 hour in memory. A kept video id is stored in a `YTVIDEO#` item deleted by DynamoDB TTL 29 days after sharing; reads ignore it after that [DP §III.E.4] |
+| Privacy | Only "artist title" of the chosen song is sent to Google; no user data. Disclosed in PRIVACY.md |
+| Known limitations | Can suggest a cover/live/lyric video (member sees title + channel and can change it); 100/day cap |
+| Not yet verified live | Needs the key (P13.4b). In particular: that the `x-goog-api-key` header is accepted (Google's documented alternative to `?key=`) |
+
 ## Spotify (links only)
 
 | Item | Detail |
@@ -85,7 +100,8 @@ Recorded so it can be added later (P13.L). Checked 2026-10-09:
 
 ## Open questions
 
-1. **Do member-pasted YouTube video ids count as "API data" under the 30-day rule?** The Developer Policies' 30-day
+1. **Do member-pasted YouTube video ids count as "API data" under the 30-day rule?** (Since ADR-0012 every newly
+   stored video id, pasted or found, is deleted after 29 days, so this only concerns links pasted before then.) The Developer Policies' 30-day
    limit covers data obtained through YouTube API Services; our ids come from a member's paste. Not stated either
    way. Handling: in-app play only for songs shared in the last 30 days (Ethan, 2026-10-09). Could be relaxed if
    YouTube confirms.

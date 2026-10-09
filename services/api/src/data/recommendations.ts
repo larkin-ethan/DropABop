@@ -10,6 +10,12 @@ import { MESSAGES } from '../domain/messages';
 import type { DataContext } from './context';
 import { queryByPrefix, transactWrite, withoutKeys } from './context';
 import { DomainError, failedTransactionItems } from './errors';
+import {
+  listWeekYouTubeVideos,
+  withYouTubeVideo,
+  youtubeVideoItem,
+  type YouTubeVideoSource,
+} from './youtube-videos';
 import { keys, parseRoundId, partitionKeys, prefixes } from './keys';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -26,7 +32,13 @@ function weekOf(recommendation: Pick<Recommendation, 'roundId'>): { partyId: str
  * Saves a shared song. One per member per day (D1) is guaranteed by a marker item that can only be created once
  * for that member + date, written in the same transaction as the song.
  */
-export async function putRecommendation(ctx: DataContext, recommendation: Recommendation): Promise<void> {
+export async function putRecommendation(
+  ctx: DataContext,
+  recommendation: Recommendation,
+  /** The song's YouTube video, saved in its own item that expires (ADR-0012). */
+  youtube?: { videoId: string; source: YouTubeVideoSource },
+  now: Date = new Date(),
+): Promise<void> {
   const { partyId, weekStart } = weekOf(recommendation);
   if (recommendation.partyId !== partyId) {
     throw new Error('Recommendation partyId does not match its roundId');
@@ -60,6 +72,9 @@ export async function putRecommendation(ctx: DataContext, recommendation: Recomm
             ConditionExpression: 'attribute_not_exists(PK)',
           },
         },
+        ...(youtube === undefined
+          ? []
+          : [{ Put: youtubeVideoItem(ctx, recommendation, weekStart, youtube, now) }]),
       ],
     });
   } catch (error) {
@@ -88,19 +103,23 @@ export async function getRecommendation(
   return Item === undefined ? null : withoutKeys<Recommendation>(Item);
 }
 
-/** All songs shared in a week, oldest first. */
-export async function listWeekRecommendations(ctx: DataContext, roundId: string): Promise<Recommendation[]> {
+/** All songs shared in a week, oldest first, each with its YouTube video if it hasn't expired (ADR-0012). */
+export async function listWeekRecommendations(
+  ctx: DataContext,
+  roundId: string,
+  now: Date,
+): Promise<Recommendation[]> {
   const parts = parseRoundId(roundId);
   if (parts === null) {
     return [];
   }
-  const items = await queryByPrefix(
-    ctx,
-    partitionKeys.party(parts.partyId),
-    prefixes.weekRecommendations(parts.weekStart),
-  );
+  const [items, videos] = await Promise.all([
+    queryByPrefix(ctx, partitionKeys.party(parts.partyId), prefixes.weekRecommendations(parts.weekStart)),
+    listWeekYouTubeVideos(ctx, parts.partyId, parts.weekStart, now),
+  ]);
   return items
     .map((item) => withoutKeys<Recommendation>(item))
+    .map((recommendation) => withYouTubeVideo(recommendation, videos.get(recommendation.recommendationId)))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 

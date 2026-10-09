@@ -881,7 +881,6 @@ describe('Play video on song cards (P13.4, ADR-0011)', () => {
     await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'blue sky');
     await userEvent.click(await screen.findByRole('button', { name: 'Choose Mr. Blue Sky' }));
     const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
-    expect(within(dialog).queryByRole('button', { name: /Play the YouTube video/ })).not.toBeInTheDocument();
     await userEvent.click(within(dialog).getByText('Add your Spotify or YouTube Music link (optional)'));
     await userEvent.type(
       within(dialog).getByLabelText('YouTube Music link'),
@@ -892,5 +891,107 @@ describe('Play video on song cards (P13.4, ADR-0011)', () => {
         name: 'Play the YouTube video linked by the sharer for Mr. Blue Sky',
       }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('YouTube video found automatically when sharing (ADR-0012)', () => {
+  function capture(setup?: (s: ReturnType<typeof createPreviewState>) => void) {
+    const state = createPreviewState();
+    state.songs = state.songs.filter((x) => x.recommendationId !== 'r9');
+    setup?.(state);
+    const preview = createPreviewApi(state);
+    const posts: { path: string; body: unknown }[] = [];
+    const api: ApiClient = {
+      ...preview,
+      post: (path, body) => {
+        posts.push({ path, body });
+        return preview.post(path, body);
+      },
+    };
+    return { api, posts };
+  }
+
+  async function chooseSong() {
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'blue sky');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Mr. Blue Sky' }));
+    return screen.findByRole('dialog', { name: 'Share this song?' });
+  }
+
+  const shared = (posts: { path: string; body: unknown }[]) =>
+    posts.find((p) => p.path.endsWith('/recommendations'))?.body;
+
+  it('picks YouTube’s first result, shows the results as YouTube gave them, and attaches the one you keep', async () => {
+    const { api, posts } = capture();
+    renderApp('/share', { api });
+    const dialog = await chooseSong();
+    const group = await within(dialog).findByRole('group', { name: 'Video from YouTube' });
+    const first = within(group).getByRole('radio', { name: /YouTube Developers Live: Embedded Web Player/ });
+    expect(first).toBeChecked();
+    expect(within(group).getByText('Google for Developers')).toBeInTheDocument();
+    const previewButton = within(group).getByRole('button', {
+      name: /Play the YouTube video linked by the sharer/,
+    });
+    expect(previewButton).toHaveTextContent('Preview video');
+    expect(within(group).queryByText('YouTube video linked by the sharer')).not.toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    await waitFor(() => expect(shared(posts)).toBeDefined());
+    expect(shared(posts)).toMatchObject({
+      links: { youtube: 'https://www.youtube.com/watch?v=M7lc1UVf-VE' },
+      youtubeSource: 'search',
+    });
+  });
+
+  it('shares without a video when you choose "No video"', async () => {
+    const { api, posts } = capture();
+    renderApp('/share', { api });
+    const dialog = await chooseSong();
+    await userEvent.click(await within(dialog).findByRole('radio', { name: 'No video' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    await waitFor(() => expect(shared(posts)).toBeDefined());
+    expect(shared(posts)).not.toHaveProperty('links.youtube');
+    expect(shared(posts)).not.toHaveProperty('youtubeSource');
+  });
+
+  it('uses your own pasted link instead, marked as yours', async () => {
+    const { api, posts } = capture();
+    renderApp('/share', { api });
+    const dialog = await chooseSong();
+    await userEvent.click(within(dialog).getByText('Add your Spotify or YouTube Music link (optional)'));
+    await userEvent.type(within(dialog).getByLabelText('YouTube Music link'), 'https://youtu.be/dX3k_QDnzHE');
+    expect(within(dialog).queryByRole('group', { name: 'Video from YouTube' })).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    await waitFor(() => expect(shared(posts)).toBeDefined());
+    expect(shared(posts)).toMatchObject({
+      links: { youtube: 'https://youtu.be/dX3k_QDnzHE' },
+      youtubeSource: 'pasted',
+    });
+  });
+
+  it('stays out of the way when YouTube isn’t set up, and explains when searches are used up', async () => {
+    const notConfigured = capture();
+    const api: ApiClient = {
+      ...notConfigured.api,
+      get: (path) =>
+        path.startsWith('/songs/youtube')
+          ? Promise.resolve({ videos: [], unavailable: 'notConfigured' } as never)
+          : notConfigured.api.get(path),
+    };
+    const { unmount } = renderApp('/share', { api });
+    const dialog = await chooseSong();
+    await waitFor(() => expect(within(dialog).queryByText('Finding a video…')).not.toBeInTheDocument());
+    expect(within(dialog).queryByRole('group', { name: 'Video from YouTube' })).not.toBeInTheDocument();
+    unmount();
+
+    const limited: ApiClient = {
+      ...notConfigured.api,
+      get: (path) =>
+        path.startsWith('/songs/youtube')
+          ? Promise.resolve({ videos: [], unavailable: 'dailyLimit' } as never)
+          : notConfigured.api.get(path),
+    };
+    renderApp('/share', { api: limited });
+    const second = await chooseSong();
+    expect(await within(second).findByText('No more video searches today.')).toBeInTheDocument();
   });
 });

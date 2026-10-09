@@ -33,6 +33,8 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 | Comment (D25) | `PARTY#<partyId>` | `COMMENT#<week>#<createdAt>#<commentId>` | roundId, recommendationId, userId, text, createdAt |
 | Invite code lookup | `INVITE#<code>` | `INVITE` | partyId |
 | Wrong invite codes (one hour) | `USER#<userId>` | `INVITEFAIL#<UTC hour, e.g. 2026-10-04T15>` | failures, expiresAt (TTL) |
+| A song's YouTube video (ADR-0012) | `PARTY#<partyId>` | `YTVIDEO#<week>#<recommendationId>` | recommendationId, videoId, source (`pasted` / `search`), expiresAt (TTL: share time + 29 days) |
+| YouTube searches (one UTC day) | `USER#<userId>` | `YTSEARCH#<date>` | searches (max 15), expiresAt (TTL: 2 days) |
 
 Notes:
 
@@ -45,6 +47,10 @@ Notes:
   separate song table because nothing reads songs on their own.
 - **Not stored in v1:** provider connections (no account linking, D20), and precomputed stats (computed when
   requested; see ADR-0006 in P5.10). Email lives in Cognito only (D19).
+- **YouTube videos** (ADR-0012): since 2026-10-09 a song's YouTube video id is stored in its own `YTVIDEO#` item, not
+  in the song, so DynamoDB deletes it 29 days after sharing (YouTube's 30-day rule). Reading a week's songs also
+  queries `YTVIDEO#<week>#` and adds unexpired ones as a `youtube` provider. Older songs may still have a pasted
+  YouTube link inside the song (the member's own content, ADR-0011).
 - Timestamps are UTC ISO strings set by the server.
 - **Invite failures** (P9.3): each wrong invite code a person tries adds 1 to that hour's counter; at 10, invite
   lookups and joins answer 429 until the next hour, so codes can't be guessed. The table's TTL deletes these items

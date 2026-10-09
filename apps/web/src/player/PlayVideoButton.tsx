@@ -14,12 +14,18 @@ export function PlayVideoButton({
   song,
   submittedOn,
   preferred,
+  label = 'Play video',
+  showSource = true,
 }: {
   songKey: string;
   song: Song;
   /** YYYY-MM-DD the song was shared, or null for the preview before sharing. */
   submittedOn: string | null;
   preferred: MusicProviderId | null;
+  /** The button's words; the share dialog says "Preview video". */
+  label?: string;
+  /** "YouTube video linked by the sharer" next to the button. Not needed in the sharer's own preview. */
+  showSource?: boolean;
 }) {
   const me = useMe();
   const now = useNow();
@@ -44,9 +50,9 @@ export function PlayVideoButton({
         className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary transition hover:bg-primary/25 disabled:cursor-default disabled:opacity-70"
       >
         <Icon name="play" className="size-3.5" />
-        {isCurrent ? 'In the player' : 'Play video'}
+        {isCurrent ? 'In the player' : label}
       </button>
-      <span className="text-xs text-muted">YouTube video linked by the sharer</span>
+      {showSource && <span className="text-xs text-muted">YouTube video linked by the sharer</span>}
     </span>
   );
 }

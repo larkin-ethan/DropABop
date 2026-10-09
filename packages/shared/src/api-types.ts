@@ -283,6 +283,23 @@ export interface SongSearchResponse {
   songs: Song[];
 }
 
+/** One YouTube search result, exactly as YouTube returned it (ADR-0012: results aren't changed or reordered). */
+export interface YouTubeVideoSuggestion {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+}
+
+/**
+ * GET /songs/youtube (ADR-0012). `videos` in YouTube's order (best first), or empty with the reason:
+ * `notConfigured` (no API key yet), `busy` (YouTube's daily quota used up or YouTube unreachable),
+ * `dailyLimit` (this person used their searches for today). Sharing works the same either way.
+ */
+export interface YouTubeSuggestionsResponse {
+  videos: YouTubeVideoSuggestion[];
+  unavailable: 'notConfigured' | 'busy' | 'dailyLimit' | null;
+}
+
 export interface ResolveSongResponse {
   song: Song;
 }

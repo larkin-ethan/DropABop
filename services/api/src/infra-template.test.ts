@@ -22,7 +22,10 @@ const template = parse(readRepoFile('infra/template.yaml'), { logLevel: 'silent'
 
 interface FunctionProps {
   Handler: string;
-  Policies?: { Statement: { Effect: string; Action: string[]; Resource: string }[] }[];
+  Policies?: {
+    Statement: { Effect: string; Action: string[]; Resource: string; Condition?: Record<string, unknown> }[];
+  }[];
+  Environment?: { Variables: Record<string, string> };
   Events: Record<string, { Type: string; Properties: { Method: string; Path: string } }>;
 }
 
@@ -81,6 +84,8 @@ describe('infra/template.yaml', () => {
       for (const policy of fn.props.Policies ?? []) {
         for (const statement of policy.Statement) {
           expect(statement.Effect, fn.logicalId).toBe('Allow');
+          // The one exception: the YouTube search reads its API key (checked in its own test below).
+          if (fn.logicalId === 'SuggestYouTubeFunction' && statement.Resource !== 'Table.Arn') continue;
           expect(statement.Resource, fn.logicalId).toBe('Table.Arn');
           for (const action of statement.Action) {
             expect(allowed.has(action), `${fn.logicalId}: ${action}`).toBe(true);
@@ -88,6 +93,33 @@ describe('infra/template.yaml', () => {
         }
       }
     }
+  });
+
+  it('lets only the YouTube search read the YouTube key: one parameter, decrypted only through SSM (ADR-0012)', () => {
+    const keyName = '/dropabop/${Stage}/youtube-api-key';
+    for (const fn of functions) {
+      const statements = (fn.props.Policies ?? []).flatMap((policy) => policy.Statement);
+      const touchesSecrets = statements.some((s) =>
+        s.Action.some((action: string) => action.startsWith('ssm:') || action.startsWith('kms:')),
+      );
+      expect(touchesSecrets, fn.logicalId).toBe(fn.logicalId === 'SuggestYouTubeFunction');
+    }
+    const fn = functions.find((candidate) => candidate.logicalId === 'SuggestYouTubeFunction');
+    const statements = (fn?.props.Policies ?? []).flatMap((policy) => policy.Statement);
+    // Exactly these three permissions, so nothing can be added to this function unnoticed.
+    expect(statements.flatMap((s) => s.Action).sort()).toEqual([
+      'dynamodb:UpdateItem',
+      'kms:Decrypt',
+      'ssm:GetParameter',
+    ]);
+    const ssm = statements.find((s) => s.Action.includes('ssm:GetParameter'));
+    expect(ssm?.Action).toEqual(['ssm:GetParameter']);
+    expect(String(ssm?.Resource)).toContain(`parameter${keyName}`);
+    const kms = statements.find((s) => s.Action.includes('kms:Decrypt'));
+    expect(kms?.Action).toEqual(['kms:Decrypt']);
+    expect(JSON.stringify(kms?.Condition)).toContain('kms:ViaService');
+    expect(JSON.stringify(kms?.Condition)).toContain(`parameter${keyName}`);
+    expect(JSON.stringify(fn?.props.Environment)).toContain(keyName);
   });
 
   it('gives the functions that never touch the table no permissions at all', () => {

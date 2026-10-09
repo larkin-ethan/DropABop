@@ -15,6 +15,7 @@ const deps: Deps = {
   now: () => new Date('2026-10-07T17:00:00Z'),
   newId: () => '00000000-0000-4000-8000-000000000000',
   music: { searchSongs: () => Promise.resolve([]), getSong: () => Promise.resolve(null) },
+  youtube: { findVideos: () => Promise.resolve({ ok: false, reason: 'notConfigured' }) },
 };
 
 /** Captures everything written to stdout/stderr during a test. */

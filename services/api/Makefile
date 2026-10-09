@@ -9,7 +9,7 @@ FUNCTIONS = HealthFunction GetMeFunction UpdateMeFunction CreatePartyFunction Li
 	GetCurrentWeekFunction ListWeeksFunction SubmitRecommendationFunction ListRecommendationsFunction \
 	CastVoteFunction ListMyVotesFunction GetResultsFunction PersonalStatsFunction GroupStatsFunction \
 	LeaderboardFunction SearchSongsFunction ResolveSongFunction ListCommentsFunction AddCommentFunction \
-	DeleteCommentFunction
+	DeleteCommentFunction SuggestYouTubeFunction
 
 $(addprefix build-,$(FUNCTIONS)):
 	node scripts/bundle.mjs "$(ARTIFACTS_DIR)"

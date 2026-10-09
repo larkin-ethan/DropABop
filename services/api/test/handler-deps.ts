@@ -43,6 +43,25 @@ export function testDeps(startIso = '2026-10-07T17:00:00.000Z'): TestDeps {
       getSong: (provider, id) =>
         Promise.resolve(provider !== 'appleMusic' || id.startsWith('999') ? null : fakeSong(provider, id)),
     },
+    // A fake YouTube (no cache): songs whose id starts with "8" have no match; everything else gets two videos.
+    youtube: {
+      findVideos: async (cacheKey, _query, mayUseSearch) => {
+        if (!(await mayUseSearch())) return { ok: false, reason: 'dailyLimit' };
+        return {
+          ok: true,
+          videos: cacheKey.startsWith('8')
+            ? []
+            : [
+                {
+                  videoId: 'aaaaaaaaaaa',
+                  title: 'Test Artist - Song (Official Video)',
+                  channelTitle: 'Test Artist',
+                },
+                { videoId: 'bbbbbbbbbbb', title: 'Song (Live)', channelTitle: 'Somebody' },
+              ],
+        };
+      },
+    },
     setNow: (iso) => {
       current = new Date(iso);
     },

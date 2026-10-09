@@ -652,6 +652,20 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
       };
     }
+    if (is('GET', 'songs', 'youtube')) {
+      // Sample YouTube suggestions (ADR-0012). M7lc1UVf-VE is the sample video in YouTube's IFrame API reference.
+      return {
+        videos: [
+          {
+            videoId: 'M7lc1UVf-VE',
+            title: 'YouTube Developers Live: Embedded Web Player',
+            channelTitle: 'Google for Developers',
+          },
+          { videoId: 'zzzzzzzzzzz', title: 'A video that doesn’t exist', channelTitle: 'Nobody' },
+        ],
+        unavailable: null,
+      };
+    }
     if (is('POST', 'songs', 'resolve')) {
       const song = state.catalog[0];
       if (song === undefined) notFound();

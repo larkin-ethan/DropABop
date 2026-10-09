@@ -25,6 +25,7 @@ import type {
   UpdateProfileRequest,
   VoteResponse,
   WeekSongsResponse,
+  YouTubeSuggestionsResponse,
 } from '@dropabop/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
@@ -181,6 +182,22 @@ export function useSongSearch(q: string) {
     queryFn: () => api.get<SongSearchResponse>(`/songs/search?q=${enc(query)}`),
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+/**
+ * YouTube videos for the song being shared (ADR-0012). One search per chosen song, so it's kept for an hour and
+ * never retried automatically (YouTube allows the whole app 100 searches a day).
+ */
+export function useYouTubeSuggestions(providerSongId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['youtubeSuggestions', providerSongId ?? ''] as const,
+    queryFn: () =>
+      api.get<YouTubeSuggestionsResponse>(`/songs/youtube?providerSongId=${enc(providerSongId ?? '')}`),
+    enabled: providerSongId !== null,
+    staleTime: 60 * 60_000,
     retry: false,
   });
 }
