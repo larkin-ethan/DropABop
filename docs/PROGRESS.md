@@ -2,10 +2,16 @@
 
 ## Current focus
 
-**Prod is live at https://dropabop.pages.dev** (Cloudflare Pages until CloudFront, ADR-0010). The repo now lives in `~/Documents/GitHub/DropABop` (GitHub: larkin-ethan/DropABop, public). Deploys are by hand
-with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). Waiting on Ethan:
-weekday checks **P4.3** and **P10.3** (Monday), AWS's CloudFront verification (§4c), then **P11.3** (protect `main`,
-merge `build` → `main`, first prod deploy). Remaining AI work follows those: P9.2 website publish, P11.4, P12.2.
+**Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1 is
+done; next is **P13.2** (YouTube/Apple compliance research → ADR-0011, API_COMPLIANCE.md, PRIVACY.md). Phase 13 runs
+while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
+(cost check after a week of use), P12.3 (launch).
+
+**Prod is live at https://dropabop.pages.dev** (Cloudflare Pages until CloudFront, ADR-0010). The repo now lives in
+**`~/GitHub/DropABop`** (moved out of iCloud on 2026-10-09; GitHub: larkin-ethan/DropABop, public). Deploys are by
+hand with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). P8.14
+(comments) still needs a dev deploy (approval) and `deploy.sh prod` (Ethan).
 
 ## Blocked / Questions for Ethan
 
@@ -32,6 +38,8 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
   CLI profile `dropabop-dev` signs in with `aws login --profile dropabop-dev` (role `AccountFullAccessRole`, 12 h credentials;
   verified 2026-10-03). See DEPLOYMENT.md §2.8.
 - Stacks: `dropabop-dev` (live since 2026-10-03), `dropabop-prod` (planned). Old `sotd-dev` and its table and user pool were deleted by Ethan (2026-10-03).
+- Repo location: `~/GitHub/DropABop` (2026-10-09). The old `~/Documents/GitHub/DropABop` copy was left as
+  iCloud placeholders (all of `.git` evicted, git unusable): don't work there. iCloud "Optimize Mac Storage" did it.
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
 - AWS CLI 2.37.9, SAM CLI 1.166.2 (verified 2026-10-03). Set `SAM_CLI_TELEMETRY=0` to skip SAM's telemetry.
@@ -42,6 +50,14 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.1 done: spec v2 intake + decisions** — saved Ethan's pasted master spec v2 word for word as
+  `docs/SPEC_V2.md` (only headings/fences added) and the three mockup sheets as `docs/design/mockup-v3-*.webp`; wrote
+  `docs/SPEC_V2_RECONCILIATION.md` (all 47 sections: done / adapt / new / deferred); added D26–D33 (weekly mapping,
+  provider plan v2 from Ethan's answers, 26 achievements, in-app notifications, leaderboard periods + provisional,
+  history metrics, navigation, party-scoped search); added roadmap Phase 13 (P13.1–P13.16 + deferred P13.L Apple
+  MusicKit); mapped the new mockups in `docs/design/README.md`; CLAUDE.md now points at SPEC_V2. Docs only.
+  Verified: `npm run verify` (format, lint, typecheck, 462 tests + 1 skipped, guardrails) passed. Leftovers: none.
 
 - 2026-10-07 — **P8.14 done: comments on songs (Ethan's request; D25)** — Ethan chose: names always shown, comments only
   while the week is open. Three routes (list / add / delete) as three least-privilege functions, `COMMENT#week#time#id`

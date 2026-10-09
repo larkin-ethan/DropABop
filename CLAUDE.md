@@ -9,9 +9,10 @@ Serverless AWS, near-$0 to run.
 
 | File | What it's for |
 |---|---|
-| `docs/SPEC.md` | **Source of truth.** The master specification. Never edit it without being asked. |
-| `docs/PRODUCT_DECISIONS.md` | Answers to product questions the spec leaves open (round rules, stats formulas, defaults). |
-| `docs/design/` | Approved mockup (visual reference) + `README.md` mapping each mockup screen to a task and its adaptations. |
+| `docs/SPEC_V2.md` | **Source of truth (since 2026-10-09).** Master spec v2, word for word. Never edit it without being asked. How it fits the existing app: `docs/SPEC_V2_RECONCILIATION.md`. |
+| `docs/SPEC.md` | The original (v1) master spec. Still describes everything v2 doesn't change. Never edit it. |
+| `docs/PRODUCT_DECISIONS.md` | Answers to product questions the spec leaves open (round rules, stats formulas, defaults). D26–D33 adapt spec v2 and win over it where they say so. |
+| `docs/design/` | Approved mockups (v2 overview + three v3 sheets) + `README.md` mapping each mockup screen to a task and its adaptations. |
 | `docs/ROADMAP.md` | Every build task, in order, with acceptance criteria. Work top to bottom. |
 | `docs/PROGRESS.md` | Current state, blockers, and a session log. Read first, update last. |
 | `docs/decisions/` | ADRs (architecture decision records) + `approved-aws-resources.txt`. |

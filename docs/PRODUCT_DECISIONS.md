@@ -133,6 +133,94 @@ this deliberate change to spec §13–§15.
   **collapsed** ("💬 Comments (3)"), on the Rate screen and (read-only) in the results. Comments don't affect ratings,
   results or stats.
 
+## Spec v2 (Ethan, 2026-10-09; `docs/SPEC_V2.md`, roadmap Phase 13)
+
+Spec v2 asks to keep working functionality (§1), so it is fitted onto the weekly app rather than replacing it.
+Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below are defaults Ethan can change.
+
+- **D26 — Spec v2 words mapped onto the weekly model.** A spec **"round" is the week** (D2) and a spec **"day" is one
+  sharing day** inside it. "One recommendation per round" stays one song per sharing day (D1). Starting and ending a
+  round stays lazy with the host's days and lock time (D3, P8.13): no Start/End Round buttons. Stats, achievements,
+  leaderboards and history ratings use **closed weeks only**; open weeks show counts only (D9). The spec's separate
+  "Weekly Summary" screen is the **"Your week"** section of the history Week view (one screen, not two).
+- **D27 — Provider plan v2** (Ethan's answers, 2026-10-09; compliance to be confirmed in P13.2 / ADR-0011).
+  - **Apple Music:** stays links only (iTunes Search + "Listen on Apple Music" badge, ADR-0007). MusicKit needs a paid
+    Apple Developer membership, so it is **deferred** (roadmap P13.L). The player layer keeps a slot for it.
+  - **YouTube:** the **sharer pastes a YouTube / YouTube Music link** (already supported, D21) and the app plays it in
+    **YouTube's official embedded player** (IFrame Player API). No Google API key, no YouTube Data API search, no
+    quota, no Google account connection. Because a pasted video isn't verified as the official recording, it's labelled
+    **"YouTube video linked by the sharer"** (spec §4).
+  - **Spotify:** stays a plain pasted link. Spec §4 says not to integrate Spotify in the first release; a link the
+    sharer pastes is not an integration (no Spotify API calls, no connect, no playback).
+  - Playback is never required: rating, sharing, results and stats work without it (spec §14). A per-user
+    **"Play videos in Drop a Bop"** setting (default on) turns the embed off for people who'd rather open links.
+  - The preferred music app (D22) moves from Profile to **Settings → Music** (P13.6).
+- **D28 — Achievements.** Computed on the server from **closed weeks only**, per party, never stored as awards
+  (so no duplicates and nothing the browser can fake). Each one shows progress (`current / target`) and is
+  "unlocked on" the lock date of the first closed week that met it. Party members can see each other's
+  achievements. No daily streaks (spec §17: avoid encouraging unhealthy use); consistency counts weeks.
+  "Took part in a week" = shared at least one song or rated at least one song that week.
+
+  | Group | Achievement | Unlocks when |
+  |---|---|---|
+  | Participation | First Drop | You shared your first song |
+  | | First Rating | You rated your first song |
+  | | 10 / 50 / 100 Weeks | You took part in 10 / 50 / 100 weeks |
+  | Discovery | 10 Artists / 25 Artists | Your shared songs cover 10 / 25 different artists (artist name, case-insensitive) |
+  | | Genre Explorer / 10 Genres | Your shared songs cover 5 / 10 different genres (only songs with a genre count, P13.7) |
+  | Rating | First 10 / First 1 | You gave a 10 / a 1 |
+  | | Generous Voter / Tough Critic | Your generosity is ≥ +1.0 / ≤ −1.0, with at least 10 ratings |
+  | | Balanced Judge | Your average given is within 0.3 of the party's, with at least 20 ratings |
+  | Song success | Top Bop | Your song was #1 in a week's results (ties count) |
+  | | Crowd Favorite | Your song was a week's crowd favorite (stats definition, applied to that week) |
+  | | Perfect Score | A song of yours averaged 10.0 with at least 3 ratings |
+  | | Back-to-Back | You had the #1 song in two weeks in a row (weeks that had results) |
+  | Social | Musical Twin / Most Compatible | Someone's ratings differ from yours by ≤ 1.0 on ≥ 5 shared songs / ≤ 0.5 on ≥ 10 (the twin isn't named) |
+  | | Most Divisive | Your song was a week's most divisive song (≥ 4 ratings) |
+  | | Group Favorite | Everyone who rated that week (except you) rated your song, average ≥ 8.0, ≥ 3 ratings |
+  | Consistency | Weekly Regular | You shared on every sharing day of a week |
+  | | Full House | You rated every song of a week that you didn't share (at least 5) |
+  | | Monthly Regular / Season Regular | You took part in 4 / 12 weeks in a row |
+
+  The spec's "7-Day Streak" and "30-Day Streak" become Full House and Season Regular (week-based). An unlock shows a
+  small toast on Home or Results only (never mid-rating), with reduced motion respected.
+- **D29 — Notifications: in-app only, worked out when you open the app** (spec §22 allows this). No push, no email,
+  no new AWS service, nothing scheduled. Types, for your current party: songs waiting for you to rate this week (a
+  count) · you haven't shared today (sharing days only) · weekly results are ready · achievement unlocked · your rank
+  last week · new comments on your songs (a count). A bell shows the unread count; "read" means newer than the time
+  you last opened the list. Each type can be switched off in Settings → Notifications. The app checks when the
+  window regains focus and at most every 5 minutes while it's open. No streak notifications (D28).
+- **D30 — Leaderboard periods and provisional rankings.** Periods: **This week** = the most recent closed week;
+  **This month** = closed weeks whose lock falls in the current calendar month (party timezone); **All time**
+  (the spec's "Overall" is the same as All time). Boards: Highest Average Received, Highest Average Given, Most Bops,
+  Most Ratings, Crowd Favorites, Toughest Critic, Most Generous, Most Consistent, plus the existing ones. The
+  minimum samples from the stats table apply in every period. People below the minimum are listed separately under
+  **"Provisional"** with the rule shown ("needs 3 rated songs"), never ranked above someone who qualifies, so one
+  10 can't beat 100 ratings averaging 9.5.
+- **D31 — History metrics** (calendar, Day view, Week view; definitions go in `STATISTICS.md` in P13.8). A day is
+  midnight to midnight in the week's timezone. Ratings count toward the day **the song was shared**. Only closed
+  weeks show ratings; an open week's days show songs shared and "Results after ratings lock".
+  - **Day:** songs shared, ratings on them, your average given, your average received, the Bop of the Day (D12),
+    the lowest-rated song (≥ 3 ratings), rating distribution, group average (mean of all ratings on that day's
+    songs), favorite artists only with ≥ 2 songs by an artist, your song's rank in its week.
+  - **Week:** songs, ratings, average rating, best song, top artists (most songs shared, ties shared, top 3), most
+    agreeable day (the day whose songs have the lowest average spread; songs with ≥ 4 ratings, ≥ 2 such songs), most
+    divisive song (stats definition), and **"Your week"**: songs you rated, your averages given and received, your top
+    song, achievements unlocked that week, and your rank by average received that week (needs 1 rated song; shown
+    as "#3 of 12").
+  - **Calendar marks:** a dot on days the party shared songs (a filled dot if you shared), ★ on days one of your
+    songs got your best-ever song average, and a badge on lock days where you unlocked an achievement.
+- **D32 — Navigation** (spec §27, §40). Desktop sidebar: Home, Today's Drop, History, Stats, Leaderboard,
+  Achievements, Search, then Party, Members, Settings, then Profile. Mobile bottom bar: **Home · Drop · History ·
+  Stats · Profile**. **Drop** is a hub with three tabs (Share · Rate · Results) that reuse the existing screens.
+  The notifications bell and settings stay in the mobile header; Leaderboard and Achievements are reached from
+  Stats and Profile. This replaces the layout notes in `docs/design/README.md`.
+- **D33 — Search is party-scoped.** Search covers only your current party: its shared songs and artists, its
+  members, and its weeks. Nothing outside the party and no external music search (finding a *new* song stays in
+  Share's iTunes search). While a week is open, its songs appear without who shared them (D10). The party's songs
+  are read with one key query (`PARTY#id`, songs only), capped and paginated. That's a documented exception to
+  "no fetching everything to filter": DynamoDB has no text search, and a party adds about 5,000 songs a year at most.
+
 ## Statistics definitions (§17, §18)
 
 All stats are labeled "calculated" in the UI and show their sample size ("Based on N …").
@@ -162,6 +250,6 @@ Standard deviation = population standard deviation. Genres are shown only if a p
 
 ## Out of scope for v1
 
-Real-time updates, push/email notifications, email invites, image uploads, chat (comments on songs are in, D25), public
+Real-time updates, push/email notifications (in-app ones are in, D29), email invites, image uploads, chat (comments on songs are in, D25), public
 profiles, host transfer, cross-party stats, native mobile apps, custom domain (Ethan, 2026-10-01: use the
 free CloudFront URL for now; a domain can be added later without rebuilding).
