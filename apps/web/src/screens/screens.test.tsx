@@ -925,9 +925,9 @@ describe('YouTube video found automatically when sharing (ADR-0012)', () => {
     renderApp('/share', { api });
     const dialog = await chooseSong();
     const group = await within(dialog).findByRole('group', { name: 'Video from YouTube' });
-    const first = within(group).getByRole('radio', { name: /YouTube Developers Live: Embedded Web Player/ });
+    const first = within(group).getByRole('radio', { name: /Automatic embedded web player/ });
     expect(first).toBeChecked();
-    expect(within(group).getByText('Google for Developers')).toBeInTheDocument();
+    expect(within(group).getByText('Sample video')).toBeInTheDocument();
     const previewButton = within(group).getByRole('button', {
       name: /Play the YouTube video linked by the sharer/,
     });

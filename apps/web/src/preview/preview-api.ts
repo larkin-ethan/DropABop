@@ -658,8 +658,8 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         videos: [
           {
             videoId: 'M7lc1UVf-VE',
-            title: 'YouTube Developers Live: Embedded Web Player',
-            channelTitle: 'Google for Developers',
+            title: 'Automatic embedded web player',
+            channelTitle: 'Sample video',
           },
           { videoId: 'zzzzzzzzzzz', title: 'A video that doesn’t exist', channelTitle: 'Nobody' },
         ],
