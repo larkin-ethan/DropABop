@@ -56,7 +56,11 @@ export async function listMembers(ctx: DataContext, partyId: string): Promise<Pa
 
 export async function listUserParties(ctx: DataContext, userId: string): Promise<UserPartyLink[]> {
   const items = await queryByPrefix(ctx, partitionKeys.user(userId), prefixes.userParties());
-  return items.map((item) => withoutKeys<UserPartyLink>(item));
+  // Only the link's public fields (the item also holds private bookkeeping such as achievementsSeenAt).
+  return items.map((item) => {
+    const link = withoutKeys<UserPartyLink>(item);
+    return { partyId: link.partyId, partyName: link.partyName, role: link.role, joinedAt: link.joinedAt };
+  });
 }
 
 export async function getPartyIdByInviteCode(ctx: DataContext, code: string): Promise<string | null> {

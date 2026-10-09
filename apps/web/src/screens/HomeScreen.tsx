@@ -13,6 +13,7 @@ import { useCurrentWeek, useMe, useParty, useWeekSongs } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
+import { AchievementBanner } from './AchievementsScreen';
 import { songDetailsPath } from './SongDetailsScreen';
 import { EmptyState } from '../components/States';
 import { Avatar, Card, ProgressBar, buttonClassName } from '../components/ui';
@@ -35,6 +36,7 @@ export function HomeScreen() {
       {() => (
         <>
           <NamePrompt />
+          {partyId !== null && <AchievementBanner partyId={partyId} />}
           {partyId === null ? <NoPartyYet /> : <PartyHome partyId={partyId} />}
         </>
       )}

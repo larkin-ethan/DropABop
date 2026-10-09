@@ -139,18 +139,20 @@ describe('Home (P8.3)', () => {
       get: (path) =>
         path.includes('rounds/current')
           ? Promise.reject(new ApiError(500, 'INTERNAL', 'Something went wrong. Please try again.'))
-          : Promise.resolve({
-              user: {
-                userId: 'me',
-                displayName: 'Ethan',
-                avatarColor: '#3B82F6',
-                preferredProvider: null,
-                privacyAcceptedAt: '2026-10-09T12:00:00.000Z',
-                privacyVersion: PRIVACY_POLICY_VERSION,
-                createdAt: '',
-              },
-              parties: [{ partyId: 'p1', partyName: 'Party', role: 'host', joinedAt: '' }],
-            } as never),
+          : !path.startsWith('/users/me')
+            ? Promise.reject(new ApiError(404, 'NOT_FOUND', 'Not found.'))
+            : Promise.resolve({
+                user: {
+                  userId: 'me',
+                  displayName: 'Ethan',
+                  avatarColor: '#3B82F6',
+                  preferredProvider: null,
+                  privacyAcceptedAt: '2026-10-09T12:00:00.000Z',
+                  privacyVersion: PRIVACY_POLICY_VERSION,
+                  createdAt: '',
+                },
+                parties: [{ partyId: 'p1', partyName: 'Party', role: 'host', joinedAt: '' }],
+              } as never),
       post: () => Promise.reject(new Error('unused')),
       put: () => Promise.reject(new Error('unused')),
       patch: () => Promise.reject(new Error('unused')),
@@ -1156,6 +1158,7 @@ describe('History calendar (P13.8)', () => {
       'href',
       '/history?month=2026-09',
     );
+    expect(screen.getByText('Achievement unlocked')).toBeInTheDocument(); // the calendar legend (D31)
 
     await userEvent.click(screen.getByRole('button', { name: 'List' }));
     expect(await screen.findByText('This week · in progress')).toBeInTheDocument();
@@ -1212,5 +1215,53 @@ describe('History calendar (P13.8)', () => {
   it('says so for a day without sharing', async () => {
     renderApp('/history/day/2026-10-31');
     expect(await screen.findByText('No sharing that day')).toBeInTheDocument();
+  });
+});
+
+describe('Achievements (P13.9)', () => {
+  it('shows how many are unlocked, grouped, with progress, and details in a dialog', async () => {
+    renderApp('/achievements');
+    expect(await screen.findByText(/\d+ \/ \d+ unlocked/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Taking part' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Achievements' })).toHaveAttribute('href', '/achievements');
+    await userEvent.click(screen.getByRole('button', { name: /10 Weeks: 2 of 10 weeks/ }));
+    const dialog = await screen.findByRole('dialog', { name: '10 Weeks' });
+    expect(within(dialog).getByText('2 of 10 weeks')).toBeInTheDocument();
+    expect(within(dialog).getByText('Take part in 10 weeks.')).toBeInTheDocument();
+  });
+
+  it('opening the page marks new ones as seen', async () => {
+    const { state } = renderApp('/achievements');
+    expect(await screen.findByText(/\d+ \/ \d+ unlocked/)).toBeInTheDocument();
+    await waitFor(() => expect(state.achievementsSeenAt).not.toBe('2026-10-01T00:00:00.000Z'));
+  });
+
+  it('home shows a quiet "Achievement unlocked" banner that can be dismissed', async () => {
+    const { state } = renderApp('/');
+    const banner = await screen.findByRole('status', { name: 'Achievement unlocked' });
+    expect(within(banner).getByText(/and \d+ more/)).toBeInTheDocument();
+    expect(within(banner).getByRole('link', { name: 'View' })).toHaveAttribute('href', '/achievements');
+    await userEvent.click(within(banner).getByRole('button', { name: 'Dismiss' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('status', { name: 'Achievement unlocked' })).not.toBeInTheDocument(),
+    );
+    expect(state.achievementsSeenAt).not.toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  it('never interrupts rating (no banner on Rate)', async () => {
+    renderApp('/rate');
+    expect(await screen.findByText('Blinding Lights')).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Achievement unlocked' })).not.toBeInTheDocument();
+  });
+
+  it('the first visit announces nothing old, and just records "seen"', async () => {
+    const { state } = renderApp('/', {
+      setup: (s) => {
+        s.achievementsSeenAt = null;
+      },
+    });
+    expect(await screen.findByText('Wednesday · Day 3 of 5')).toBeInTheDocument();
+    await waitFor(() => expect(state.achievementsSeenAt).not.toBeNull());
+    expect(screen.queryByRole('status', { name: 'Achievement unlocked' })).not.toBeInTheDocument();
   });
 });

@@ -78,3 +78,29 @@ tied for Bop of the Day, best song, lowest rated, most divisive or most agreeabl
 | Your week: average received | How your songs did | Mean of your rated songs' averages | 1 rated song |
 | Your week: rank | Your place among that week's sharers | Sharers ranked by average received (shown values), ties share a rank | 1 rated song |
 | Calendar ★ | Your best song yet | Days where one of your songs got your best-ever song average (shown value; ties all count), across every closed week | 1 rated song |
+
+## Achievements
+
+Code: `services/api/src/domain/achievements.ts` (P13.9). The list and exact rules are D28 in `PRODUCT_DECISIONS.md`.
+How they're worked out:
+
+- **Closed weeks only.** Nothing from a week whose ratings haven't locked counts yet (D9). Weeks without results
+  (fewer than 2 songs) don't count and don't break a run of weeks.
+- **Unlock date** = when ratings locked on the first week that earned it. Closed weeks are replayed oldest first,
+  and after each one every achievement is checked against everything up to that week.
+- **Once unlocked, always unlocked**, even if a number later drifts back (e.g. your generosity).
+- **Not stored as awards**: worked out on request, so there's nothing to duplicate or fake.
+- **Same rules as the stats above**: valid ratings only (no self-ratings, none after the lock), generosity compared
+  with the party's average given at that point, ties count (a shared #1 is a Top Bop for everyone tied).
+- **"Took part in a week"** = shared or rated at least one song that week. **"In a row"** = consecutive weeks that
+  had results.
+- **Thresholds are compared as shown** (1 decimal place), like every other stat: a generosity of +0.96 shows as
+  +1.0 and unlocks Generous Voter; a 0.34 gap shows as 0.3 and counts for Balanced Judge.
+- **Progress** shows how close you are ("7 of 10 weeks", "+0.4 compared with the group (needs +1.0)").
+- **The unlock day** is the day ratings locked, in the party's timezone (shown on the calendar as 🏆).
+- **Other members' badges:** you can see which they've unlocked, but First 1, First 10 and Full House show no date,
+  because the week would reveal how they rated particular songs (D11).
+- **If history changes** (for example a member's songs or ratings are removed), achievements are worked out again
+  from what's left, so an unlock date can move or a badge can disappear. Rare; nothing is announced for it.
+- **The banner** ("Achievement unlocked") lists achievements unlocked after you last opened them; the very first
+  time nothing old is announced.

@@ -21,7 +21,7 @@ type WinnerWithSong = Winner & { song?: SongSummary | null };
 
 const signed = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`;
 
-function StatsTabs() {
+export function StatsTabs() {
   const tab = ({ isActive }: { isActive: boolean }) =>
     `rounded-full px-4 py-1.5 text-sm font-semibold ${isActive ? 'bg-active text-ink' : 'text-muted hover:text-ink'}`;
   return (
@@ -37,6 +37,9 @@ function StatsTabs() {
       </NavLink>
       <NavLink to="/leaderboard" className={tab}>
         Leaderboard
+      </NavLink>
+      <NavLink to="/achievements" className={tab}>
+        Achievements
       </NavLink>
     </nav>
   );

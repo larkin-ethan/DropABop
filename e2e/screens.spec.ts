@@ -20,6 +20,7 @@ const SCREENS = [
   { name: 'stats', path: '/stats' },
   { name: 'group-stats', path: '/stats/group' },
   { name: 'leaderboard', path: '/leaderboard' },
+  { name: 'achievements', path: '/achievements' },
   { name: 'settings', path: '/settings' },
   { name: 'settings-party', path: '/settings/party' },
   { name: 'settings-account', path: '/settings/account' },

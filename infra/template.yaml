@@ -849,6 +849,52 @@ Resources:
             Method: GET
             Path: /parties/{partyId}/stats
 
+  # Achievements (P13.9): worked out on request like stats. Brings the current week up to date first (ADR-0003).
+  GetAchievementsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getAchievementsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/achievements
+
+  # Records when you last looked at your achievements (on your own party link item).
+  MarkAchievementsSeenFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.markAchievementsSeenHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/achievements/seen
+
   # The history calendar (P13.8). Brings the current week up to date first (ADR-0003).
   GetHistoryFunction:
     Type: AWS::Serverless::Function

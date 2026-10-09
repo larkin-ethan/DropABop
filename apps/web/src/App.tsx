@@ -17,6 +17,7 @@ import {
   MusicSettingsScreen,
   SettingsHubScreen,
 } from './screens/AccountSettingsScreens';
+import { AchievementsScreen } from './screens/AchievementsScreen';
 import { ComponentGallery } from './screens/ComponentGallery';
 import { HelpScreen } from './screens/HelpScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -119,6 +120,7 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/stats" element={<PersonalStatsScreen />} />
               <Route path="/stats/group" element={<GroupStatsScreen />} />
               <Route path="/leaderboard" element={<LeaderboardScreen />} />
+              <Route path="/achievements" element={<AchievementsScreen />} />
               <Route path="/settings" element={<SettingsHubScreen />} />
               <Route path="/settings/party" element={<PartySettingsScreen />} />
               <Route path="/settings/account" element={<AccountSettingsScreen />} />

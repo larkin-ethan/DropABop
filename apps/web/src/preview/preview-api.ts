@@ -28,6 +28,8 @@ import type {
   HistoryResponse,
   HistorySong,
   HistoryWeek,
+  Achievement,
+  AchievementsResponse,
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
@@ -52,6 +54,8 @@ export interface PreviewState {
   songs: SongView[];
   pastRound: Round;
   pastResults: SongResult[];
+  /** When "you" last looked at your achievements (sample world; P13.9). */
+  achievementsSeenAt: string | null;
   /** A party you're not in yet, joinable with its code (for trying the invite flow). */
   otherParty: Party;
   /** Set by closeWeek(): the current week has ended (ratings locked, results out). */
@@ -170,6 +174,7 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       status: 'CLOSED',
     },
     pastResults: pastSongs,
+    achievementsSeenAt: '2026-10-01T00:00:00.000Z',
     weekClosed: false,
     comments: [
       {
@@ -672,6 +677,13 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
       };
     }
+    if (is('GET', 'parties', ':id', 'achievements')) {
+      return sampleAchievements(state);
+    }
+    if (is('POST', 'parties', ':id', 'achievements', 'seen')) {
+      state.achievementsSeenAt = new Date().toISOString();
+      return { seenAt: state.achievementsSeenAt };
+    }
     if (is('GET', 'parties', ':id', 'history')) {
       return sampleHistory(state, params.get('month') ?? '');
     }
@@ -834,4 +846,113 @@ function sampleHistory(state: PreviewState, month: string): HistoryResponse {
     yourWeek: null,
   };
   return { month, weeks: month === '2026-09' ? [pastWeek] : [pastWeek, openWeek], members };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Sample achievements (P13.9): a few unlocked when last week closed, the rest with progress.
+// ---------------------------------------------------------------------------------------------------------------
+
+function sampleAchievements(state: PreviewState): AchievementsResponse {
+  const at = state.pastRound.endsAt;
+  const made = (
+    id: string,
+    group: Achievement['group'],
+    emoji: string,
+    title: string,
+    description: string,
+    unlocked: boolean,
+    current = 0,
+    target = 1,
+    label = 'Not yet',
+  ): Achievement => ({
+    id,
+    group,
+    emoji,
+    title,
+    description,
+    unlocked,
+    unlockedOn: unlocked ? at : null,
+    unlockedDay: unlocked ? '2026-10-04' : null, // last week locked Sunday night, party time
+    progress: unlocked ? { current: target, target, label: 'Unlocked' } : { current, target, label },
+  });
+  const achievements: Achievement[] = [
+    made('first-drop', 'participation', '🎵', 'First Drop', 'Share your first song.', true),
+    made('first-rating', 'participation', '⭐', 'First Rating', 'Rate your first song.', true),
+    made(
+      'weeks-10',
+      'participation',
+      '📅',
+      '10 Weeks',
+      'Take part in 10 weeks.',
+      false,
+      2,
+      10,
+      '2 of 10 weeks',
+    ),
+    made(
+      'artists-10',
+      'discovery',
+      '🧭',
+      '10 Artists',
+      'Share songs by 10 different artists.',
+      false,
+      6,
+      10,
+      '6 of 10 artists',
+    ),
+    made('first-10', 'rating', '🔟', 'First 10', 'Give a song a 10.', true),
+    made(
+      'generous-voter',
+      'rating',
+      '💝',
+      'Generous Voter',
+      'Rate at least 1 point above the group on average (10 ratings or more).',
+      false,
+      0.4,
+      1,
+      '+0.4 compared with the group (needs +1.0)',
+    ),
+    made('top-bop', 'songSuccess', '🏆', 'Top Bop', 'Have the #1 song of a week.', true),
+    made(
+      'crowd-favorite',
+      'songSuccess',
+      '🙌',
+      'Crowd Favorite',
+      'Have a week’s crowd favorite: the best average among songs most people rated.',
+      false,
+    ),
+    made(
+      'musical-twin',
+      'social',
+      '👯',
+      'Musical Twin',
+      'Rate within 1.0 point of someone on 5 songs you both rated.',
+      false,
+      3,
+      5,
+      '3 of 5 songs rated in common with someone',
+    ),
+    made(
+      'monthly-regular',
+      'consistency',
+      '🔥',
+      'Monthly Regular',
+      'Take part in 4 weeks in a row.',
+      false,
+      2,
+      4,
+      '2 of 4 weeks in a row',
+    ),
+  ];
+  const seenAt = state.achievementsSeenAt;
+  return {
+    memberId: ME,
+    achievements,
+    unlockedCount: achievements.filter((a) => a.unlocked).length,
+    newlyUnlocked:
+      seenAt === null
+        ? []
+        : achievements.filter((a) => a.unlockedOn !== null && a.unlockedOn > seenAt).map((a) => a.id),
+    seenAt,
+  };
 }

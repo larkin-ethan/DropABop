@@ -23,7 +23,7 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 | Item | PK | SK | Main attributes |
 |---|---|---|---|
 | User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, playInApp (missing = true), privacyAcceptedAt, privacyVersion (P13.2a; set only by the server), createdAt |
-| "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt |
+| "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt, achievementsSeenAt (P13.9: when you last looked at your achievements; yours only) |
 | Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime; missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
 | Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, revealRecommenderDuringVoting, showWhoRatedWhat (fixed when the week starts), status |
@@ -75,11 +75,12 @@ Notes:
 | 13 | All ratings in a week (results) | `Query PK=PARTY#p, SK begins_with VOTE#week#` |
 | 14 | My ratings in a week | `Query PK=PARTY#p, SK begins_with VOTE#week#u#` |
 | 15 | Party stats / user stats (closed weeks) | Pattern 9 (all weeks), then `Query SK begins_with REC#` and `SK begins_with VOTE#`, keeping only closed weeks |
-| 16 | History calendar for a month (P13.8) | Same as 15 (every week, because the ★ compares with your best ever), then the month's weeks are picked in code (ADR-0006) |
 | 16 | Week results | Patterns 8, 10, 13 |
 | 22 | A week's comments, oldest first (D25) | `Query PK=PARTY#p, SK begins_with COMMENT#week#` |
 | 23 | Add a comment | `Put` with `attribute_not_exists(PK)` (random id; never overwrites) |
 | 24 | Delete a comment | Pattern 22 to find it by id, then `DeleteItem` |
+| 25 | History calendar for a month (P13.8) | Same as 15 (every week, because the ★ compares with your best ever), then the month's weeks are picked in code (ADR-0006) |
+| 26 | Achievements for one member (P13.9) | Same as 15 (every closed week is replayed in order to find each unlock date), plus `GetItem` of your own party link for `achievementsSeenAt` |
 
 Every query is limited to one partition. Lists that can grow (history, stats inputs) are paginated with
 `LastEvaluatedKey`.

@@ -4,7 +4,7 @@
 import type { HistoryDay, HistoryResponse, HistorySong, HistoryWeek } from '@dropabop/shared';
 import type { ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { useHistory } from '../api/hooks';
+import { useAchievements, useHistory } from '../api/hooks';
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { EmptyState } from '../components/States';
@@ -28,9 +28,13 @@ import { songDetailsPath } from './SongDetailsScreen';
 // Dates (YYYY-MM-DD strings). Calendar maths uses UTC so dates never shift; "today" is the viewer's own day.
 // ---------------------------------------------------------------------------------------------------------------
 
+/** A moment as a YYYY-MM-DD date on the viewer's own calendar. */
+function localDate(moment: Date): string {
+  return `${moment.getFullYear()}-${String(moment.getMonth() + 1).padStart(2, '0')}-${String(moment.getDate()).padStart(2, '0')}`;
+}
+
 function todayIso(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return localDate(new Date());
 }
 
 function shiftDays(iso: string, days: number): string {
@@ -200,6 +204,12 @@ function Calendar({ month, data }: { month: string; data: HistoryResponse }) {
   for (const week of data.weeks) for (const day of week.days) days.set(day.date, day);
   const today = todayIso();
   const weeksInMonth = data.weeks;
+  // D31: a 🏆 on the day ratings locked for a week that unlocked one of your achievements.
+  const { partyId } = useCurrentParty();
+  const achievements = useAchievements(partyId);
+  const unlockDays = new Set(
+    (achievements.data?.achievements ?? []).flatMap((a) => (a.unlockedDay === null ? [] : [a.unlockedDay])),
+  );
 
   return (
     <div>
@@ -224,6 +234,7 @@ function Calendar({ month, data }: { month: string; data: HistoryResponse }) {
                     inMonth={date.slice(0, 7) === month}
                     day={days.get(date)}
                     today={today}
+                    unlocked={unlockDays.has(date)}
                   />
                 </td>
               ))}
@@ -240,6 +251,9 @@ function Calendar({ month, data }: { month: string; data: HistoryResponse }) {
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Icon name="star" className="size-3 text-gold" /> Your best song yet
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true">🏆</span> Achievement unlocked
         </span>
       </p>
 
@@ -281,11 +295,14 @@ function CalendarDay({
   inMonth,
   day,
   today,
+  unlocked,
 }: {
   date: string;
   inMonth: boolean;
   day: HistoryDay | undefined;
   today: string;
+  /** One of your achievements was unlocked when ratings locked that day. */
+  unlocked: boolean;
 }) {
   const number = Number(date.slice(8));
   const isToday = date === today;
@@ -295,6 +312,7 @@ function CalendarDay({
     hasSongs ? `${day.songCount} song${day.songCount === 1 ? '' : 's'}` : 'no songs',
     day?.iShared ? 'you shared' : null,
     day?.personalBest ? 'your best song yet' : null,
+    unlocked ? 'achievement unlocked' : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -308,6 +326,7 @@ function CalendarDay({
       <span className="flex h-2 items-center gap-0.5" aria-hidden="true">
         {hasSongs && <span className={`size-1.5 rounded-full ${day.iShared ? 'bg-primary' : 'bg-blue'}`} />}
         {day?.personalBest && <Icon name="star" className="size-2.5 text-gold" />}
+        {unlocked && <span className="text-[8px] leading-none">🏆</span>}
       </span>
     </span>
   );

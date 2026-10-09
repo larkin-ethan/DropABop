@@ -27,6 +27,7 @@ import type {
   WeekSongsResponse,
   YouTubeSuggestionsResponse,
   HistoryResponse,
+  AchievementsResponse,
 } from '@dropabop/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
@@ -184,6 +185,30 @@ export function useSongSearch(q: string) {
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
     retry: false,
+  });
+}
+
+/** Achievements in a party (P13.9): yours, or another member's. They only change when a week closes. */
+export function useAchievements(partyId: string | null, memberId?: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['achievements', partyId ?? '', memberId ?? 'me'] as const,
+    queryFn: () =>
+      api.get<AchievementsResponse>(
+        `/parties/${enc(partyId ?? '')}/achievements${memberId === undefined ? '' : `?memberId=${enc(memberId)}`}`,
+      ),
+    enabled: partyId !== null,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** "I've seen my achievements": clears the unlock banner. */
+export function useMarkAchievementsSeen(partyId: string | null) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ seenAt: string }>(`/parties/${enc(partyId ?? '')}/achievements/seen`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['achievements', partyId ?? ''] }),
   });
 }
 

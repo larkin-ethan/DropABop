@@ -252,6 +252,14 @@ export const songSearchQuerySchema = z.strictObject({
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
 });
 
+/** GET /parties/{partyId}/achievements?memberId= (P13.9). Without memberId: your own. */
+export const achievementsQuerySchema = z.strictObject({
+  memberId: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'That member id isn’t valid.' })
+    .optional(),
+});
+
 /** GET /parties/{partyId}/history?month=YYYY-MM (P13.8). */
 export const historyQuerySchema = z.strictObject({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: 'Pick a month like 2026-10.' }),

@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7 (genre) and P13.8 (calendar history) are done; next is **P13.9** (achievements). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.9 are done (genre, calendar history, achievements); next is **P13.10** (notifications). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -53,13 +53,25 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-09 — **P13.9 done: achievements** — the 26 achievements of D28 in pure `domain/achievements.ts`: closed
+  weeks replayed oldest first with running totals; each records the lock time and lock day (party timezone) of the
+  first week that earned it and stays unlocked; progress with plain-words labels. `GET /parties/{partyId}/achievements`
+  (yours, or a member's via `memberId`; for others First 1 / First 10 / Full House show no date, D11) and
+  `POST …/achievements/seen` (stored on your own party link; your party list now returns only public link fields).
+  Website: `/achievements` (grid by group, detail dialog, empty shelf), a calm "Achievement unlocked" banner on Home
+  and Results only (first visit announces nothing old; View / Dismiss), 🏆 on calendar lock days, Achievements tab
+  next to the stats. spec-reviewer: fixed replay speed (two years × 20 people now ~0.13 s, was several seconds),
+  date privacy for others, party-timezone unlock days, contrast, more failure-path tests, docs. Verified: `npm run
+  verify` (599 + 1 skipped; 27 achievement unit tests incl. a speed test), integration 213 (4 new), `sam validate
+  --lint`, e2e 30 passed (achievements page at 7 widths), page checked in the browser pane. Not deployed.
+
 - 2026-10-09 — **P13.8 done: calendar history** — `GET /parties/{partyId}/history?month=YYYY-MM` (new Lambda + route,
   same permissions as stats) and pure `domain/history.ts`: every week overlapping the month with each sharing day's
   song count, your sharing and ★ (your best-ever song average, across all closed weeks); closed weeks add day stats
   (group average, yours given/received, songs you rated, Bop of the Day, lowest rated, distribution, favourite
   artists), a week summary (best songs, top artists, most agreeable day, most divisive) and "Your week" (rank among
   sharers). Open weeks: counts only (D9); who rated what never included (D11); ties are joint winners. Loads party
-  data like stats (ADR-0006 extended; DATABASE pattern 16) because the ★ needs every closed week. Website: `/history`
+  data like stats (ADR-0006 extended; DATABASE pattern 25) because the ★ needs every closed week. Website: `/history`
   calendar (month nav, Today, legend, weeks list) with a Calendar/List toggle (old list at `?view=list`),
   `/history/day/:date`, `/history/week/:weekStart`; past months cached 10 min. spec-reviewer: fixed lowest-rated not
   shown, docs for the loading choice, ties, toggle/labels accessibility, bad dates, best song by name, songs you

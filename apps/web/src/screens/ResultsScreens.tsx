@@ -25,6 +25,7 @@ import {
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useCurrentParty } from '../party/CurrentParty';
 import { PlayVideoButton } from '../player/PlayVideoButton';
+import { AchievementBanner } from './AchievementsScreen';
 import { songDetailsPath } from './SongDetailsScreen';
 
 // ---------------------------------------------------------------------------
@@ -175,6 +176,7 @@ function ResultsView({
 
   return (
     <div className="flex flex-col gap-6">
+      <AchievementBanner partyId={round.partyId} />
       <PageHeader
         eyebrow={formatWeekLabel(round.weekStart)}
         title="Week complete!"

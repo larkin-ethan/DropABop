@@ -363,6 +363,26 @@ Ratings appear only for weeks whose ratings have locked (`status: CLOSED`); open
 have `stats`, `summary` and `yourWeek` set to `null` (D9). Who rated what is never included. Errors: `400
 VALIDATION_FAILED` (bad month), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
 
+### Achievements
+
+Code: `services/api/src/handlers/achievements.ts`, rules in `services/api/src/domain/achievements.ts` (D28,
+STATISTICS.md → Achievements). Worked out on request from closed weeks; nothing is stored as an award.
+
+#### `GET /parties/{partyId}/achievements?memberId=`
+
+Members only. Without `memberId`: your own; with it: another member's (members can see each other's, D28;
+`404 NOT_FOUND` if they aren't in the party). `200`: `{ "memberId", "achievements": Achievement[], "unlockedCount",
+"newlyUnlocked": string[], "seenAt" }`. Each achievement: `id`, `group`, `title`, `description`, `emoji`,
+`unlocked`, `unlockedOn` (the lock time of the first closed week that earned it, or `null`), `unlockedDay` (that
+lock as a day in the party's timezone) and `progress: { current, target, label }`. For another member, First 1,
+First 10 and Full House have `unlockedOn`/`unlockedDay` set to `null` even when `unlocked` (D11). `newlyUnlocked` (your own only) lists ids unlocked after `seenAt`; it's empty the first time (`seenAt:
+null`). Errors: `400 VALIDATION_FAILED`, `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+
+#### `POST /parties/{partyId}/achievements/seen`
+
+Members only, no body. Records "seen now" (server time) on your own party link, which clears `newlyUnlocked`.
+`200`: `{ "seenAt": "…" }`.
+
 ### Song search
 
 Code: `services/api/src/handlers/songs.ts`, catalog `services/api/src/providers/itunes.ts` (iTunes Search API,

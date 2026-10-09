@@ -405,3 +405,41 @@ export interface HistoryResponse {
   weeks: HistoryWeek[];
   members: MemberName[];
 }
+
+// ---------------------------------------------------------------------------
+// Achievements (P13.9, D28). Worked out from closed weeks on request, never stored as awards.
+// ---------------------------------------------------------------------------
+
+export type AchievementGroup =
+  'participation' | 'discovery' | 'rating' | 'songSuccess' | 'social' | 'consistency';
+
+export interface Achievement {
+  id: string;
+  group: AchievementGroup;
+  title: string;
+  /** How to unlock it, in one sentence. */
+  description: string;
+  /** Decorative only. */
+  emoji: string;
+  unlocked: boolean;
+  /**
+   * When ratings locked on the first week that earned it, or null if not yet. Also null on another member's
+   * rating-revealing badges (First 1, First 10, Full House), so they can't be tied to a week (D11).
+   */
+  unlockedOn: IsoDateTime | null;
+  /** The same moment as a day in the party's timezone (D31), for the calendar. */
+  unlockedDay: IsoDate | null;
+  /** How close you are (for a progress bar), and the same in words, e.g. "7 of 10 weeks". */
+  progress: { current: number; target: number; label: string };
+}
+
+export interface AchievementsResponse {
+  /** Whose achievements these are (yours unless you asked for another member's). */
+  memberId: string;
+  achievements: Achievement[];
+  unlockedCount: number;
+  /** Yours only: unlocked since you last opened them (for the "Achievement unlocked" banner). */
+  newlyUnlocked: string[];
+  /** Yours only: when you last saw your achievements, or null if never (no banner the first time). */
+  seenAt: IsoDateTime | null;
+}

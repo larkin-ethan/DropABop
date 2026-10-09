@@ -461,10 +461,10 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   `/history/day/:date`, `/history/week/:weekStart`, charts reuse `RatingDistribution` with text alternatives.
   *Done when:* unit + integration tests (auth, membership, month validation, aggregation), screen tests,
   STATISTICS/API docs updated, spec-reviewer run.
-- [ ] **P13.9 — Achievements** (§17; D28) — pure `domain/achievements.ts` (criteria, progress, unlock date) with a
-  test per achievement; `GET /parties/{partyId}/achievements` (yours, or a member's); `achievementsSeenAt` on the
-  membership for the unlock toast; web `/achievements` grid, detail dialog, toast on Home/Results only (reduced
-  motion respected). *Done when:* unit + integration tests, screen tests, STATISTICS/API/DATABASE docs updated,
+- [x] **P13.9 — Achievements** (§17; D28) — pure `domain/achievements.ts` (criteria, progress, unlock date) with a
+  test per achievement; `GET /parties/{partyId}/achievements` (yours, or a member's); `achievementsSeenAt` on your own
+  party link (private) for the unlock banner; web `/achievements` grid, detail dialog, a calm banner (not a pop-up)
+  on Home/Results only, 🏆 on calendar unlock days. *Done when:* unit + integration tests, screen tests, STATISTICS/API/DATABASE docs updated,
   spec-reviewer run.
 - [ ] **P13.10 — Notifications** (§22; D29) — Settings → Notifications switches (moved here from P13.6); `GET /users/me/notifications` built on read for the current party;
   `notificationsSeenAt` via `PATCH`; per-type switches respected; bell with unread count in `AppShell` (refetch on
