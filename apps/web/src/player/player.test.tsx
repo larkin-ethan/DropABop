@@ -224,11 +224,11 @@ describe('docked play card (spec §15, ADR-0011)', () => {
     expect(screen.getAllByText('Song b').length).toBeGreaterThan(0);
   });
 
-  it('keeps the video at YouTube’s minimum 200 × 200 px and labels it honestly', async () => {
+  it('keeps the video at least YouTube’s minimum 200 × 200 px and labels it honestly', async () => {
     renderDock([song('a')]);
     await userEvent.click(screen.getByRole('button', { name: 'Play a' }));
     const box = screen.getByTestId('player-video');
-    expect(box.style.width).toBe('200px');
+    expect(box.style.minWidth).toBe('200px');
     expect(box.style.height).toBe('200px');
     expect(box.children).toHaveLength(0); // nothing of ours inside (or on top of) the player
     expect(screen.getAllByText('YouTube video linked by the sharer').length).toBeGreaterThan(0);

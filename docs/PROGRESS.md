@@ -53,6 +53,13 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-09 — **P13.3 follow-up: play-card layout** — Ethan asked for controls without the video; YouTube forbids
+  hidden players and separating audio from video (ADR-0011), so he chose to keep the video and restack the card:
+  video on top (card width × 200 px), song + controls below; short screens keep video beside the controls. Offered
+  alternatives he declined: 30-second Apple previews (controls-only), links only, MusicKit. Verified: player tests 37
+  passed, `npm run verify`, browser pane: playing at 320 px (278 × 200 video, fully visible, no overflow), 568 × 320
+  (200 × 200, fully visible) and 1440 px (358 × 200, volume shown).
+
 - 2026-10-09 — **P13.4 done: YouTube video on songs** — shared `youtubeVideoId(song)` (re-parses the stored link)
   and `IN_APP_VIDEO_MAX_AGE_DAYS`; web `toPlayableSong` / `withinInAppPlayWindow` (29 days + a day of margin for
   parties east of UTC, spec-reviewer catch) and `PlayVideoButton` ("Play video" · "YouTube video linked by the

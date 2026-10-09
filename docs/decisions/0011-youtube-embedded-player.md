@@ -38,12 +38,13 @@ labelled **"YouTube video linked by the sharer"**. Rules we follow, from the off
 - **No background or hidden playback** [DP]. The player is docked in the app shell so it keeps playing while you
   move between screens, but it is always on screen. Closing it stops the video. The mockups' tiny mini-bar is
   therefore **not used** for YouTube (it would be below 200 px tall).
-- **Play-card look (Ethan, 2026-10-09: "playcard style, not a full video window").** The docked player is a music
-  card: the video fills a 200 × 200 square where the album art would be (YouTube's minimum, letterboxed), with our
-  own play/pause, progress, time and volume beside and below it, driven through the documented IFrame API. Our
-  controls never sit on top of the video. The card is above dialogs (dialogs leave room for it) so nothing ever
-  covers the player. No collapsed state: hiding the video while it plays isn't allowed. Built in P13.3
-  (`apps/web/src/player/`).
+- **Play-card look (Ethan, 2026-10-09).** Ethan asked for a play card rather than a video window, then for
+  controls without the video. Hiding the video isn't allowed (no hidden/background players, no separating audio from
+  video [DP]; ≥ 200 × 200 px visible [RMF]), so he chose to keep it: **video on top** (full card width × 200 px,
+  never smaller than 200 × 200), then the song and **our controls below** (play/pause, progress with times, volume
+  on wider screens), driven through the documented IFrame API. Short screens put a 200 × 200 video beside the
+  controls so it always fits. Our controls never sit on top of the video; the card is above dialogs (dialogs leave
+  room for it) so nothing covers the player. No collapsed state. Code: `apps/web/src/player/`.
 - **No autoplay on page load.** Playback starts only from a user's tap, and never from a mouseover or touch on the
   player [RMF]. One player at a time (starting another song stops the last), which also satisfies "no more than one
   autoplaying player per page" [RMF].

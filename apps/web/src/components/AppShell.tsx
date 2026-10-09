@@ -235,7 +235,7 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
 
       <main
         className={`mx-auto w-full max-w-5xl flex-1 px-4 pt-5 md:px-8 md:pt-8 ${
-          playerOpen ? 'pb-[26rem] md:pb-[20rem]' : 'pb-28 md:pb-8'
+          playerOpen ? 'pb-[28rem] md:pb-[24rem]' : 'pb-28 md:pb-8'
         }`}
       >
         {banner}
