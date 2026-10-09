@@ -130,7 +130,7 @@ mini-player); the adaptations say what replaces them.
 | 3 | Link Music Account modal | — | **Not built.** No provider accounts are connected (D27). Settings → Music explains why. |
 | 4 | Spotify OAuth screen | — | **Not built** (spec §4: no Spotify in the first release). |
 | 5 | Linked Account settings (Spotify, Apple, YouTube Music, YouTube, Amazon, Tidal) | P13.6 | Becomes **Settings → Music**: Apple Music (links only, why), YouTube (embedded videos, "Play videos in Drop a Bop" toggle), Spotify (links only), preferred app. No Amazon/Tidal. No Connect/Disconnect buttons. |
-| 6 | Embedded player, mobile | P13.3 | Docked visible player above the bottom bar; rating stays reachable. |
+| 6 | Embedded player, mobile | P13.3 | **Play card** (Ethan, 2026-10-09): docked above the bottom bar; the video is a 200 × 200 square in the album-art spot (YouTube's minimum), our controls beside/below it, never on top. Desktop: bottom-right card, 30 rem wide. Pages get extra bottom space while it's open, so rating stays reachable. |
 | 7 | Mobile link-account screen | — | Not built (as 3). |
 | 8 | Song card with player controls | P13.4 | Card gets "▶ Play video" + "View song details"; controls come from the YouTube player itself. |
 

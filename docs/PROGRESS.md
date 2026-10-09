@@ -3,8 +3,8 @@
 ## Current focus
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
-It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.2a
-are done; next is **P13.3** (player layer). P13.2a (privacy page + agreement) still needs a dev deploy and
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.3
+are done; next is **P13.4** (YouTube video on songs: the Play buttons on Rate/Results cards). P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
 (cost check after a week of use), P12.3 (launch).
@@ -51,6 +51,21 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.3 done: player layer (play-card style)** — Ethan asked for a play card instead of a video
+  window. `apps/web/src/player/`: capabilities (YouTube embed; Apple/Spotify links only), `youtube-player.ts` (loads
+  YouTube's script on first Play only, documented IFrame API calls, errors → fallback kinds), one-song-at-a-time
+  context, `PlaybackFallback`, and `DockedPlayer`: a card docked above the mobile nav / bottom-right on desktop, the
+  video as a 200 × 200 square in the album-art spot (YouTube's minimum, not clipped, nothing over it, above dialogs),
+  our play/pause, progress (seeks on release) and volume beside/below; short screens keep the whole video visible.
+  CSP (both copies): `script-src` adds only `www.youtube.com/iframe_api` and `/s/player/`; `frame-src
+  www.youtube.com`. No AWS resource change (aws-change checks: template test + `sam validate --lint`). Dev-only
+  gallery demo. spec-reviewer: fixed "next song never loads after a failed one" (card keyed per song), unclipped
+  video, seek on release, short-screen layout, narrower CSP (tested with the real player). Verified: `npm run
+  verify` (496 tests + 1 skipped; 25 player tests), template tests 14, `sam validate --lint`, e2e 21 passed, browser
+  pane: real YouTube video played in a 200 × 200 frame, kept playing across navigation, missing video → fallback,
+  no overflow at 320 px, video fully visible at 568 × 320; a production `_headers` CSP served locally loaded the
+  real player with no violations. Not checked: iPhone Safari (P13.4). Leftovers: none.
 
 - 2026-10-09 — **P13.2a done: privacy page + agreement** — public `/privacy` page (policy + terms of use incl. the
   YouTube Terms of Service sentence, contact droppa.bop@gmail.com, version `PRIVACY_POLICY_VERSION` 2026-10-09),

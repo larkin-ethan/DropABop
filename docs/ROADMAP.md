@@ -415,7 +415,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   `privacyVersion` (shared zod schema); `GET /users/me` returns them. *Done when:* unit + integration tests (the
   server sets the time, a client can't set an old/new version), screen tests for the page, checkbox and prompt,
   e2e journeys still green, SECURITY "What we store" and DATABASE/API docs updated.
-- [ ] **P13.3 — Player layer** (§7, §14, §15, §28, §34, §38) — `apps/web/src/player/`: `capabilities.ts` (values from
+- [x] **P13.3 — Player layer** (§7, §14, §15, §28, §34, §38) — `apps/web/src/player/`: `capabilities.ts` (values from
   P13.2; Apple and Spotify links only), a `MusicPlayerContext` with one active song (starting one stops the last),
   `youtube-player.ts` (loads YouTube's IFrame script on first Play only; play/pause/seek/volume/state; errors →
   fallback; `destroy()`; ADR-0011's rules: ≥ 200 × 200 px, visible, no overlays, no autoplay, `origin` parameter), `PlaybackFallback` (loading / can't play here / provider failure, only links that exist),

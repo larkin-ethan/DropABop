@@ -2,6 +2,7 @@
 // Tab inside it (so keyboard users can't wander onto the page behind).
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useMusicPlayer } from '../player/MusicPlayerContext';
 
 export interface ModalProps {
   open: boolean;
@@ -13,6 +14,8 @@ export interface ModalProps {
 export function Modal({ open, title, onClose, children }: ModalProps) {
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
+  // The docked play card sits above dialogs (nothing may cover a YouTube player, ADR-0011), so keep dialogs clear of it.
+  const playerOpen = useMusicPlayer().song !== null;
 
   useEffect(() => {
     if (!open) return;
@@ -53,7 +56,9 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center ${
+        playerOpen ? 'pb-[24rem] md:pb-[19rem]' : ''
+      }`}
       onClick={onClose}
     >
       <div

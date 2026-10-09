@@ -8,6 +8,7 @@ import { MyPickBadge, RatingBadge, SongRow } from '../components/SongRow';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { Leaderboard, RatingDistribution, StatCard } from '../components/Stats';
 import { AlbumArt, Avatar, Button, Card, ProgressBar } from '../components/ui';
+import { useMusicPlayer } from '../player/MusicPlayerContext';
 import { sampleMembers, sampleSongs } from '../preview/sample-data';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -141,6 +142,57 @@ export function ComponentGallery() {
           </div>
         </Modal>
       </Section>
+
+      <Section title="Docked play card (P13.3)">
+        <PlayerDemo />
+      </Section>
+    </div>
+  );
+}
+
+/**
+ * Dev only: tries the real YouTube player. M7lc1UVf-VE is the sample video in YouTube's own IFrame API reference;
+ * the second id doesn't exist, to show the fallback.
+ */
+function PlayerDemo() {
+  const { playSong } = useMusicPlayer();
+  const links = [
+    { provider: 'appleMusic' as const, label: 'Apple Music', url: 'https://music.apple.com', exact: false },
+  ];
+  return (
+    <div className="flex flex-wrap gap-3">
+      <Button
+        variant="secondary"
+        onClick={() =>
+          playSong({
+            key: 'demo-ok',
+            title: 'YouTube API sample video',
+            artist: 'YouTube Developers',
+            artworkUrl: null,
+            provider: 'youtube',
+            providerSongId: 'M7lc1UVf-VE',
+            links,
+          })
+        }
+      >
+        Play a real video
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() =>
+          playSong({
+            key: 'demo-missing',
+            title: 'A video that doesn’t exist',
+            artist: 'Nobody',
+            artworkUrl: null,
+            provider: 'youtube',
+            providerSongId: 'zzzzzzzzzzz',
+            links,
+          })
+        }
+      >
+        Play a missing video
+      </Button>
     </div>
   );
 }

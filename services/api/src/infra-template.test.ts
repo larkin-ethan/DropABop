@@ -194,7 +194,11 @@ describe('infra/template.yaml', () => {
     expect(security.ReferrerPolicy).toBeDefined();
     const csp = security.ContentSecurityPolicy.ContentSecurityPolicy;
     expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).toContain("script-src 'self';");
+    // Scripts: our own, plus YouTube's embedded player API only (ADR-0011). Frames: only YouTube's player.
+    expect(csp).toContain(
+      "script-src 'self' https://www.youtube.com/iframe_api https://www.youtube.com/s/player/;",
+    );
+    expect(csp).toContain('frame-src https://www.youtube.com;');
     expect(csp).not.toContain('unsafe-eval');
   });
 

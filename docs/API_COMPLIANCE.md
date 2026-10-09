@@ -98,4 +98,20 @@ Recorded so it can be added later (P13.L). Checked 2026-10-09:
 
 ## Compliance test results
 
-None run yet for YouTube (built in P13.3–P13.4). This section lists only tests that were actually run.
+Only tests that were actually run are listed.
+
+- **2026-10-09 (P13.3), unit tests** `apps/web/src/player/player.test.tsx` (22 passed): YouTube's script is not
+  loaded until asked, then exactly once; a failed load retries; errors 100/101/150/2/5/153 map to the right
+  fallback; `autoplay: 0`, `playsinline: 1` and our `origin` are passed; players are destroyed (also when closed
+  before YouTube loaded); only one song plays at a time; the video box is 200 × 200 px with nothing of ours inside
+  it; unsupported controls are hidden; services without embedded playback never reach the player.
+- **2026-10-09 (P13.3), manual check in the browser pane** (sample mode, dev-only gallery): YouTube's own sample
+  video (`M7lc1UVf-VE`, from the IFrame API reference) played in a 200 × 200 iframe; our pause button and progress
+  worked; playback continued after moving to another screen; a non-existent video id showed the fallback (YouTube
+  reported it as error 101/150, not 100, so that message no longer blames the owner).
+- **2026-10-09 (P13.3), production CSP:** a production build's `_headers` policy, served on a local test page,
+  loaded `www.youtube.com/iframe_api`, its `www-widgetapi.js` and the player frame with no CSP violations; the
+  player reached `onReady`. Repeated with `script-src` narrowed to `/iframe_api` and `/s/player/` (what ships).
+- **Not yet checked:** iPhone Safari. Our Play button and the start-on-ready call happen after the script loads,
+  which iOS may not count as the person's tap; YouTube's own play button inside the player still works. To check by
+  hand on a phone in P13.4.

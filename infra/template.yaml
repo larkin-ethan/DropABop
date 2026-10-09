@@ -1131,7 +1131,8 @@ Resources:
             Override: true
             ContentSecurityPolicy: !Sub >-
               default-src 'self';
-              script-src 'self';
+              script-src 'self' https://www.youtube.com/iframe_api https://www.youtube.com/s/player/;
+              frame-src https://www.youtube.com;
               style-src 'self' 'unsafe-inline';
               img-src 'self' data: https://*.mzstatic.com;
               connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com;

@@ -34,7 +34,8 @@ to about 15 minutes. Error messages never reveal whether an email has an account
 stored by the AWS Amplify library in the browser's local storage (ADR-0008). Tokens are sent only in the
 `Authorization` header, never in links. Signing out revokes the refresh token and clears the app's cached data. The
 risk with local storage is malicious script on the page reading it; the Content Security Policy below allows only the
-app's own scripts, which is the main defence.
+app's own scripts (plus YouTube's player script, loaded only when someone presses Play; ADR-0011), which is the main
+defence.
 
 **The API (API Gateway + Lambda).**
 
@@ -57,7 +58,8 @@ point-in-time backups and has deletion protection.
 
 **The website (P9.2).** Served over HTTPS only from a private bucket that only CloudFront can read. Security headers on
 every page: HTTPS-only (HSTS), no MIME sniffing, can't be embedded in other sites, and a Content Security Policy that
-lets the page run only its own scripts and talk only to Cognito and our API (the exact address is written into the
+lets the page run only its own scripts and YouTube's player script, frame only YouTube's player, and talk only to Cognito
+and our API (the exact address is written into the
 page when it's built). Prod can't be deployed with the local-development origin allowed (template rule). The API accepts browser calls only from
 the website (plus `localhost` in dev). The sample-data preview can run only on a developer's machine with an explicit
 flag; production builds don't contain it.

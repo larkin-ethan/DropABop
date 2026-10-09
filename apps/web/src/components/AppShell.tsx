@@ -8,6 +8,8 @@ import { useMe } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { forgetSignUpAgreement } from '../lib/privacy-consent';
 import { forgetCurrentParty, useCurrentParty } from '../party/CurrentParty';
+import { DockedPlayer } from '../player/DockedPlayer';
+import { useMusicPlayer } from '../player/MusicPlayerContext';
 import { Icon, type IconName } from './Icon';
 import { Avatar, Logo } from './ui';
 
@@ -185,6 +187,8 @@ function ProfileLink({ compact = false }: { compact?: boolean }) {
 }
 
 export function AppShell({ children, banner }: { children: ReactNode; banner?: ReactNode }) {
+  // While the play card is docked, leave room under the page so it never covers the end of the content.
+  const playerOpen = useMusicPlayer().song !== null;
   return (
     <div className="min-h-screen md:flex">
       {/* Sidebar: tablet and up */}
@@ -229,7 +233,11 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-28 md:px-8 md:py-8">
+      <main
+        className={`mx-auto w-full max-w-5xl flex-1 px-4 pt-5 md:px-8 md:pt-8 ${
+          playerOpen ? 'pb-[26rem] md:pb-[20rem]' : 'pb-28 md:pb-8'
+        }`}
+      >
         {banner}
         {children}
       </main>
@@ -255,6 +263,8 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
           </NavLink>
         ))}
       </nav>
+
+      <DockedPlayer />
     </div>
   );
 }
