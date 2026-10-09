@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; next is **P13.7** (genre on new songs). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7 (genre) is done too; next is **P13.8** (calendar history). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -52,6 +52,12 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.7 done: genre on new songs** — songs now keep iTunes `primaryGenreName` as optional `genre`
+  (confirmed in Apple's documented example result, 2026-10-09); blank or over-long genres become null and never drop
+  the song; older songs have none, so genre stats/achievements will count only songs with a genre. Shared type +
+  schema, provider mapping, API/DATABASE/MUSIC_PROVIDERS docs. Verified: `npm run verify`, provider unit tests
+  (`cleanGenre` cases, missing genre), integration 205 (a shared song keeps its genre). Not deployed. Leftovers: none.
 
 - 2026-10-09 — **P13.6 done: Settings hub + Music Services** — `/settings` is now a list (Account, Music, Party,
   Privacy, Help + contact line); party settings moved to `/settings/party` (nav label "Settings"; tests and the dev

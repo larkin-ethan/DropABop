@@ -244,7 +244,7 @@ The week's songs so far, oldest first. `200`: `{ "round": Round, "songs": SongVi
 {
   "recommendationId": "…", "weekday": "MON", "submittedOn": "2026-10-05",
   "song": { "songId": "…", "title": "…", "artist": "…", "album": "…", "albumArtUrl": "https://…",
-            "durationMs": 243000, "releaseDate": "…", "providers": [{ "provider": "spotify", "providerSongId": "…", "externalUrl": "https://…" }] },
+            "durationMs": 243000, "releaseDate": "…", "genre": "Electronic", "providers": [{ "provider": "spotify", "providerSongId": "…", "externalUrl": "https://…" }] },
   "isMine": false,
   "myRating": 8
 }

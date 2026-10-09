@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DomainError } from '../data/errors';
-import { createItunesCatalog, largerArtwork, toSong } from './itunes';
+import { cleanGenre, createItunesCatalog, largerArtwork, toSong } from './itunes';
 
 vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
@@ -17,11 +17,30 @@ const MIDNIGHT_CITY = {
   trackViewUrl: 'https://music.apple.com/us/album/midnight-city/828259375?i=828259377&uo=4',
   artworkUrl100:
     'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/cb/7b/a9/cb7ba903/724596951057.jpg/100x100bb.jpg',
+  primaryGenreName: 'Electronic',
 };
 
 function respond(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }));
 }
+
+describe('cleanGenre (P13.7)', () => {
+  it.each([
+    ['Electronic', 'Electronic'],
+    ['  Hip-Hop/Rap ', 'Hip-Hop/Rap'],
+    ['', null],
+    ['   ', null],
+    [undefined, null],
+    ['x'.repeat(101), null],
+  ])('%s → %s', (input, output) => {
+    expect(cleanGenre(input)).toBe(output);
+  });
+
+  it('keeps a song whose genre is missing (older or odd catalog entries)', () => {
+    const { primaryGenreName: _unused, ...withoutGenre } = MIDNIGHT_CITY;
+    expect(toSong(withoutGenre)?.genre).toBeNull();
+  });
+});
 
 describe('toSong', () => {
   it('maps an iTunes track to our provider-independent Song (spec §12)', () => {
@@ -34,6 +53,7 @@ describe('toSong', () => {
         'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/cb/7b/a9/cb7ba903/724596951057.jpg/300x300bb.jpg',
       durationMs: 241440,
       releaseDate: '2011-07-19',
+      genre: 'Electronic',
       providers: [
         {
           provider: 'appleMusic',

@@ -318,3 +318,18 @@ describe('YouTube videos expire after 29 days (ADR-0012)', () => {
     expect(song.providers.map((p) => p.provider)).toContain('youtube');
   });
 });
+
+describe('genre (P13.7)', () => {
+  it('keeps the catalog genre with a newly shared song', async () => {
+    const { round, hostId, memberId } = await setup();
+    expect((await share(hostId, round.roundId)).statusCode).toBe(201);
+    const listed = bodyOf(
+      await runHandler(
+        listRecommendationsFn,
+        apiEvent({ userId: memberId, pathParameters: { roundId: round.roundId } }),
+        deps,
+      ),
+    ) as { songs: { song: { genre?: string | null } }[] };
+    expect(listed.songs[0]!.song.genre).toBe('Pop');
+  });
+});

@@ -58,7 +58,8 @@ This keeps v1 at **$0 with no developer registrations**, inside every provider's
 ### iTunes Search API [ISA]
 - `GET https://itunes.apple.com/search?term=…&media=music&entity=song&country=us&limit=10`, plus `/lookup?id=…`. No key.
 - About 20 calls per minute ("subject to change"); heavy use is directed to Apple's partner feed.
-- Returns `trackId`, `trackName`, `artistName`, `collectionName`, `trackTimeMillis`, `releaseDate`, `trackViewUrl`
+- Returns `trackId`, `trackName`, `artistName`, `collectionName`, `trackTimeMillis`, `releaseDate`, `primaryGenreName`
+  (kept as the song's `genre` since P13.7; shown in Apple's documented example, checked 2026-10-09), `trackViewUrl`
   (observed on 2026-10-01 as a `music.apple.com` link), `artworkUrl100`, `previewUrl`. No ISRC.
 - Terms: artwork and previews are "Promo Content" for promoting the store, shown near a store badge; previews must be
   streamed, never downloaded or cached; Apple can require removal. "Large websites should set up caching logic."

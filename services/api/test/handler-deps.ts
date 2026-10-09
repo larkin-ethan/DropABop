@@ -20,6 +20,7 @@ export function fakeSong(provider: MusicProviderId, providerSongId: string): Son
     albumArtUrl: 'https://images.example.com/art.jpg',
     durationMs: 200000,
     releaseDate: '2020-01-01',
+    genre: 'Pop',
     providers: [
       { provider, providerSongId, externalUrl: `https://music.apple.com/us/song/test/${providerSongId}` },
     ],

@@ -451,7 +451,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   service does); help gains "Listening in Drop a Bop". Backend: `PATCH /users/me` accepts `playInApp`. Notification
   switches moved to P13.10 and no About page (a contact line instead), so nothing that doesn't work yet is shown
   (§29). *Done when:* unit + integration tests for the new field, screen tests, DATABASE/API docs updated.
-- [ ] **P13.7 — Genre on new songs** (§8) — store iTunes `primaryGenreName` in the song snapshot for new shares
+- [x] **P13.7 — Genre on new songs** (§8) — store iTunes `primaryGenreName` in the song snapshot for new shares
   (type, schema, provider mapping); old songs have none. *Done when:* unit + integration tests; MUSIC_PROVIDERS and
   DATABASE updated.
 - [ ] **P13.8 — Calendar history** (§16, §23; D31) — pure `domain/history.ts` (day/week aggregates, "Your week",

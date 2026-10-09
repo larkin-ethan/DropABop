@@ -26,6 +26,8 @@ interface ItunesTrack {
   releaseDate?: string;
   trackViewUrl?: string;
   artworkUrl100?: string;
+  /** e.g. "Rock" (shown in the documented example result; checked 2026-10-09). */
+  primaryGenreName?: string;
 }
 
 /**
@@ -35,6 +37,12 @@ interface ItunesTrack {
 export function largerArtwork(url: string | undefined): string | null {
   if (url === undefined) return null;
   return url.replace(/\/100x100bb\.(jpg|png)$/, '/300x300bb.$1');
+}
+
+/** A usable genre name, or null (missing, blank, or suspiciously long), so a bad genre never drops the song. */
+export function cleanGenre(genre: string | undefined): string | null {
+  const trimmed = genre?.trim() ?? '';
+  return trimmed === '' || trimmed.length > 100 ? null : trimmed;
 }
 
 /** Converts one iTunes result to our Song shape, or null if it isn't a usable song (spec §12). */
@@ -49,6 +57,7 @@ export function toSong(track: ItunesTrack): Song | null {
     albumArtUrl: largerArtwork(track.artworkUrl100),
     durationMs: typeof track.trackTimeMillis === 'number' ? Math.round(track.trackTimeMillis) : null,
     releaseDate: track.releaseDate?.slice(0, 10) ?? null,
+    genre: cleanGenre(track.primaryGenreName),
     providers: [
       { provider: 'appleMusic' as const, providerSongId: id, externalUrl: track.trackViewUrl ?? '' },
     ],

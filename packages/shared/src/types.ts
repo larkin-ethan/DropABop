@@ -141,6 +141,8 @@ export interface Song {
   albumArtUrl: string | null;
   durationMs: number | null;
   releaseDate: IsoDate | null;
+  /** The catalog's main genre, e.g. "Electronic" (iTunes `primaryGenreName`, P13.7). Missing on songs shared before. */
+  genre?: string | null;
   providers: SongProvider[];
 }
 

@@ -125,6 +125,7 @@ export const songSchema = z.strictObject({
   albumArtUrl: httpsUrlSchema.nullable(),
   durationMs: z.int().min(0).nullable(),
   releaseDate: z.string().nullable(),
+  genre: z.string().trim().min(1).max(100).nullable().optional(),
   providers: z.array(songProviderSchema).min(1, { error: 'A song needs at least one music service link.' }),
 });
 
