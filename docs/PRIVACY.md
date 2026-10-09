@@ -94,6 +94,11 @@ Questions or complaints about privacy: **droppa.bop@gmail.com**.
   policy is accurate by the time videos can play; don't deploy P13.4 to prod before P13.6.
 - **Policy version:** the YouTube search wording was added on 2026-10-09 before the policy was ever deployed, so the
   version stayed 2026-10-09. After it's live, any such change bumps the version.
+- **Album art from Apple (Ethan, 2026-10-09: keep as is).** Artwork loads straight from Apple's servers, which see
+  each viewer's IP address; the policy says so. Kept because the group is US-based and Apple's terms expect the
+  artwork URL to be used. Revisit (consent before loading, or serving art through our server after checking Apple's
+  terms) if members outside the US join; an EU court has found loading third-party resources without consent unlawful
+  (LG München, Google Fonts, 2022).
 - **Data minimisation:** no listening history, no provider tokens (no accounts are connected), no IP addresses in
   our logs. The agreement is stored as a timestamp + policy version on the user's profile.
 - **No account deletion is offered yet** (Ethan, 2026-10-09). If that changes, first decide what is removed (D17 keeps
