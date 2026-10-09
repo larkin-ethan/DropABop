@@ -49,7 +49,7 @@ The guiding rule is spec §1 ("do not replace working functionality"): the weekl
 | 33 | Auth and security | Done | Cognito JWT, membership checks in every handler, zod validation, throttles. New routes follow the same checklist. | each task |
 | 34 | Provider capabilities | New | `capabilities.ts`, values from the P13.2 research. | P13.3 |
 | 35 | Quotas, caching, rate limits | Done / New | iTunes limits already documented and handled (ADR-0007). The YouTube embed has no quota; the IFrame script loads only on first Play. | P13.2 |
-| 36 | Privacy and retention | New | `docs/PRIVACY.md`, including what YouTube's player collects and links to Google's policies. | P13.2 |
+| 36 | Privacy and retention | New | `docs/PRIVACY.md` (done) and an in-app privacy page with agreement at sign-up and for existing members (YouTube requires it). | P13.2, P13.2a |
 | 37 | Accessibility | Done / New | Existing pass (P8.12); new screens get keyboard checks and text tables for charts. | P13.14 |
 | 38 | Performance | Done / New | Player script lazy-loaded; history limited to a month per request; no polling beyond D29. | P13.3, P13.8 |
 | 39 | Screen inventory | Adapt | Most screens exist; new: Song Details, Music Services, Calendar/Day/Week, Achievements (+ detail, toast), Notifications, Search. "Vote Submitted" and "Waiting for Everyone" stay inline states. | Phase 13 |

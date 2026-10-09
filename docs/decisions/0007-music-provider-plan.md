@@ -1,5 +1,8 @@
 # ADR-0007: v1 music plan: iTunes Search for songs, member-pasted Spotify/YouTube links
 
+> **2026-10-09:** decision 6 (in-app playback deferred) is superseded **for YouTube only** by
+> [ADR-0011](0011-youtube-embedded-player.md). Everything else here stands.
+
 - **Status:** Accepted (approved by Ethan, 2026-10-01).
 - **Date:** 2026-10-01
 - **Spec sections:** §10, §11, §12, §14 · Decisions D20, D21, D22 · Details: `docs/MUSIC_PROVIDERS.md`

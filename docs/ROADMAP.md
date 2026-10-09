@@ -399,7 +399,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   and the three mockup sheets in `docs/design/`; write the section-by-section reconciliation; add D26–D33; add this
   phase; map the new mockups in `docs/design/README.md`; point CLAUDE.md at the new files. *Done when:* all files
   exist, formatting check passes, `npm run verify` passes.
-- [ ] **P13.2 — Provider compliance research** (§3, §4, §34–§36) — read the current official docs and cite URL +
+- [x] **P13.2 — Provider compliance research** (§3, §4, §34–§36) — read the current official docs and cite URL +
   date: YouTube API Services Terms, Developer Policies, IFrame Player API reference, Required Minimum Functionality
   (player size, visibility, overlays, autoplay, ads, `youtube-nocookie.com`, Referer, embed-disabled errors 101/150,
   whether a user-pasted video id is "API data"), privacy-policy requirements; Apple MusicKit on the Web requirements
@@ -408,10 +408,17 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   **Stop and ask Ethan** if the terms need something only he can do (e.g. publishing a privacy policy, accepting
   terms) or forbid the docked player. *Done when:* every capability P13.3 relies on is cited, open questions are
   listed in API_COMPLIANCE.md, Ethan has answered any stop question.
+- [ ] **P13.2a — Privacy page + agreement** (§36; ADR-0011, D27) — a `/privacy` page anyone can open (privacy policy + terms of use incl. the
+  YouTube Terms of Service sentence, text from `docs/PRIVACY.md`, linked from sign-up, Help and settings); a required
+  "I agree to the privacy policy and terms" checkbox at sign-up; a one-time prompt for signed-in members who haven't agreed to the current version.
+  Backend: `PATCH /users/me` accepts `acceptPrivacy: true` and stores `privacyAcceptedAt` (server time) +
+  `privacyVersion` (shared zod schema); `GET /users/me` returns them. *Done when:* unit + integration tests (the
+  server sets the time, a client can't set an old/new version), screen tests for the page, checkbox and prompt,
+  e2e journeys still green, SECURITY "What we store" and DATABASE/API docs updated.
 - [ ] **P13.3 — Player layer** (§7, §14, §15, §28, §34, §38) — `apps/web/src/player/`: `capabilities.ts` (values from
   P13.2; Apple and Spotify links only), a `MusicPlayerContext` with one active song (starting one stops the last),
   `youtube-player.ts` (loads YouTube's IFrame script on first Play only; play/pause/seek/volume/state; errors →
-  fallback; `destroy()`), `PlaybackFallback` (loading / can't play here / provider failure, only links that exist),
+  fallback; `destroy()`; ADR-0011's rules: ≥ 200 × 200 px, visible, no overlays, no autoplay, `origin` parameter), `PlaybackFallback` (loading / can't play here / provider failure, only links that exist),
   and a docked, visible player in `AppShell` that survives navigation and sits above the mobile bottom bar. CSP:
   add the YouTube frame/script hosts in all three copies (`vite.config.ts`, generated `_headers`, CloudFront policy
   in `infra/template.yaml`) via the `aws-change` check. *Done when:* unit tests with a mocked `window.YT` cover lazy
@@ -419,7 +426,8 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
   `npm run verify` passes.
 - [ ] **P13.4 — YouTube video on songs** (§12, §13) — a `youtubeVideoId()` helper in `packages/shared` (watch,
   youtu.be, music.youtube.com) with tests; Rate, Results and confirmation cards show "▶ Play video" when the sharer
-  linked YouTube, labelled "YouTube video linked by the sharer", otherwise the existing links; honours the user's
+  linked YouTube, labelled "YouTube video linked by the sharer", only for songs shared in the last 30 days and only after the
+  user agreed to the privacy policy (ADR-0011), otherwise the existing links; honours the user's
   "Play videos" setting once P13.6 adds it (default on). No backend change. *Done when:* unit + screen tests; manual
   check in the browser pane that a real pasted video plays and an embed-disabled one falls back; e2e still green.
 - [ ] **P13.5 — Song Details screen** (§21) — `/songs/:week/:songId`: artwork, title, artist, album, year, player or

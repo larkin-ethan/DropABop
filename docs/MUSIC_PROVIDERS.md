@@ -4,7 +4,9 @@ How Drop a Bop finds songs and links people to them, what each music service all
 Every fact below was checked against the provider's official documentation or terms on **2026-10-01** (sources at the
 end). Provider rules change often: re-check before relying on anything here, and update the date.
 
-**Decision:** [ADR-0007](decisions/0007-music-provider-plan.md), approved by Ethan on 2026-10-01.
+**Decision:** [ADR-0007](decisions/0007-music-provider-plan.md), approved by Ethan on 2026-10-01. **Update 2026-10-09:**
+sharer-linked YouTube videos play in YouTube's embedded player ([ADR-0011](decisions/0011-youtube-embedded-player.md));
+the per-provider compliance checklist is in [API_COMPLIANCE.md](API_COMPLIANCE.md). The player layer is documented here in P13.15.
 
 ## Summary
 

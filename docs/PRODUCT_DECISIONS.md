@@ -95,7 +95,9 @@ this deliberate change to spec §13–§15.
   never leave the device); it's stored with the profile as a small data URL and shown to party members instead of the
   initials. JPEG/WebP only (no SVG), at most 9,000 characters; it can be removed any time. No new AWS service.
 - **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, optional profile picture (D18),
-  preferred music app. Nothing else.
+  preferred music app, plus what you do in a party (songs, ratings, comments, D25). Nothing else. *Added by D27/D29
+  (Phase 13):* the "Play videos" setting, notification
+  switches and seen-times, and when you agreed to the privacy policy (timestamp + version).
 
 ## Music (§10, §11, §12)
 
@@ -155,6 +157,11 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
   - Playback is never required: rating, sharing, results and stats work without it (spec §14). A per-user
     **"Play videos in Drop a Bop"** setting (default on) turns the embed off for people who'd rather open links.
   - The preferred music app (D22) moves from Profile to **Settings → Music** (P13.6).
+  - **Compliance answers (Ethan, 2026-10-09, ADR-0011):** a privacy page anyone can open, an "I agree" checkbox at
+    sign-up and a one-time prompt for existing members (YouTube requires agreement before use); privacy contact
+    **droppa.bop@gmail.com**; the in-app player is offered only for songs **shared in the last 30 days** (cautious
+    reading of YouTube's 30-day rule), older songs keep their plain link. The repo stays public: the contact address
+    is meant to be public and is on the site anyway.
 - **D28 — Achievements.** Computed on the server from **closed weeks only**, per party, never stored as awards
   (so no duplicates and nothing the browser can fake). Each one shows progress (`current / target`) and is
   "unlocked on" the lock date of the first closed week that met it. Party members can see each other's

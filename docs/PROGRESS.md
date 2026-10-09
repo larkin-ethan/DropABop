@@ -3,8 +3,8 @@
 ## Current focus
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
-It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1 is
-done; next is **P13.2** (YouTube/Apple compliance research → ADR-0011, API_COMPLIANCE.md, PRIVACY.md). Phase 13 runs
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.2
+are done; next is **P13.2a** (privacy page + agreement at sign-up and for existing members, required by YouTube). Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
 (cost check after a week of use), P12.3 (launch).
 
@@ -50,6 +50,22 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-09 — **P13.2 done: provider compliance research** — re-read the official YouTube pages (Developer
+  Policies, Required Minimum Functionality, API Services Terms, IFrame API reference, player parameters, branding
+  guidelines), Apple's developer-token and user-authentication pages and the iTunes Search terms; wrote ADR-0011
+  (YouTube embedded player for sharer-pasted links; supersedes ADR-0007 #6 for YouTube only), `docs/API_COMPLIANCE.md`
+  (§3.4 checklist per provider, 3 open questions) and `docs/PRIVACY.md` (policy text + developer notes). Findings:
+  the docked player is allowed if it stays visible at ≥ 200 × 200 px with nothing on top (the mockups' mini-bar is
+  not); YouTube requires a privacy policy with a contact and agreement before use. Ethan answered: contact
+  droppa.bop@gmail.com, agreement at sign-up + one-time prompt for existing members, in-app play only for songs
+  shared in the last 30 days. Repo kept public (Ethan left it to me: the address is public on the site anyway; `gh`
+  isn't signed in here either). Added task P13.2a for the privacy page + agreement.
+  spec-reviewer: fixed its findings (terms-of-use sentence binding users to the YouTube ToS, confirmed on the live
+  page §III.A.1; Apple sees IPs via album art; host can't leave; session storage; 30-day wording; comments in D19 and
+  SECURITY). Ethan: no account deletion offered yet, so the policy doesn't promise it. Not confirmed from official docs:
+  MusicKit's non-subscriber playback and v3 script URL (docs page didn't render; noted for P13.L). Verified:
+  `npm run verify` passed. Leftovers: none.
 
 - 2026-10-09 — **P13.1 done: spec v2 intake + decisions** — saved Ethan's pasted master spec v2 word for word as
   `docs/SPEC_V2.md` (only headings/fences added) and the three mockup sheets as `docs/design/mockup-v3-*.webp`; wrote
