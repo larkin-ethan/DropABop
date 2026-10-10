@@ -1,6 +1,6 @@
 // Responsive & accessibility pass (roadmap P8.12, spec §21): every screen at the 7 widths the spec names.
 // For each one: no sideways scrolling, every button/link/field has a name a screen reader can read, every image has
-// alt text, and Tab moves focus to something visible. A full-page screenshot of each is saved in
+// alt text, and Tab moves focus to something visible with a visible focus outline (P13.14, spec §37). A full-page screenshot of each is saved in
 // e2e/screenshots/ (git-ignored) for a person to look over.
 // Runs in sample mode like the journey; it sets its own widths, so it runs under one project only.
 
@@ -11,8 +11,10 @@ const WIDTHS = [320, 375, 390, 430, 768, 1024, 1440];
 const SCREENS = [
   { name: 'home', path: '/' },
   { name: 'share', path: '/share' },
+  { name: 'drop', path: '/drop' }, // the Drop hub (D32) opens the fitting tab
   { name: 'rate', path: '/rate' },
   { name: 'results', path: '/results' },
+  { name: 'results-week', path: '/results/p1.2026-09-28' },
   { name: 'history', path: '/history?month=2026-10' },
   { name: 'history-list', path: '/history?view=list' },
   { name: 'history-day', path: '/history/day/2026-09-28' },
@@ -77,6 +79,22 @@ async function unnamedElements(page: Page): Promise<string[]> {
   });
 }
 
+/**
+ * Whether the focused element shows where focus is: a real (not transparent, not zero-width) outline, or a ring
+ * drawn with box-shadow. Tailwind's `outline-none` leaves a transparent outline, which doesn't count.
+ */
+async function focusIsVisible(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const el = document.activeElement;
+    if (el === null || el === document.body) return false;
+    const style = getComputedStyle(el);
+    const transparent = (color: string) => color === 'transparent' || /rgba\(.*,\s*0\)$/.test(color);
+    const outline =
+      style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0 && !transparent(style.outlineColor);
+    return outline || style.boxShadow !== 'none';
+  });
+}
+
 test.describe('every screen at every width', () => {
   for (const screen of SCREENS) {
     test(screen.name, async ({ page }, testInfo) => {
@@ -106,6 +124,7 @@ test.describe('every screen at every width', () => {
       const focused = page.locator(':focus');
       await expect(focused).toHaveCount(1);
       await expect(focused).toBeVisible();
+      expect(await focusIsVisible(page), `${screen.path}: keyboard focus has no visible outline`).toBe(true);
     });
   }
 });

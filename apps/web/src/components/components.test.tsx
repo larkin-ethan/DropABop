@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -156,12 +156,14 @@ describe('Leaderboard', () => {
 });
 
 describe('RatingDistribution', () => {
-  it('labels every rating bucket from 10 down to 1', () => {
+  it('gives screen readers a text table, 10 down to 1, and hides the bars from them (spec §37)', () => {
     render(<RatingDistribution counts={[0, 0, 0, 0, 0, 0, 1, 0, 2, 3]} />);
-    const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(10);
-    expect(items[0]).toHaveAccessibleName('3 ratings of 10');
-    expect(items[9]).toHaveAccessibleName('0 ratings of 1');
+    const table = screen.getByRole('table', { name: 'Rating distribution' });
+    const rows = within(table).getAllByRole('row').slice(1); // after the header row
+    expect(rows).toHaveLength(10);
+    expect(rows[0]).toHaveTextContent('103');
+    expect(rows[9]).toHaveTextContent('10');
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0); // the bars are aria-hidden
   });
 });
 

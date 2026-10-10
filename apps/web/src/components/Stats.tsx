@@ -176,19 +176,35 @@ export function ProvisionalList({
   );
 }
 
-/** Horizontal bars for how many of each rating a song (or person) got. `counts[0]` = number of 1s. */
+/**
+ * Horizontal bars for how many of each rating a song (or person) got. `counts[0]` = number of 1s.
+ * The bars are only a picture; screen readers get the same numbers as a small table instead (spec §37).
+ */
 export function RatingDistribution({ counts }: { counts: number[] }) {
   const max = Math.max(1, ...counts);
+  const rows = [...counts].reverse().map((count, i) => ({ rating: counts.length - i, count }));
   return (
-    <ul className="flex flex-col gap-1.5" aria-label="Rating distribution">
-      {[...counts].reverse().map((count, i) => {
-        const rating = counts.length - i;
-        return (
-          <li
-            key={rating}
-            className="flex items-center gap-2 text-xs"
-            aria-label={`${count} ratings of ${rating}`}
-          >
+    <div>
+      <table className="sr-only">
+        <caption>Rating distribution</caption>
+        <thead>
+          <tr>
+            <th scope="col">Rating</th>
+            <th scope="col">Ratings given</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ rating, count }) => (
+            <tr key={rating}>
+              <th scope="row">{rating}</th>
+              <td>{count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ul className="flex flex-col gap-1.5" aria-hidden="true">
+        {rows.map(({ rating, count }) => (
+          <li key={rating} className="flex items-center gap-2 text-xs">
             <span className="w-5 text-right text-muted">{rating}</span>
             <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-raised">
               <span
@@ -198,8 +214,8 @@ export function RatingDistribution({ counts }: { counts: number[] }) {
             </span>
             <span className="w-5 text-muted">{count}</span>
           </li>
-        );
-      })}
-    </ul>
+        ))}
+      </ul>
+    </div>
   );
 }

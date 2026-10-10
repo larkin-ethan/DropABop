@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.13 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search, navigation); next is **P13.14** (responsive + accessibility pass). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.14 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search, navigation, responsive + accessibility); next is **P13.15** (docs). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -58,6 +58,16 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-10 — **P13.14 done: responsive + accessibility pass** — `e2e/screens.spec.ts` now covers 33 screens
+  (added the Drop hub and a week's results) at 320/375/390/430/768/1024/1440 px and also checks that the first Tab
+  shows a real focus outline. New `e2e/keyboard.spec.ts` (both widths): calendar (Tab to a day, Enter opens it),
+  rating picker (arrow keys, End), video player (Enter opens it, Tab reaches "Close player", Enter closes; YouTube
+  blocked in tests), achievement banner (Tab to View and Dismiss, Enter dismisses). Charts: `RatingDistribution`
+  bars are now hidden from screen readers and come with a screen-reader table (rating → count); group activity
+  already had tables. Web screen tests get a 15 s timeout (the P13.13 flake: long flows under load). Verified:
+  `npm run verify` (655 + 1 skipped), **`npm run e2e` 43 passed** (33 skipped = desktop duplicates of the screen
+  sweep, by design). Not deployed.
 
 - 2026-10-10 — **P13.13 done: navigation (D32)** — desktop sidebar in three groups (Home, Today's Drop, History,
   Stats, Leaderboard, Achievements, Search · Party, Members → `/settings/party#members`, Settings · bell, Profile,

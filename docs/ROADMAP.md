@@ -480,7 +480,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
 - [x] **P13.13 — Navigation** (§27, §40; D32) — desktop sidebar per D32; mobile bar Home · Drop · History · Stats ·
   Profile; `/drop` hub with Share · Rate · Results tabs; bell and settings in the mobile header. *Done when:*
   screen tests, e2e journeys updated and green.
-- [ ] **P13.14 — Responsive + accessibility pass** (§27, §37) — extend `e2e/screens.spec.ts` to all new screens at
+- [x] **P13.14 — Responsive + accessibility pass** (§27, §37) — extend `e2e/screens.spec.ts` to all new screens at
   320/375/390/430/768/1024/1440 (no horizontal overflow, visible focus); keyboard checks for calendar, rating,
   player and toast; text tables for charts. *Done when:* the e2e run passes and is recorded.
 - [ ] **P13.15 — Docs** (§43) — README, ARCHITECTURE, DEVELOPMENT, DEPLOYMENT, SECURITY, MUSIC_PROVIDERS (player

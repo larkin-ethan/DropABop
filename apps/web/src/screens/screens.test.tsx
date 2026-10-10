@@ -474,7 +474,7 @@ describe('Weekly results and history (P8.6, P8.7)', () => {
     renderApp('/results/p1.2026-09-28');
     await userEvent.click(await screen.findByRole('button', { name: 'By day' }));
     await userEvent.click(screen.getAllByRole('button', { name: 'Details' })[0] as HTMLElement);
-    expect(screen.getByRole('list', { name: 'Rating distribution' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Rating distribution' })).toBeInTheDocument();
   });
 
   it('explains that the current week’s results aren’t ready', async () => {
@@ -1074,7 +1074,7 @@ describe('Song Details (P13.5)', () => {
     expect(screen.getByText(song.song.artist)).toBeInTheDocument();
     expect(screen.getByText(/The group’s average and ranking appear when ratings lock/)).toBeInTheDocument();
     expect(screen.queryByText(/Week result/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Rating distribution')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Rating distribution' })).not.toBeInTheDocument();
     expect(screen.queryByText(/· by/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to this week’s songs/ })).toHaveAttribute('href', '/rate');
   });
@@ -1087,7 +1087,7 @@ describe('Song Details (P13.5)', () => {
     expect(screen.getByText(`#${result.rank}`, { exact: false })).toBeInTheDocument();
     expect(screen.getByText(`of ${state.pastResults.length}`)).toBeInTheDocument();
     expect(screen.getByText(`Average of ${result.ratingCount} ratings`)).toBeInTheDocument();
-    expect(screen.getByLabelText('Rating distribution')).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Rating distribution' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to the week’s results/ })).toHaveAttribute(
       'href',
       '/results/p1.2026-09-28',
@@ -1253,7 +1253,7 @@ describe('History calendar (P13.8)', () => {
     renderApp('/history/day/2026-10-05');
     expect(await screen.findByText('Results after ratings lock')).toBeInTheDocument();
     expect(screen.queryByText('Your average given')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Rating distribution')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Rating distribution' })).not.toBeInTheDocument();
   });
 
   it('week view with "Your week", highlights and the day-by-day list', async () => {
