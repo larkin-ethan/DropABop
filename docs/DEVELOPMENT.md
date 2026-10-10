@@ -64,6 +64,10 @@ To run it against your own dev stack instead, deploy the stack (DEPLOYMENT.md), 
   (`satisfies`), so the website and API can't drift.
 - `apps/web/src/party/CurrentParty.tsx`: which of your parties the screens show (remembered on the device).
 - Screen tests (`apps/web/src/screens/screens.test.tsx`) render the whole app against the pretend API.
+- `apps/web/src/player/`: the in-app player (one song at a time, docked; YouTube only today). Tests swap the real
+  YouTube player for a fake through `MusicPlayerProvider`'s `createPlayer`, so they never load YouTube.
+- `apps/web/src/components/AppShell.tsx`: navigation (D32). Share, Rate and Results sit under one "Drop" hub
+  (`screens/DropScreens.tsx`); `/drop` opens the tab that fits right now (`lib/home-action.ts`).
 
 ## Repository layout
 

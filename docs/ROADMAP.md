@@ -483,7 +483,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
 - [x] **P13.14 — Responsive + accessibility pass** (§27, §37) — extend `e2e/screens.spec.ts` to all new screens at
   320/375/390/430/768/1024/1440 (no horizontal overflow, visible focus); keyboard checks for calendar, rating,
   player and toast; text tables for charts. *Done when:* the e2e run passes and is recorded.
-- [ ] **P13.15 — Docs** (§43) — README, ARCHITECTURE, DEVELOPMENT, DEPLOYMENT, SECURITY, MUSIC_PROVIDERS (player
+- [x] **P13.15 — Docs** (§43) — README, ARCHITECTURE, DEVELOPMENT, DEPLOYMENT, SECURITY, MUSIC_PROVIDERS (player
   layer, adding MusicKit later, adding a provider), DATABASE, API, STATISTICS, API_COMPLIANCE test results.
   *Done when:* a reader can follow every new feature from the docs; only tests actually run are reported.
 - [ ] **P13.16 — Dev deploy + smoke, then prod** [HUMAN for prod] — `bash scripts/deploy.sh dev` after Ethan

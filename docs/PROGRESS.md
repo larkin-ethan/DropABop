@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.14 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search, navigation, responsive + accessibility); next is **P13.15** (docs). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.14 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search, navigation, responsive + accessibility, docs); next is **P13.16** (dev deploy + smoke, then prod; prod is Ethan's). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -58,6 +58,18 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-10 — **P13.15 done: docs** — README (Phase 13 features; 33 functions; in-app YouTube player and the
+  ADR-0012 suggestions, replacing the stale "we don't call the YouTube API"; the one secret is the YouTube key in
+  SSM; e2e row), ARCHITECTURE (33 functions, the SSM key outside the template, code layout incl. player, navigation,
+  preview, providers, new domain modules), DEVELOPMENT (player and navigation notes; e2e row done in P13.14),
+  SECURITY (what's stored now: switches, seen times, 29-day video ids; privacy rules in history, notifications,
+  search, achievements; secrets paragraph fixed), MUSIC_PROVIDERS (in-app player layer, adding Apple MusicKit later,
+  how to add a provider rewritten to the real `SongLookup` / `MusicPlayerProvider` structure), API_COMPLIANCE
+  (statuses, keyboard e2e result; iPhone Safari still unchecked). DATABASE, API and STATISTICS were already updated
+  task by task (checked). Two stale code comments/values fixed: the unused server capability table now says YouTube
+  plays in the app; the web capability comment points at ADR-0012. Verified: `npm run verify` (655 + 1 skipped),
+  every relative link and referenced file in the edited docs exists. Not deployed.
 
 - 2026-10-10 — **P13.14 done: responsive + accessibility pass** — `e2e/screens.spec.ts` now covers 33 screens
   (added the Drop hub and a week's results) at 320/375/390/430/768/1024/1440 px and also checks that the first Tab

@@ -8,7 +8,8 @@ end). Provider rules change often: re-check before relying on anything here, and
 sharer-linked YouTube videos play in YouTube's embedded player ([ADR-0011](decisions/0011-youtube-embedded-player.md));
 the per-provider compliance checklist is in [API_COMPLIANCE.md](API_COMPLIANCE.md). **Update 2026-10-09 (ADR-0012):**
 when a song is chosen to share, the server makes one YouTube Data API search for it and suggests the top results;
-song search itself stays on iTunes (YouTube allows 100 searches a day). The player layer is documented here in P13.15.
+song search itself stays on iTunes (YouTube allows 100 searches a day). The in-app player layer, adding Apple MusicKit
+later, and adding a provider are described below (P13.15).
 
 ## Summary
 
@@ -92,14 +93,62 @@ This keeps v1 at **$0 with no developer registrations**, inside every provider's
   can't be mixed with other sources as YouTube results; YouTube branding required wherever its content appears.
 - Embedded players: at least 200×200, no overlays. There is no official public YouTube Music API.
 
-## How to add a provider (P6.3+)
+## In-app player (the player layer, P13.3–P13.4)
 
-1. Re-check the provider's current docs and terms; add a section above with sources and the date checked.
-2. If it needs a paid account, a developer registration, or changes what we store or show, write or update an ADR and
-   get Ethan's approval first.
-3. Implement it behind the `MusicProvider` interface (`services/api/src/providers/`) with its capabilities
-   (`canSearch`, `canPlayInApp`, `requiresSubscription`, `canOpenExternal`), server-side only, secrets in SSM.
-4. Mock it in unit tests; add one opt-in live test.
+Only YouTube plays inside the app today; everything else is a link. The website's player code is in
+`apps/web/src/player/`, and screens never talk to YouTube directly:
+
+| Piece | File | What it does |
+|---|---|---|
+| Capabilities | `capabilities.ts` | Per service: search, embedded playback, seek, volume, account connection, background playback. Controls appear only when a service supports them. Values checked against official docs (API_COMPLIANCE.md). |
+| Which songs can play | `playable.ts` | `toPlayableSong()`: a song plays here only if it has a linked YouTube video and was shared in the last 30 days (YouTube's 30-day rule, read cautiously, with a day of timezone margin). Otherwise `null`, and the screen shows only links. |
+| One "now playing" song | `MusicPlayerContext.tsx` | `playSong()` / `close()`. Starting a song replaces the last one, so there's only ever one player (spec v2 §15). Sits above the routes, so playback survives moving between screens. |
+| The play card | `DockedPlayer.tsx` | Docked above the phone's bottom bar (bottom-right on desktop). The video is always visible, at least 200 × 200 px, with nothing of ours on top of it; our controls sit beside or below it. Close stops and removes the player. |
+| One provider's player | `types.ts` → `MusicPlayerProvider` | `play`, `pause`, `seek`, `setVolume`, `getPlaybackState`, `destroy`. State changes are pushed to a callback. |
+| YouTube | `youtube-player.ts` | Loads `https://www.youtube.com/iframe_api` once, on the first Play (never before), and creates the player with `autoplay: 0`, `playsinline: 1` and our `origin`. Maps YouTube's error codes to `notEmbeddable` / `notFound` / `failed`. |
+| When it can't play | `PlaybackFallback.tsx` | "This song can't be played here" plus the song's real links only (never a different recording picked for the person). |
+| Play button | `PlayVideoButton.tsx` | Shown only for a playable song, only after the person agreed to the current privacy policy (ADR-0011), and only if "Play videos in Drop a Bop" is on (Settings → Music). Labelled "YouTube video linked by the sharer". |
+
+Rating never depends on playback: every card keeps its listen links, and the player can be closed at any time.
+Tests use a fake player (`createPlayer` is injected), so no test loads YouTube; the e2e keyboard test blocks YouTube's
+servers entirely.
+
+## Adding Apple MusicKit later (deferred: P13.L)
+
+Not a task until Ethan decides to pay for the Apple Developer Program ($99/year). Then:
+
+1. **[HUMAN]** Join the program, create a MusicKit key, and store its `.p8` private key as an SSM SecureString
+   (like the YouTube key, DEPLOYMENT.md §4e). Re-check the docs listed in API_COMPLIANCE.md → Apple first, including
+   the two points not yet confirmed there (what non-subscribers can play; the MusicKit JS v3 script URL).
+2. **Server:** `GET /music/apple/developer-token`: an ES256 JWT signed with `node:crypto` (header `alg`, `kid`;
+   claims `iss` = Team ID, `iat`, `exp`, and `origin` = our site), short-lived and cached in memory. The private key
+   never leaves the server. Add the route, function and its one SSM permission (aws-change skill; `infra-template.test.ts`
+   checks the wiring).
+3. **Website:** an `AppleMusicPlayer` implementing `MusicPlayerProvider` with MusicKit JS; add it to `createPlayer`
+   in `MusicPlayerContext.tsx`; set `appleMusic`'s capabilities (`embeddedPlayback`, `accountConnection`, …) from the
+   docs; extend `toPlayableSong()` so Apple Music songs can play for people who connected.
+4. **Settings → Music:** Connect / Disconnect Apple Music. The Music User Token stays in the browser (MusicKit keeps
+   it); our server never receives or stores it. Handle cancel, failure, expiry, revocation and disconnect (spec §10).
+5. Update API_COMPLIANCE.md (a full Apple section with test results), PRIVACY.md (what Apple sees), SECURITY.md (the
+   new secret) and this page.
+
+## How to add a provider
+
+1. **Check first.** Read the provider's current docs and terms; add a section above with sources and the date
+   checked, and a row in API_COMPLIANCE.md. If it needs a paid account, a registration or a key, or changes what we
+   store or show, write or update an ADR and get Ethan's approval before building. A new AWS service also needs the
+   aws-change process.
+2. **Catalog search or song details (server)** go behind `SongLookup` in `services/api/src/providers/song-lookup.ts`
+   (today `itunes.ts`), called from Lambda only, keys in SSM, with a friendly "busy" error instead of retries when
+   the provider is rate-limited. Keep `PROVIDER_CAPABILITIES` there up to date.
+3. **Playing inside the app (website)** goes behind `MusicPlayerProvider` (`apps/web/src/player/types.ts`): add the
+   service to `PlayerProviderId` and `PROVIDER_CAPABILITIES` in `capabilities.ts` (only what the docs allow), create
+   it in `createPlayer`, and decide in `playable.ts` which songs it can play. Follow the provider's display rules
+   (size, overlays, branding) in `DockedPlayer.tsx`.
+4. **Links only** (no API): add the link format to `packages/shared/src/links.ts` (strict parsing, stored in a clean
+   form) and the "Listen on …" link to `apps/web/src/lib/music-links.ts`.
+5. **Tests:** unit tests with recorded fixtures or a fake player, never live calls in `npm test`; one opt-in live
+   check, recorded in API_COMPLIANCE.md → Compliance test results with its date.
 
 ## Sources (all checked 2026-10-01)
 

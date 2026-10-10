@@ -4,17 +4,17 @@ The spec v2 §3.4 / §43 checklist for every third-party service Drop a Bop uses
 documents say and how we follow them. It is **not** a legal certification (spec §3.4). If a provider's terms
 change, flag the section here for review **before** changing the integration (§43).
 
-**Last full review: 2026-10-09** (P13.2). Decisions: ADR-0007 (iTunes, links), ADR-0011 (YouTube embed), D27.
+**Last full review: 2026-10-09** (P13.2). Decisions: ADR-0007 (iTunes, links), ADR-0011 (YouTube embed), ADR-0012 (YouTube suggestions), D27.
 
 ## Summary
 
 | Provider / API | Used for | Account or key | Status |
 |---|---|---|---|
 | iTunes Search API | Song search and details, Apple Music link | None | Live since P6 |
-| YouTube IFrame Player API | Playing videos that a sharer linked or kept | None | Building in Phase 13 |
+| YouTube IFrame Player API | Playing videos that a sharer linked or kept | None | Built (P13.3–P13.4); on dev; prod with the Phase 13 release (P13.16) |
 | Spotify | A link the sharer pastes; no API calls | None | Live (links only) |
 | Apple MusicKit on the Web / Apple Music API | — | Paid Apple Developer membership | **Deferred** (P13.L) |
-| YouTube Data API v3 (`search.list`) | One search per shared song (ADR-0012) | Google Cloud API key (Ethan, P13.4b) | Built; off until the key exists |
+| YouTube Data API v3 (`search.list`) | One search per shared song (ADR-0012) | Google Cloud API key (Ethan, P13.4b) | Live on dev (key stored 2026-10-09); prod needs its own key (DEPLOYMENT.md §4e) |
 
 ## iTunes Search API
 
@@ -56,7 +56,7 @@ Full decision and sources: ADR-0011.
 | Revocation / disconnection | No account to disconnect. The "Play videos in Drop a Bop" setting turns the player off |
 | Errors | 100, 101, 150, 2, 5, 153 → "We couldn't play this here" + the song's links |
 | Known limitations | Only songs with a pasted YouTube link; the video may not be the official recording (labelled "YouTube video linked by the sharer"); browsers may block unmuted autoplay, so play always starts from a tap |
-| Compliance tests | Planned in P13.3 / P13.4: mocked `window.YT` unit tests (lazy load, one at a time, error → fallback, cleanup, size); one manual check with a real and an embed-disabled video. Results recorded here when run |
+| Compliance tests | See "Compliance test results" below (unit tests with a mocked `window.YT`, browser-pane checks, production CSP, keyboard e2e) |
 
 ## YouTube Data API v3 (ADR-0012)
 
@@ -135,6 +135,9 @@ Only tests that were actually run are listed.
   pressing Play video on a Rate card opened the play card and played the linked video.
 - **2026-10-09 (P13.4b), live on dev:** the deployed `SuggestYouTubeFunction`, invoked with a test event for iTunes
   track 828259377, read the key from SSM and returned 3 YouTube results (official video first), `unavailable: null`.
+- **2026-10-10 (P13.14), keyboard e2e** `e2e/keyboard.spec.ts` (passed at 375 px and 1440 px, YouTube's servers
+  blocked): Play video is reachable with Tab and opens the play card with Enter; Tab reaches "Close player" (the
+  player doesn't trap focus); Enter closes it and removes the player. Focus is visibly outlined at each step.
 - **Not yet checked:** iPhone Safari. Our Play button and the start-on-ready call happen after the script loads,
   which iOS may not count as the person's tap; YouTube's own play button inside the player still works. To check by
   hand on a phone in P13.4.

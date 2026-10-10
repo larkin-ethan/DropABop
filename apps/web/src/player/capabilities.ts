@@ -23,7 +23,7 @@ export const PROVIDER_CAPABILITIES: Record<PlayerProviderId, MusicProviderCapabi
   // IFrame Player API: playVideo/pauseVideo/seekTo/setVolume exist; no account needed. Background (hidden) players
   // are forbidden by the Developer Policies, so the player is always on screen while it plays.
   youtube: {
-    search: false, // the YouTube Data API isn't used (D27): videos come from links members paste
+    search: false, // people search iTunes, not YouTube; the server's one YouTube search per shared song only suggests videos (ADR-0012)
     embeddedPlayback: true,
     seek: true,
     volume: true,
