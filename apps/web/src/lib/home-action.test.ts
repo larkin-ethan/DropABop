@@ -1,6 +1,6 @@
 import type { CurrentWeekResponse, Round } from '@dropabop/shared';
 import { describe, expect, it } from 'vitest';
-import { homeAction } from './home-action';
+import { dropPath, homeAction } from './home-action';
 
 const open = (
   overrides: Partial<Extract<CurrentWeekResponse, { reason: null }>> = {},
@@ -59,5 +59,19 @@ describe('homeAction (spec §26)', () => {
 
   it('while the week is still loading → no button', () => {
     expect(homeAction(true, undefined).to).toBeNull();
+  });
+});
+
+describe('dropPath (D32 Drop hub)', () => {
+  it('opens the tab that matches the week', () => {
+    expect(dropPath(true, open({ sharedToday: false }))).toBe('/share');
+    expect(dropPath(true, open({ progress: { songCount: 4, ratableCount: 3, ratedCount: 1 } }))).toBe(
+      '/rate',
+    );
+    expect(dropPath(true, open())).toBe('/rate'); // all caught up: still the week's songs
+    expect(
+      dropPath(true, { round: null, reason: 'between-weeks', nextWeekStartsAt: null, lastRoundId: null }),
+    ).toBe('/results');
+    expect(dropPath(false, undefined)).toBe('/join');
   });
 });

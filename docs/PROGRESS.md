@@ -4,7 +4,7 @@
 
 **Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
 It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
-are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.12 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search); next is **P13.13** (navigation). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.13 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search, navigation); next is **P13.14** (responsive + accessibility pass). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
 still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
 `deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
 while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
@@ -58,6 +58,18 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-10 — **P13.13 done: navigation (D32)** — desktop sidebar in three groups (Home, Today's Drop, History,
+  Stats, Leaderboard, Achievements, Search · Party, Members → `/settings/party#members`, Settings · bell, Profile,
+  Sign out); mobile bar Home · Drop · History · Stats · Profile; mobile header has the bell, Search (added so Search
+  is reachable on phones; D32 didn't place it) and Settings (the avatar moved to the bar). Drop hub: a layout route
+  puts Share · Rate · Results tabs over those screens (addresses unchanged); `/drop` opens the fitting tab
+  (`dropPath` in `lib/home-action.ts`: share → rate → results between weeks). Drop stays highlighted on all three;
+  Stats on Leaderboard, Profile on Achievements (phone bar). Design README layout notes rewritten. Verified: `npm run
+  verify` (655 + 1 skipped; 3 new navigation screen tests + `dropPath` tests), e2e 33 passed (journey now goes
+  through the Drop hub at 375 and 1440), checked in the browser pane at phone and desktop widths. Not deployed.
+  Leftover: one `npm run verify` run had 1 failing test that didn't reproduce in 8 reruns; most likely the known
+  5-second timeout on the long Rate-screen test under load (seen in P13.11 too). Worth raising its timeout in P13.14.
 
 - 2026-10-09 — **P13.12 done: party search** — `GET /parties/{partyId}/search?q=&type=all|songs|artists|members|weeks&cursor=`
   (D33): membership checked first; the party's songs read with one descending key query on `REC#`, capped at 5,000

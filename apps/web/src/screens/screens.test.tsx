@@ -554,8 +554,8 @@ describe('Stats and leaderboard (P8.8, P8.9)', () => {
 
   it('group stats show counts, group average, top artists and activity tables', async () => {
     renderApp('/stats/group');
-    expect(await screen.findByText('Members')).toBeInTheDocument();
-    expect(screen.getByText('Group average')).toBeInTheDocument();
+    expect(await screen.findByText('Group average')).toBeInTheDocument();
+    expect(within(screen.getByRole('main')).getByText('Members')).toBeInTheDocument();
     expect(screen.getAllByText('7.3').length).toBeGreaterThan(0);
     expect(screen.getByText('Robyn')).toBeInTheDocument();
     expect(screen.getByRole('table', { name: /each finished week/ })).toBeInTheDocument();
@@ -1127,7 +1127,10 @@ describe('Settings (P13.6)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Account/ })).toHaveAttribute('href', '/settings/account');
     expect(screen.getByRole('link', { name: /Music/ })).toHaveAttribute('href', '/settings/music');
-    expect(screen.getByRole('link', { name: /^Party/ })).toHaveAttribute('href', '/settings/party');
+    expect(within(screen.getByRole('main')).getByRole('link', { name: /^Party/ })).toHaveAttribute(
+      'href',
+      '/settings/party',
+    );
     expect(screen.getByRole('link', { name: /^Privacy/ })).toHaveAttribute('href', '/privacy');
     expect(screen.getByRole('link', { name: /^Help/ })).toHaveAttribute('href', '/how-it-works');
   });
@@ -1291,7 +1294,10 @@ describe('Achievements (P13.9)', () => {
     renderApp('/achievements');
     expect(await screen.findByText(/\d+ \/ \d+ unlocked/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Taking part' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Achievements' })).toHaveAttribute('href', '/achievements');
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Achievements' })).toHaveAttribute(
+      'href',
+      '/achievements',
+    );
     await userEvent.click(screen.getByRole('button', { name: /10 Weeks: 2 of 10 weeks/ }));
     const dialog = await screen.findByRole('dialog', { name: '10 Weeks' });
     expect(within(dialog).getByText('2 of 10 weeks')).toBeInTheDocument();
@@ -1420,5 +1426,69 @@ describe('Search (P13.12, D33)', () => {
   it('says so when nothing matches', async () => {
     renderApp('/search?q=zzzz');
     expect(await screen.findByText('No matches')).toBeInTheDocument();
+  });
+});
+
+describe('Navigation (P13.13, D32)', () => {
+  const linkNames = (nav: HTMLElement) =>
+    within(nav)
+      .getAllByRole('link')
+      .map((l) => l.textContent?.trim());
+
+  it('desktop sidebar and mobile bar follow D32', async () => {
+    renderApp('/');
+    await screen.findByText('Wednesday · Day 3 of 5');
+    const [sidebar, bar] = screen.getAllByRole('navigation', { name: 'Main' });
+    expect(linkNames(sidebar!)).toEqual([
+      'Home',
+      'Today’s Drop',
+      'History',
+      'Stats',
+      'Leaderboard',
+      'Achievements',
+      'Search',
+      'Party',
+      'Members',
+      'Settings',
+    ]);
+    expect(linkNames(bar!)).toEqual(['Home', 'Drop', 'History', 'Stats', 'Profile']);
+    // Bell, search and settings sit in the mobile header.
+    // The header's icon links carry an aria-label (the sidebar's use visible text).
+    const iconLink = (name: string) =>
+      screen.getAllByRole('link', { name }).find((l) => l.getAttribute('aria-label') === name);
+    expect(iconLink('Search')).toHaveAttribute('href', '/search');
+    expect(iconLink('Settings')).toHaveAttribute('href', '/settings');
+    expect(within(sidebar!).getByRole('link', { name: 'Members' })).toHaveAttribute(
+      'href',
+      '/settings/party#members',
+    );
+  });
+
+  it('Drop is a hub: Share · Rate · Results tabs, and Drop stays highlighted on each', async () => {
+    renderApp('/rate');
+    const tabs = await screen.findByRole('navigation', { name: 'Today’s drop' });
+    expect(linkNames(tabs)).toEqual(['Share', 'Rate', 'Results']);
+    expect(within(tabs).getByRole('link', { name: 'Rate' })).toHaveAttribute('aria-current', 'page');
+    const [sidebar, bar] = screen.getAllByRole('navigation', { name: 'Main' });
+    expect(within(sidebar!).getByRole('link', { name: 'Today’s Drop' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(bar!).getByRole('link', { name: 'Drop' })).toHaveAttribute('aria-current', 'page');
+    await userEvent.click(within(tabs).getByRole('link', { name: 'Results' }));
+    expect(screen.getByTestId('path')).toHaveTextContent('/results');
+  });
+
+  it('/drop opens the tab that fits: Share if you haven’t shared today, otherwise Rate', async () => {
+    renderApp('/drop');
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent(/^\/rate$/));
+    renderApp('/drop', {
+      setup: (s) => {
+        s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
+      },
+    });
+    await waitFor(() =>
+      expect(screen.getAllByTestId('path').some((p) => p.textContent === '/share')).toBe(true),
+    );
   });
 });

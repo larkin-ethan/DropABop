@@ -477,7 +477,7 @@ existing HTTP API. Every new screen gets loading / empty / error states and work
 - [x] **P13.12 — Search** (§24; D33) — `GET /parties/{partyId}/search?q=` over the party's songs, artists, members
   and weeks (one key query, capped, paginated; D10 respected); web search screen with category tabs. *Done when:*
   unit + integration tests (membership, privacy of open weeks, cap), screen tests, API/DATABASE docs, spec-reviewer.
-- [ ] **P13.13 — Navigation** (§27, §40; D32) — desktop sidebar per D32; mobile bar Home · Drop · History · Stats ·
+- [x] **P13.13 — Navigation** (§27, §40; D32) — desktop sidebar per D32; mobile bar Home · Drop · History · Stats ·
   Profile; `/drop` hub with Share · Rate · Results tabs; bell and settings in the mobile header. *Done when:*
   screen tests, e2e journeys updated and green.
 - [ ] **P13.14 — Responsive + accessibility pass** (§27, §37) — extend `e2e/screens.spec.ts` to all new screens at

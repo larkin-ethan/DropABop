@@ -17,8 +17,8 @@ import {
   type UpdatePartySettingsRequest,
   type Weekday,
 } from '@dropabop/shared';
-import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import {
   useMe,
   useParty,
@@ -505,8 +505,14 @@ function MembersCard({ party, members, isHost }: { party: Party; members: PartyM
     });
   }
 
+  // The sidebar's "Members" link (D32) opens this page at this card.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === '#members') document.getElementById('members')?.scrollIntoView({ block: 'start' });
+  }, [hash]);
+
   return (
-    <Card>
+    <Card id="members" className="scroll-mt-20">
       <h2 className="text-lg font-bold">
         Members{' '}
         <span className="text-muted">

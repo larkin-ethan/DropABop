@@ -31,6 +31,7 @@ import { LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
 import { PartySettingsScreen } from './screens/SettingsScreens';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SearchScreen } from './screens/SearchScreen';
+import { DropLayout, DropRedirect } from './screens/DropScreens';
 import { ShareScreen } from './screens/ShareScreen';
 import { SongDetailsScreen } from './screens/SongDetailsScreen';
 import { GroupStatsScreen, LeaderboardScreen, PersonalStatsScreen } from './screens/StatsScreens';
@@ -112,9 +113,12 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/" element={<HomeScreen />} />
               <Route path="/join" element={<JoinWithCodeScreen />} />
               <Route path="/parties/new" element={<CreatePartyScreen />} />
-              <Route path="/share" element={<ShareScreen />} />
-              <Route path="/rate" element={<RateScreen />} />
-              <Route path="/results" element={<LatestResultsScreen />} />
+              <Route path="/drop" element={<DropRedirect />} />
+              <Route element={<DropLayout />}>
+                <Route path="/share" element={<ShareScreen />} />
+                <Route path="/rate" element={<RateScreen />} />
+                <Route path="/results" element={<LatestResultsScreen />} />
+              </Route>
               <Route path="/results/:roundId" element={<ResultsScreen />} />
               <Route path="/songs/:roundId/:recommendationId" element={<SongDetailsScreen />} />
               <Route path="/history" element={<HistoryCalendarScreen />} />

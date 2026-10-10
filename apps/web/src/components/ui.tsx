@@ -2,9 +2,19 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = '',
+  id,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** For links that jump to this card (e.g. /settings/party#members). */
+  id?: string;
+}) {
   return (
     <section
+      id={id}
       className={`card-glow rounded-[var(--radius-card)] border border-line bg-surface p-5 ${className}`}
     >
       {children}

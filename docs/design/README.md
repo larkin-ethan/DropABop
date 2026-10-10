@@ -59,14 +59,17 @@ once the website is hosted (CloudFront), since email needs a public image addres
 
 ## Layout
 
-> **Superseded for navigation by D32 (Phase 13, 2026-10-09):** mobile bar Home · Drop · History · Stats · Profile;
-> desktop sidebar per spec v2 §40. The notes below describe the v2 mockup as first built.
+Navigation follows D32 (built in P13.13, `apps/web/src/components/AppShell.tsx`):
 
-- **Desktop/tablet:** left sidebar nav (logo at top, then Home, Recommend, Vote, Results, Stats, Leaderboard,
-  History, Settings), with the main content in cards to the right.
-- **Mobile:** bottom tab bar with Home, Recommend, Voting, Results, Stats (see the "Mobile Responsive (Key
-  Screens)" strip, bottom-right of the mockup). Single-column cards. Settings and History are reached from Home
-  or the profile menu.
+- **Desktop/tablet sidebar:** logo, party switcher, then three groups: Home, Today's Drop, History, Stats,
+  Leaderboard, Achievements, Search · Party, Members (jumps to the members card on Party settings), Settings ·
+  Notifications, Profile, Sign out. Main content in cards to the right.
+- **Mobile:** bottom bar **Home · Drop · History · Stats · Profile**. The header holds the logo, party switcher,
+  notifications bell, Search and Settings. Leaderboard is reached from Stats' tabs, Achievements from Stats and
+  Profile. Single-column cards.
+- **Drop hub:** Share · Rate · Results tabs above those three screens (they keep their addresses). `/drop` opens the
+  tab that fits right now: Share if you haven't shared on a sharing day, otherwise Rate during the week and Results
+  between weeks. "Drop" stays highlighted on all three.
 - **Auth screens** (Landing, Login, Sign Up, Forgot Password, Email Verification): illustration panel and form
   side by side on desktop; illustration becomes a header on mobile.
 

@@ -42,3 +42,16 @@ export function homeAction(hasParty: boolean, week: CurrentWeekResponse | undefi
     to: null,
   };
 }
+
+/**
+ * Where "Drop" (D32) opens: the tab that matches what you can do now, so the hub never lands on an empty screen.
+ * Share before rating (sharing is only possible today); with nothing left to do, Rate during the week and the
+ * latest Results between weeks.
+ */
+export function dropPath(hasParty: boolean, week: CurrentWeekResponse | undefined): string {
+  const action = homeAction(hasParty, week);
+  if (action.kind === 'share') return '/share';
+  if (action.kind === 'results') return '/results';
+  if (action.kind === 'join') return '/join';
+  return week !== undefined && week.reason !== null ? '/results' : '/rate';
+}

@@ -5,14 +5,18 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
-/** Main navigation: the sidebar on desktop, the bottom bar on phones. Whichever is visible. */
-async function goTo(page: Page, name: string) {
+/**
+ * Opens a tab of the Drop hub (D32): "Today’s Drop" in the desktop sidebar or "Drop" in the phone's bottom bar,
+ * whichever is visible, then the Share · Rate · Results tab.
+ */
+async function goToDrop(page: Page, tab: 'Share' | 'Rate' | 'Results') {
   await page
     .getByRole('navigation', { name: 'Main' })
-    .getByRole('link', { name, exact: true })
+    .getByRole('link', { name: /^(Today’s )?Drop$/ })
     .locator('visible=true')
     .first()
     .click();
+  await page.getByRole('navigation', { name: 'Today’s drop' }).getByRole('link', { name: tab }).click();
 }
 
 test('join → share → rate → week ends → results', async ({ page }) => {
@@ -35,7 +39,7 @@ test('join → share → rate → week ends → results', async ({ page }) => {
   await expect(page.getByText('You’ve shared today’s song')).toBeVisible();
 
   // Rate someone else's song.
-  await goTo(page, 'Rate');
+  await goToDrop(page, 'Rate');
   await expect(page.getByText('6 of 11 rated')).toBeVisible();
   await page.getByRole('button', { name: /Unrated/ }).click();
   await page
@@ -50,14 +54,14 @@ test('join → share → rate → week ends → results', async ({ page }) => {
   );
 
   // Results are out, with today's song in them and the rating we gave.
-  await goTo(page, 'Results');
+  await goToDrop(page, 'Results');
   await expect(page.getByRole('heading', { name: 'Week complete!' })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Bop of the Day/ })).toBeVisible();
   await expect(page.getByText('Here Comes the Sun').first()).toBeVisible();
   await expect(page.getByText('Heat Waves').first()).toBeVisible();
 
   // Ratings are locked: there's nothing left to rate.
-  await goTo(page, 'Rate');
+  await goToDrop(page, 'Rate');
   await expect(page.getByText('No week is running right now')).toBeVisible();
 
   // Nothing ever scrolls sideways (spec §21).
