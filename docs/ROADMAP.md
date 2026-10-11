@@ -498,6 +498,28 @@ stored by our server. Handle cancel, failure, expiry, revocation and disconnect 
 
 ---
 
+## Phase 14 — Saved songs (D34; Ethan, 2026-10-11)
+
+Starts after P13.16 (the Phase 13 release), unless Ethan says otherwise.
+
+- [ ] **P14.1 — Saved songs: data + API** (D34) — items `USER#<userId> / SAVED#<appleTrackId>` (the song snapshot,
+  where it came from: partyId, roundId, recommendationId, week end, sharer kept server-side only) and a `savedCount`
+  on the profile, changed in the same transaction with a condition (≤ 500, no double count). `POST /users/me/saved`
+  `{ roundId, recommendationId }` (member of that party; the server builds the snapshot itself; `200` "already
+  saved" for a duplicate; `409` at 500), `GET /users/me/saved?cursor=` (newest first, pages of 100; "shared by" only
+  after the week ended and while still a member; "Play video" data only within the 30-day window via the party's
+  `YTVIDEO#` item), `DELETE /users/me/saved/{trackId}`. New functions with least-privilege IAM (aws-change).
+  *Done when:* unit + integration tests (membership, D10 before/after results, after leaving, duplicate, limit and
+  its race, no YouTube data copied), authorization sweep updated, API / DATABASE / SECURITY / PRIVACY (+ D19)
+  docs, spec-reviewer.
+- [ ] **P14.2 — Saved songs: website** — a Save (heart) toggle on song cards (Rate, Results, Song Details, History
+  day/week, Search, Home), a **Saved songs** page (`/saved`: artwork, title, artist, "From <party> · week of …",
+  listen links, Play video when allowed, Remove with Undo, empty state, at-limit message), reached from Profile and
+  the desktop sidebar; sample-mode support. *Done when:* screen tests, `e2e/screens.spec.ts` + keyboard checks for
+  the toggle, privacy page text updated, docs.
+- [ ] **P14.3 — Release** [HUMAN for prod] — dev deploy + `scripts/smoke-dev.mjs` (save, list, duplicate, remove,
+  non-member refused), then Ethan deploys prod.
+
 ## Later (do not build until a real need appears — spec §42)
 
 Real-time updates · push/email notifications · YouTube Data API search · email invites · avatar upload · more providers · caching · queue-based stats.

@@ -59,6 +59,12 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-11 — **Planning: saved songs (D34, Phase 14)** — Ethan chose option A (a playlist inside the app; no
+  Apple/YouTube/Spotify sign-in) and answered the edge cases: private to the owner; any song shared in your parties,
+  yours included; kept after leaving a party; one list; saving allowed in open weeks with the sharer hidden until
+  results; one song at a time; one entry per song; 500 max. Recorded as D34; tasks P14.1–P14.3 added after P13.16.
+  No code yet. Also: the sample-mode Apple Music paste now finds the pasted track (e187f0e).
+
 - 2026-10-10 — **P13.15 done: docs** — README (Phase 13 features; 33 functions; in-app YouTube player and the
   ADR-0012 suggestions, replacing the stale "we don't call the YouTube API"; the one secret is the YouTube key in
   SSM; e2e row), ARCHITECTURE (33 functions, the SSM key outside the template, code layout incl. player, navigation,
