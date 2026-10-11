@@ -299,6 +299,25 @@ describe('Share today’s song (P8.4)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
     expect(await screen.findByRole('dialog', { name: 'Share this song?' })).toBeInTheDocument();
   });
+
+  it('a pasted Apple Music link finds that song (not a fixed one) and can be shared', async () => {
+    const { state } = renderApp('/share', notSharedYet);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
+    await userEvent.type(
+      screen.getByLabelText('Song link'),
+      'https://music.apple.com/us/album/after-hours/1499378108?i=1499378615',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    expect(within(dialog).getByText('After Hours')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Midnight City')).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    await waitFor(() =>
+      expect(state.songs.some((s) => s.isMine && s.song.providers[0]?.providerSongId === '1499378615')).toBe(
+        true,
+      ),
+    );
+  });
 });
 
 describe('Rate this week’s songs (P8.5)', () => {

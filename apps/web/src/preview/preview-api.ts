@@ -43,6 +43,7 @@ import {
   PRIVACY_POLICY_VERSION,
   addCommentRequestSchema,
   checkSchedule,
+  parseAppleMusicSongUrl,
   shareDaysOf,
   sortWeekdays,
   weekPrivacyOf,
@@ -87,6 +88,31 @@ function catalogSong(id: string, title: string, artist: string, album: string): 
       { provider: 'appleMusic', providerSongId: id, externalUrl: `https://music.apple.com/us/song/${id}` },
     ],
   };
+}
+
+/**
+ * Pasting an Apple Music link in the sample (no Apple catalog here): the real API looks the track id up in iTunes.
+ * The stand-in keeps the link's track id and reads a title from the link's words (".../song/blinding-lights/123"),
+ * so what you paste is what you get. The artist isn't in the link, so it's labelled as a sample.
+ */
+function sampleResolve(state: PreviewState, url: string): Song {
+  const trackId = parseAppleMusicSongUrl(url);
+  if (trackId === null) {
+    throw new ApiError(400, 'VALIDATION_FAILED', 'That isn’t an Apple Music song link.');
+  }
+  const known = state.catalog.find((s) => s.providers[0]?.providerSongId === trackId);
+  if (known !== undefined) return known;
+  const slug = new URL(url).pathname.split('/')[3] ?? '';
+  const words = decodeURIComponent(slug).split('-').filter(Boolean);
+  const title =
+    words.length > 0 ? words.map((w) => w[0]?.toUpperCase() + w.slice(1)).join(' ') : `Song ${trackId}`;
+  const song: Song = {
+    ...catalogSong(trackId, title, 'Artist (sample lookup)', ''),
+    album: null,
+    providers: [{ provider: 'appleMusic', providerSongId: trackId, externalUrl: url }],
+  };
+  state.catalog = [...state.catalog, song]; // so sharing it works, like a real catalog song
+  return song;
 }
 
 /** Monday 00:00 (local) after the week whose ratings lock at `endsAt`: when the next week starts, like the real API. */
@@ -925,9 +951,7 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       };
     }
     if (is('POST', 'songs', 'resolve')) {
-      const song = state.catalog[0];
-      if (song === undefined) notFound();
-      return { song };
+      return { song: sampleResolve(state, (body as { url: string }).url) };
     }
     notFound();
   }
