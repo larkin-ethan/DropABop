@@ -52,7 +52,7 @@ To run it against your own dev stack instead, deploy the stack (DEPLOYMENT.md), 
 | `npm run guardrails` | Project rule checks: forbidden AWS services, secrets, unsafe auth patterns, DB scans. |
 | `npm run dev` | The website on http://localhost:5173, talking to the dev stack. Needs `apps/web/.env.development.local` (see DEPLOYMENT.md); without it the page fails loudly instead of quietly showing sample data. |
 | `npm run dev -w @dropabop/web -- --mode sample --port 5174` | The website with **sample data** (no AWS, no sign-in): every screen backed by the in-memory pretend API in `apps/web/src/preview/preview-api.ts`. A yellow banner says it's a preview. Also in `.claude/launch.json` as `web-sample`. |
-| `npm run e2e` | End-to-end test (Playwright): a real browser walks join → share → rate → week ends → results in sample mode, at 375 px and 1440 px. Uses your installed Google Chrome; starts its own dev server on port 5175. |
+| `npm run e2e` | End-to-end tests (Playwright) in sample mode, using your installed Google Chrome on its own dev server (port 5175): the journey join → share → rate → week ends → results at 375 px and 1440 px (`journey.spec.ts`); every screen at 320/375/390/430/768/1024/1440 px with no sideways scrolling, named controls, alt text and a visible keyboard focus outline (`screens.spec.ts`, screenshots in `e2e/screenshots/`); and keyboard-only use of the calendar, rating picker, video player and achievement banner (`keyboard.spec.ts`). |
 | `npm run e2e:dev` | The journey in a real browser against the **dev stack** (manual only): signs in through the real Cognito screens as the two test users in `.test-users.json`, invites, joins, shares and rates on weekdays, then leaves. Uses port 5173 (the API's allowed local origin), reusing your `npm run dev` if it's running. |
 | `node scripts/smoke-dev.mjs` | Calls every API endpoint on the deployed dev stack with two throwaway users (after `aws login --profile dropabop-dev`). |
 
@@ -64,6 +64,10 @@ To run it against your own dev stack instead, deploy the stack (DEPLOYMENT.md), 
   (`satisfies`), so the website and API can't drift.
 - `apps/web/src/party/CurrentParty.tsx`: which of your parties the screens show (remembered on the device).
 - Screen tests (`apps/web/src/screens/screens.test.tsx`) render the whole app against the pretend API.
+- `apps/web/src/player/`: the in-app player (one song at a time, docked; YouTube only today). Tests swap the real
+  YouTube player for a fake through `MusicPlayerProvider`'s `createPlayer`, so they never load YouTube.
+- `apps/web/src/components/AppShell.tsx`: navigation (D32). Share, Rate and Results sit under one "Drop" hub
+  (`screens/DropScreens.tsx`); `/drop` opens the tab that fits right now (`lib/home-action.ts`).
 
 ## Repository layout
 

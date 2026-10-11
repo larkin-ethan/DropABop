@@ -82,6 +82,16 @@ export const keys = {
     }
     return { PK: userPk(userId), SK: `INVITEFAIL#${hour}` };
   },
+  /** ADR-0012: how many YouTube searches one person made on one UTC day ("2026-10-09"); expires on its own (TTL). */
+  youtubeSearches: (userId: string, day: string): ItemKey => ({
+    PK: userPk(userId),
+    SK: `YTSEARCH#${date(day, 'date')}`,
+  }),
+  /** ADR-0012: a shared song's YouTube video, in its own item so DynamoDB can delete it after 29 days (TTL). */
+  youtubeVideo: (partyId: string, weekStart: string, recommendationId: string): ItemKey => ({
+    PK: partyPk(partyId),
+    SK: `YTVIDEO#${date(weekStart, 'weekStart')}#${id(recommendationId, 'recommendationId')}`,
+  }),
   invite: (code: string): ItemKey => {
     if (!INVITE_CODE.test(code)) {
       throw new Error('Invalid invite code');
@@ -101,6 +111,7 @@ export const prefixes = {
   mySubmissions: (weekStart: string, userId: string) =>
     `SUBMITTED#${date(weekStart, 'weekStart')}#${id(userId, 'userId')}#`,
   weekComments: (weekStart: string) => `COMMENT#${date(weekStart, 'weekStart')}#`,
+  weekYouTubeVideos: (weekStart: string) => `YTVIDEO#${date(weekStart, 'weekStart')}#`,
   allVotes: () => 'VOTE#',
   weekVotes: (weekStart: string) => `VOTE#${date(weekStart, 'weekStart')}#`,
   myWeekVotes: (weekStart: string, userId: string) =>

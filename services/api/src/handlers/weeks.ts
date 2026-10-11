@@ -38,7 +38,7 @@ export async function resolveCurrentWeek(data: DataContext, party: Party, now: D
   const latest = await getLatestRound(data, party.partyId);
 
   if (latest !== null && latest.status === 'OPEN') {
-    const songCount = (await listWeekRecommendations(data, latest.roundId)).length;
+    const songCount = (await listWeekRecommendations(data, latest.roundId, now)).length;
     const change = getPendingStatusChange(latest, now, songCount);
     if (change !== null) {
       await recordRoundStatus(data, latest, change);
@@ -100,7 +100,7 @@ export const getCurrentWeekFn: HandlerFn = async (event, { data, now }) => {
 
   const round = week.round;
   const [songs, submissions, myDates, myVotes] = await Promise.all([
-    listWeekRecommendations(data, round.roundId),
+    listWeekRecommendations(data, round.roundId, current),
     listWeekSubmissions(data, round.roundId),
     listMySubmissionDates(data, round.roundId, userId),
     listMyWeekVotes(data, round.roundId, userId),

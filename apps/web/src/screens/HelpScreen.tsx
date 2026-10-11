@@ -78,9 +78,27 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
     body: (
       <p>
         After a few weeks, your stats show your taste: your average rating, who you agree with most, and how
-        the group rates your picks. Leaderboards compare everyone. Each one says how much it’s based on, and
-        shows “Not enough data yet” until there’s enough.
+        the group rates your picks. Leaderboards compare everyone this week, this month or all time; anyone
+        without enough data yet is listed as “Provisional” instead of being ranked. Each number says how much
+        it’s based on, and shows “Not enough data yet” until there’s enough.
       </p>
+    ),
+  },
+  {
+    title: 'Listening in Drop a Bop',
+    body: (
+      <>
+        <p>
+          Every song links to Apple Music, Spotify and YouTube Music, with your favourite first (pick it in
+          Settings → Music). When you share a song, Drop a Bop also finds its YouTube video so friends can
+          play it right here.
+        </p>
+        <p>
+          Some songs can’t play in the app: there’s no video for them, the video’s owner doesn’t allow it, or
+          it was shared more than about a month ago. Use the links instead. You never need to play a song to
+          rate it, and you can turn in-app videos off in Settings → Music.
+        </p>
+      </>
     ),
   },
   {
@@ -131,6 +149,12 @@ export function HelpScreen() {
             </li>
           ))}
         </ol>
+
+        <p className="mt-8 text-center text-sm">
+          <Link to="/privacy" className="font-semibold text-blue hover:underline">
+            Privacy policy and terms
+          </Link>
+        </p>
 
         {!signedIn && (
           <div className="mt-8 flex flex-col items-center gap-3 text-center">

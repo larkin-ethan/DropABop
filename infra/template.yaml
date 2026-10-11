@@ -278,6 +278,14 @@ Resources:
         'POST /songs/resolve':
           ThrottlingBurstLimit: 5
           ThrottlingRateLimit: 2
+        # One YouTube search per chosen song; YouTube allows the whole app 100 a day (ADR-0012).
+        'GET /songs/youtube':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+        # Party search reads up to 5,000 songs per call (D33); typing is debounced in the app, so this is plenty.
+        'GET /parties/{partyId}/search':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
         # Invite codes: slow down anyone trying to guess codes (31^4 ≈ 920,000 possible).
         'GET /invites/{code}':
           ThrottlingBurstLimit: 5
@@ -845,6 +853,144 @@ Resources:
             Method: GET
             Path: /parties/{partyId}/stats
 
+  # Achievements (P13.9): worked out on request like stats. Brings the current week up to date first (ADR-0003).
+  GetAchievementsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getAchievementsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/achievements
+
+  # Records when you last looked at your achievements (on your own party link item).
+  MarkAchievementsSeenFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.markAchievementsSeenHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/achievements/seen
+
+  # In-app notifications (P13.10, D29): this week and last week only, so the bell's regular check stays cheap.
+  GetNotificationsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getNotificationsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/notifications
+
+  # Records when you last opened your notifications in a party (on your own party link item).
+  MarkNotificationsSeenFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.markNotificationsSeenHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /parties/{partyId}/notifications/seen
+
+  # The history calendar (P13.8). Brings the current week up to date first (ADR-0003).
+  GetHistoryFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.getHistoryHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/history
+
+  # Party search (P13.12, D33): the party's songs (one capped key query), weeks and members. Read-only.
+  SearchPartyFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.searchPartyHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /parties/{partyId}/search
+
   # Brings the current week up to date first (ADR-0003).
   LeaderboardFunction:
     Type: AWS::Serverless::Function
@@ -898,6 +1044,46 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /songs/resolve
+
+  # One YouTube search for the song being shared (ADR-0012). Reads the API key that Ethan stores as an SSM
+  # SecureString (/dropabop/<stage>/youtube-api-key; DEPLOYMENT.md), and counts each person's searches per day.
+  # Without the parameter the function answers "not configured" and sharing works as before.
+  SuggestYouTubeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.suggestYouTubeHandler
+      Environment:
+        Variables:
+          YOUTUBE_API_KEY_PARAMETER: !Sub /dropabop/${Stage}/youtube-api-key
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+        # Only this one parameter, and decrypting it only through SSM for that parameter.
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/dropabop/${Stage}/youtube-api-key
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+              Condition:
+                StringEquals:
+                  kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+                  kms:EncryptionContext:PARAMETER_ARN: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/dropabop/${Stage}/youtube-api-key
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /songs/youtube
 
   # ---------------------------------------------------------------------------------------------------------------
   # Alerts (spec §7, §33; roadmap P4.4). Email when something is failing or the bill moves. Alarms stay quiet when
@@ -1131,7 +1317,8 @@ Resources:
             Override: true
             ContentSecurityPolicy: !Sub >-
               default-src 'self';
-              script-src 'self';
+              script-src 'self' https://www.youtube.com/iframe_api https://www.youtube.com/s/player/;
+              frame-src https://www.youtube.com;
               style-src 'self' 'unsafe-inline';
               img-src 'self' data: https://*.mzstatic.com;
               connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com;

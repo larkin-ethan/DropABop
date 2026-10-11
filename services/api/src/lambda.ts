@@ -18,5 +18,9 @@ export { submitRecommendationHandler, listRecommendationsHandler } from './handl
 export { castVoteHandler, listMyVotesHandler } from './handlers/votes';
 export { addCommentHandler, deleteCommentHandler, listCommentsHandler } from './handlers/comments';
 export { getResultsHandler } from './handlers/results';
+export { getHistoryHandler } from './handlers/history';
+export { searchPartyHandler } from './handlers/search';
+export { getNotificationsHandler, markNotificationsSeenHandler } from './handlers/notifications';
+export { getAchievementsHandler, markAchievementsSeenHandler } from './handlers/achievements';
 export { personalStatsHandler, groupStatsHandler, leaderboardHandler } from './handlers/stats';
-export { searchSongsHandler, resolveSongHandler } from './handlers/songs';
+export { searchSongsHandler, resolveSongHandler, suggestYouTubeHandler } from './handlers/songs';

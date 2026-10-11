@@ -90,7 +90,7 @@ export interface RoundPage {
 export async function listRounds(
   ctx: DataContext,
   partyId: string,
-  options: { limit?: number; cursor?: string | null } = {},
+  options: { limit?: number; cursor?: string | null; consistent?: boolean } = {},
 ): Promise<RoundPage> {
   const pk = partitionKeys.party(partyId);
   const startAfter =
@@ -101,6 +101,7 @@ export async function listRounds(
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
       ExpressionAttributeValues: { ':pk': pk, ':prefix': prefixes.rounds() },
       ScanIndexForward: false,
+      ConsistentRead: options.consistent ?? false,
       Limit: Math.min(Math.max(options.limit ?? 20, 1), 50),
       ExclusiveStartKey: startAfter,
     }),

@@ -14,7 +14,8 @@ Browser (React app, apps/web)
 API Gateway HTTP API ── JWT authorizer (issuer, client id, expiry, scope) ── 401 if invalid
    │
    ▼  one Lambda function per route (Node.js 24, arm64), all from one bundle
-Lambda ──▶ DynamoDB (single table)         Lambda ──▶ iTunes Search API (song search only)
+Lambda ──▶ DynamoDB (single table)         Lambda ──▶ iTunes Search API (song search)
+                                           Lambda ──▶ YouTube Data API (one search per shared song, ADR-0012)
 ```
 
 There is no server that runs all the time, no scheduler, and no real-time connection: weeks open and close lazily
@@ -28,8 +29,8 @@ when someone makes a request (ADR-0003), and the website polls for new songs.
 | `UserPool` | Cognito user pool | Email sign-in, email code verification, password ≥ 8 with upper/lower/number, Essentials plan; prod: deletion protection; kept if the stack is deleted | Over 10,000 monthly active users |
 | `WebClient` | Cognito app client | Public (no secret), SRP + refresh token only, user-existence errors hidden, token revocation on | Free |
 | `HttpApi` | API Gateway HTTP API | JWT authorizer on every route (Cognito issuer, audience = `WebClient`, scope `aws.cognito.signin.user.admin` so ID tokens are refused); CORS for one origin; rate limits per route (default 25 req/s, burst 50; tighter on search, invites, and writes: docs/API.md → Rate limits) | Per request |
-| 23 × `…Function` | Lambda | Node.js 24, arm64, 256 MB, 10 s timeout; one per route in `docs/API.md` | Per request + duration |
-| 23 × `…FunctionRole` | IAM role (created by SAM) | Each function may only use the table actions its handler needs (never Scan); the iTunes and health functions get no table access | Free |
+| 33 × `…Function` | Lambda | Node.js 24, arm64, 256 MB, 10 s timeout; one per route in `docs/API.md` | Per request + duration |
+| 33 × `…FunctionRole` | IAM role (created by SAM) | Each function may only use the table actions its handler needs (never Scan); the iTunes and health functions get no table access; only `SuggestYouTubeFunction` may read its one SSM parameter (ADR-0012) | Free |
 | `ApiLogGroup` | CloudWatch log group | `/dropabop/<stage>/api`, shared by all functions; kept 14 days (dev) / 30 days (prod) | Log volume + storage |
 | `AlertTopic` + `AlertEmailSubscription` | SNS topic + email subscription | `dropabop-<stage>-alerts`; the email (parameter `AlertEmail`, not in the repo) must click AWS's confirmation link | Per message (a handful a month) |
 | 4 × alarm | CloudWatch alarms | Lambda crashes ≥ 5 / 5 min, API 5xx ≥ 5 / 5 min, any DynamoDB read or write throttling; quiet when there's no traffic | $0.10/alarm metric/month beyond 10 free (we use 4 per stage) |
@@ -43,6 +44,9 @@ Until AWS verifies the account for CloudFront, prod's website is on **Cloudflare
 CloudFront: DEPLOYMENT.md §4c). Deploys run from the owner's Mac with `scripts/deploy.sh` (ADR-0009): this account type
 can't create GitHub's OIDC provider, so there are no CI deploy roles.
 
+Outside the template: the YouTube API key is an SSM Parameter Store SecureString (`/dropabop/<stage>/youtube-api-key`)
+that Ethan creates by hand (DEPLOYMENT.md §4e); the template only grants `SuggestYouTubeFunction` permission to read it.
+
 Deploy-time only: SAM keeps uploaded code in a small S3 bucket it manages (`resolve_s3`), outside this stack.
 
 ## Code layout
@@ -50,10 +54,14 @@ Deploy-time only: SAM keeps uploaded code in a small S3 bucket it manages (`reso
 | Path | What |
 |---|---|
 | `apps/web` | React website (Vite, TanStack Query, Amplify auth only: ADR-0008) |
+| `apps/web/src/components/AppShell.tsx` | Navigation (D32): desktop sidebar, phone bottom bar and header |
+| `apps/web/src/player` | The in-app player layer: one "now playing" song, the docked play card, YouTube's IFrame player behind a provider interface (docs/MUSIC_PROVIDERS.md → In-app player) |
+| `apps/web/src/preview` | The pretend API used by sample mode and the screen tests |
 | `packages/shared` | Types and zod schemas used by both the website and the API |
 | `services/api/src/handlers` | One file per area; each exports `<name>Handler` (the Lambda entry point) |
 | `services/api/src/lambda.ts` | The bundle's entry: re-exports every handler. Template: `Handler: index.<name>` |
-| `services/api/src/domain` | Rules with no I/O (weeks, results, stats); unit-tested |
+| `services/api/src/domain` | Rules with no I/O: weeks, results, stats and leaderboards, history, achievements, notifications, search; unit-tested |
+| `services/api/src/providers` | iTunes catalog (`SongLookup`), YouTube suggestions, the YouTube key reader |
 | `services/api/src/data` | DynamoDB access (keys and queries in `docs/DATABASE.md`) |
 | `services/api/Makefile`, `scripts/bundle.mjs` | How `sam build` bundles the API with esbuild (AWS SDK left out; the runtime has it) |
 | `infra/template.yaml`, `infra/samconfig.toml` | The stack and its dev/prod settings |

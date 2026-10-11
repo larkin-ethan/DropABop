@@ -18,8 +18,11 @@ and three low ones are fixed or listed under Known limits below.
 - **In Cognito (AWS's sign-in service):** your email and password. The password is never sent to us: the website
   signs in with SRP, which proves you know it without sending it, and Cognito stores only a protected form of it.
 - **In our database:** your display name, avatar colour, optional profile picture (a small 128×128 copy made in
-  your browser), preferred music app, your parties, the songs you share, and
-  your ratings. **Not** your email.
+  your browser), preferred music app, the "Play videos" and notification switches, when you agreed to the privacy
+  policy (time + version, set by the server), your parties (with when you last opened your notifications and
+  achievements there), the songs you share, your ratings and your comments. A YouTube video id kept with a song is
+  deleted automatically 29 days after sharing (ADR-0012). Stats, history, achievements and notifications are
+  worked out when you ask, never stored. **Not** your email.
 - **In logs (kept 14 days in dev, 30 in prod):** request id, route, status, timing, and your user id (a random
   identifier, not your email). Never tokens, passwords, request bodies, or headers; the logger also strips these if
   they're passed by mistake (`services/api/src/http/logger.ts`).
@@ -34,7 +37,14 @@ to about 15 minutes. Error messages never reveal whether an email has an account
 stored by the AWS Amplify library in the browser's local storage (ADR-0008). Tokens are sent only in the
 `Authorization` header, never in links. Signing out revokes the refresh token and clears the app's cached data. The
 risk with local storage is malicious script on the page reading it; the Content Security Policy below allows only the
-app's own scripts, which is the main defence.
+app's own scripts (plus YouTube's player script, loaded only when someone presses Play; ADR-0011), which is the main
+defence.
+
+**The YouTube API key (ADR-0012).** A Google API key restricted to the YouTube Data API, stored as an SSM Parameter
+Store SecureString that only the YouTube search function may read (one parameter, decrypted only through SSM). It's
+read at runtime, kept in memory, sent to Google in a header (never in a URL), never logged, and never sent to
+browsers. If it leaks, the worst case is someone using up the day's 100 searches; replace it with
+`aws ssm put-parameter … --overwrite` (DEPLOYMENT.md §4e) and delete the old key in Google Cloud.
 
 **The API (API Gateway + Lambda).**
 
@@ -47,7 +57,9 @@ app's own scripts, which is the main defence.
   the browser's.
 - A week id names its party, and membership of *that* party is checked, so ids can't be used to reach another party.
 - Open-week answers leave out other people's ratings entirely, and who shared each song unless the party turned that
-  on. Results only unlock after the week ends.
+  on. Results only unlock after the week ends. The same rules apply everywhere those songs appear again: history,
+  notifications, search (party-scoped, D33) and achievements (other members' rating-revealing badges have no date,
+  D11).
 - Rate limits per route (docs/API.md → Rate limits), on top of the app's own limits (5 parties per person, one song a
   day, invite code required). Unknown or replaced invite codes all give the same error, and each person may try at
   most 10 wrong codes an hour, so codes (4 characters, about 920,000 possibilities) can't be guessed.
@@ -57,7 +69,8 @@ point-in-time backups and has deletion protection.
 
 **The website (P9.2).** Served over HTTPS only from a private bucket that only CloudFront can read. Security headers on
 every page: HTTPS-only (HSTS), no MIME sniffing, can't be embedded in other sites, and a Content Security Policy that
-lets the page run only its own scripts and talk only to Cognito and our API (the exact address is written into the
+lets the page run only its own scripts and YouTube's player script, frame only YouTube's player, and talk only to Cognito
+and our API (the exact address is written into the
 page when it's built). Prod can't be deployed with the local-development origin allowed (template rule). The API accepts browser calls only from
 the website (plus `localhost` in dev). The sample-data preview can run only on a developer's machine with an explicit
 flag; production builds don't contain it.
@@ -66,8 +79,8 @@ flag; production builds don't contain it.
 Spotify / YouTube formats and stored in a clean form; the website only opens `https` links, in a new tab without
 sharing where you came from.
 
-**Secrets.** There are none in the code or the website: the API needs no keys (iTunes search is keyless), and the
-website's settings are public ids. Automated checks (`scripts/guardrails.sh`) block committed keys, `.env` files,
+**Secrets.** There are none in the code or the website: iTunes search is keyless, the website's settings are public
+ids, and the one secret (the YouTube API key, above) lives only in SSM. Automated checks (`scripts/guardrails.sh`) block committed keys, `.env` files,
 logging tokens, tokens in URLs, table scans, and wildcard permissions. The GitHub repository is public, so no account
 ids, emails, or stack addresses are committed.
 

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,7 @@ import { RatingControl } from './RatingControl';
 import { ListenLinks, RatingBadge, SongRow } from './SongRow';
 import { EmptyState, ErrorState, LoadingState } from './States';
 import { Leaderboard, RatingDistribution, StatCard } from './Stats';
-import { AlbumArt, Avatar, ProgressBar } from './ui';
+import { AlbumArt, Avatar, ProgressBar, buttonClassName } from './ui';
 
 function ControlledRating({ onChange = () => {} }: { onChange?: (n: number) => void }) {
   const [value, setValue] = useState<number | null>(null);
@@ -156,12 +156,14 @@ describe('Leaderboard', () => {
 });
 
 describe('RatingDistribution', () => {
-  it('labels every rating bucket from 10 down to 1', () => {
+  it('gives screen readers a text table, 10 down to 1, and hides the bars from them (spec §37)', () => {
     render(<RatingDistribution counts={[0, 0, 0, 0, 0, 0, 1, 0, 2, 3]} />);
-    const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(10);
-    expect(items[0]).toHaveAccessibleName('3 ratings of 10');
-    expect(items[9]).toHaveAccessibleName('0 ratings of 1');
+    const table = screen.getByRole('table', { name: 'Rating distribution' });
+    const rows = within(table).getAllByRole('row').slice(1); // after the header row
+    expect(rows).toHaveLength(10);
+    expect(rows[0]).toHaveTextContent('103');
+    expect(rows[9]).toHaveTextContent('10');
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0); // the bars are aria-hidden
   });
 });
 
@@ -264,5 +266,16 @@ describe('SongRow and ListenLinks', () => {
       'href',
       'https://music.youtube.com/search?q=M83%20Midnight%20City',
     );
+  });
+});
+
+describe('buttonClassName', () => {
+  it('uses its own padding when the caller sets one (two padding classes don’t override reliably)', () => {
+    const classes = (extra?: string) => buttonClassName('ghost', extra).split(/\s+/);
+    expect(classes()).toEqual(expect.arrayContaining(['px-5', 'py-2.5']));
+    expect(classes('px-3 text-sm')).toContain('px-3');
+    expect(classes('px-3 text-sm')).not.toContain('px-5');
+    expect(classes('py-3')).not.toContain('py-2.5');
+    expect(classes('py-3')).toContain('px-5');
   });
 });

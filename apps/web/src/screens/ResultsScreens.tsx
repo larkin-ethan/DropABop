@@ -9,7 +9,7 @@ import { useMe, useParty, useResults, useRounds, useWeekComments } from '../api/
 import { Icon } from '../components/Icon';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { SongComments } from '../components/SongComments';
-import { ListenLinks } from '../components/SongRow';
+import { ListenLinks, SongTitleLink } from '../components/SongRow';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { RatingDistribution } from '../components/Stats';
 import { AlbumArt, Avatar, Button, Card, buttonClassName } from '../components/ui';
@@ -24,6 +24,9 @@ import {
 } from '../lib/format';
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useCurrentParty } from '../party/CurrentParty';
+import { PlayVideoButton } from '../player/PlayVideoButton';
+import { AchievementBanner } from './AchievementsScreen';
+import { songDetailsPath } from './SongDetailsScreen';
 
 // ---------------------------------------------------------------------------
 // /results: the most recent finished week
@@ -173,6 +176,7 @@ function ResultsView({
 
   return (
     <div className="flex flex-col gap-6">
+      <AchievementBanner partyId={round.partyId} />
       <PageHeader
         eyebrow={formatWeekLabel(round.weekStart)}
         title="Week complete!"
@@ -347,7 +351,10 @@ function ResultCard({
         <AlbumArt url={result.song.albumArtUrl} hue={hueFor(result.recommendationId)} />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 font-semibold break-words">
-            {result.song.title}
+            <SongTitleLink
+              to={songDetailsPath(commentsOn.roundId, result.recommendationId)}
+              title={result.song.title}
+            />
             {dayWinner && (
               <span className="ml-2 align-middle text-xs font-semibold text-gold">
                 <Icon name="crown" className="inline size-3.5" /> Bop of the Day
@@ -379,7 +386,15 @@ function ResultCard({
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <ListenLinks song={result.song} preferred={preferred} />
+        <div className="flex flex-col items-start gap-1.5">
+          <ListenLinks song={result.song} preferred={preferred} />
+          <PlayVideoButton
+            songKey={result.recommendationId}
+            song={result.song}
+            submittedOn={result.submittedOn}
+            preferred={preferred}
+          />
+        </div>
         <div className="flex items-center gap-3 text-sm">
           {result.myRating !== null && (
             <span className="text-muted">

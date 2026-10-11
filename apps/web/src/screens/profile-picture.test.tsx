@@ -15,7 +15,7 @@ vi.mock('../lib/avatar-image', () => ({
 
 describe('profile picture', () => {
   it('uploads, saves, shows, and removes a picture', async () => {
-    const { state } = renderApp('/profile');
+    const { state } = renderApp('/settings/account');
     const input = await screen.findByLabelText('Choose a profile picture');
     await userEvent.upload(input, new File(['x'], 'me.png', { type: 'image/png' }));
     expect(await screen.findByRole('button', { name: 'Remove picture' })).toBeInTheDocument();

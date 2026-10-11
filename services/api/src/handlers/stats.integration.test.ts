@@ -99,6 +99,13 @@ describe('GET /users/me/stats?partyId=', () => {
     // B rated A's songs 9 and C's 7 → 8 over 6 ratings.
     expect(body.averageRatingGiven).toEqual({ status: 'ok', value: 8, sampleSize: 6 });
     expect(body.generosity).toMatchObject({ status: 'not-enough-data', required: 10 });
+    expect(body.ratingsGiven).toBe(6);
+    // B's songs were all rated 5; everyone shared one song in the last closed week → B is last of 3.
+    expect(body.lastWeekRank).toMatchObject({ weekStart: '2026-09-28', position: 3, of: 3 });
+    const recent = body.recentSongs as unknown as { submittedOn: string; average: number }[];
+    expect(recent.map((s) => s.submittedOn)).toEqual(['2026-09-28', '2026-09-21', '2026-09-14']);
+    expect(recent[0]?.average).toBe(5); // not the open week's song or its 1s
+    expect(body.favoriteGenres).toMatchObject({ status: 'not-enough-data', required: 2 });
   });
 
   it('shows the highest-rated recommendation with its song summary', async () => {
@@ -133,6 +140,20 @@ describe('GET /parties/{partyId}/stats', () => {
     expect(best.status).toBe('ok');
     expect(best.value.every((w) => w.song.recommendedBy === people.a)).toBe(true);
     expect(body.mostDivisive).toMatchObject({ status: 'not-enough-data' }); // only 3 ratings per song
+    expect(body.memberCount).toBe(4);
+    expect(body.groupAverage).toEqual({ status: 'ok', value: 7, sampleSize: 27 });
+    expect(body.topArtists).toMatchObject({ status: 'ok', sampleSize: 9 });
+    const weekly = body.weeklyActivity as unknown as { period: string; songs: number; ratings: number }[];
+    expect(weekly.map((w) => [w.period, w.songs, w.ratings])).toEqual([
+      ['2026-09-28', 3, 9],
+      ['2026-09-21', 3, 9],
+      ['2026-09-14', 3, 9],
+    ]);
+    const monthly = body.monthlyActivity as unknown as { period: string; weeks: number }[];
+    expect(monthly.map((m) => [m.period, m.weeks])).toEqual([
+      ['2026-10', 1],
+      ['2026-09', 2],
+    ]);
   });
 
   it('refuses non-members', async () => {
@@ -143,14 +164,69 @@ describe('GET /parties/{partyId}/stats', () => {
 });
 
 describe('GET /parties/{partyId}/leaderboard', () => {
-  it('ranks Average Recommendation Score with “based on” counts', async () => {
+  const board = (body: Record<string, unknown>, name: string) =>
+    body[name] as { ranked: unknown[]; provisional: unknown[]; required: number };
+
+  it('ranks Highest Average Received with “based on” counts (all time by default)', async () => {
     const { body } = await get(leaderboardFn, people.c, { pathParameters: { partyId: party.partyId } });
-    expect(body.highestAverageRecommendationScore).toEqual([
-      { id: people.a, rank: 1, value: 9, sampleSize: 3 },
-      { id: people.c, rank: 2, value: 7, sampleSize: 3 },
-      { id: people.b, rank: 3, value: 5, sampleSize: 3 },
-    ]);
+    expect(body.period).toBe('all');
+    expect(body.weeksPlayed).toBe(3);
+    expect(board(body, 'highestAverageReceived')).toEqual({
+      ranked: [
+        { id: people.a, rank: 1, value: 9, sampleSize: 3 },
+        { id: people.c, rank: 2, value: 7, sampleSize: 3 },
+        { id: people.b, rank: 3, value: 5, sampleSize: 3 },
+      ],
+      provisional: [],
+      required: 3,
+    });
     expect((body.highestAverageSongRating as unknown as unknown[]).length).toBe(9);
+    expect(board(body, 'mostRatings').ranked).toHaveLength(4);
     expect(Array.isArray(body.members)).toBe(true);
+  });
+
+  it('period=week uses only the most recent closed week; people below a minimum are provisional', async () => {
+    const { status, body } = await get(leaderboardFn, people.c, {
+      pathParameters: { partyId: party.partyId },
+      queryStringParameters: { period: 'week' },
+    });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ period: 'week', weeksPlayed: 1 });
+    // One song each that week: nobody has the 3 rated songs needed, so all three are provisional, never ranked.
+    expect(board(body, 'highestAverageReceived')).toEqual({
+      ranked: [],
+      provisional: [
+        { id: people.a, sampleSize: 1 },
+        { id: people.b, sampleSize: 1 },
+        { id: people.c, sampleSize: 1 },
+      ].sort((x, y) => x.id.localeCompare(y.id)),
+      required: 3,
+    });
+    expect(board(body, 'mostBops').ranked).toHaveLength(3);
+    // The open week's ratings never count (D9).
+    expect(board(body, 'mostRatings').ranked).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: people.d, value: 3 })]),
+    );
+  });
+
+  it('period=month counts closed weeks whose ratings locked this month (party timezone)', async () => {
+    // Weeks of Sep 14 and 21 locked in September; the week of Sep 28 locked at the end of Sunday 4 Oct.
+    const { body } = await get(leaderboardFn, people.c, {
+      pathParameters: { partyId: party.partyId },
+      queryStringParameters: { period: 'month' },
+    });
+    expect(body).toMatchObject({ period: 'month', weeksPlayed: 1 });
+    expect((body.highestAverageSongRating as unknown as unknown[]).length).toBe(3);
+  });
+
+  it('rejects an unknown period and non-members', async () => {
+    const bad = await get(leaderboardFn, people.c, {
+      pathParameters: { partyId: party.partyId },
+      queryStringParameters: { period: 'year' },
+    });
+    expect(bad.status).toBe(400);
+    expect((await get(leaderboardFn, newId(), { pathParameters: { partyId: party.partyId } })).status).toBe(
+      403,
+    );
   });
 });

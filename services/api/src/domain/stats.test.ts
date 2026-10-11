@@ -4,8 +4,27 @@ import {
   averageRatingGiven,
   averageScoreReceived,
   buildStatsData,
-  consistencyLeaderboard,
+  averageGivenBoard,
+  averageReceivedBoard,
+  consistencyBoard,
   crowdFavorite,
+  crowdFavoriteLeaderboard,
+  favoriteGenres,
+  groupAverage,
+  groupRatingDistribution,
+  lockMonth,
+  monthlyActivity,
+  mostBopsBoard,
+  mostGenerousBoard,
+  mostRatingsBoard,
+  personBoard,
+  popularityBoard,
+  recentSongs,
+  roundsInPeriod,
+  toughestCriticBoard,
+  topArtists,
+  weekRank,
+  weeklyActivity,
   darkHorse,
   everyoneAgreed,
   favoriteArtists,
@@ -24,10 +43,9 @@ import {
   populationStdDev,
   rankEntries,
   ratingDistributionGiven,
-  recommendationScoreLeaderboard,
   songRatingLeaderboard,
   songsRecommended,
-  surpriseLeaderboard,
+  surpriseBoard,
   toughestCritic,
 } from './stats';
 
@@ -40,6 +58,7 @@ interface SongSpec {
   date?: string;
   round?: string;
   artist?: string;
+  genre?: string | null;
   /** rater → rating */
   ratings?: Record<string, number>;
 }
@@ -62,6 +81,7 @@ function dataset(specs: SongSpec[], extraVotes: Vote[] = []) {
         songId: `song-${spec.id}`,
         title: spec.id,
         artist: spec.artist ?? 'Artist',
+        ...(spec.genre !== undefined ? { genre: spec.genre } : {}),
         album: null,
         albumArtUrl: null,
         durationMs: null,
@@ -472,7 +492,7 @@ describe('darkHorse and mostSurprising', () => {
 
   it('most surprising counts 1+ point surprises (bob and carol tie with one each)', () => {
     expect(winnerIds(mostSurprising(data))).toEqual(['bob', 'carol']);
-    expect(surpriseLeaderboard(data).map((e) => [e.id, e.rank])).toEqual([
+    expect(surpriseBoard(data).ranked.map((e) => [e.id, e.rank])).toEqual([
       ['bob', 1],
       ['carol', 1],
     ]);
@@ -496,7 +516,7 @@ describe('darkHorse and mostSurprising', () => {
 
 // ---------- Group: people ----------
 
-describe('mostConsistent and consistencyLeaderboard (min 3 rated songs)', () => {
+describe('mostConsistent and consistencyBoard (min 3 rated songs)', () => {
   const data = dataset([
     // Bob's song averages 5, 5, 5, 9 → sd ≈ 1.73
     ...[5, 5, 5, 9].map((avg, i) => ({ id: `b${i}`, by: 'bob', ratings: { a: avg } })),
@@ -508,7 +528,9 @@ describe('mostConsistent and consistencyLeaderboard (min 3 rated songs)', () => 
 
   it('lowest spread of song averages wins', () => {
     expect(winnerIds(mostConsistent(data))).toEqual(['carol']);
-    expect(consistencyLeaderboard(data).map((e) => e.id)).toEqual(['carol', 'bob']);
+    const board = consistencyBoard(data);
+    expect(board.ranked.map((e) => e.id)).toEqual(['carol', 'bob']);
+    expect(board.provisional).toEqual([{ id: 'dan', sampleSize: 2 }]); // 2 of 3 songs: listed apart, no value
   });
 });
 
@@ -529,17 +551,22 @@ describe('mostPopular (most 8+ ratings received, min 3 recommendations)', () => 
   });
 });
 
-describe('recommendationScoreLeaderboard and rankEntries', () => {
+describe('averageReceivedBoard and rankEntries', () => {
   it('ranks users by Average Recommendation Score with “based on” counts', () => {
     const data = dataset([
       ...[9, 9, 9].map((r, i) => ({ id: `b${i}`, by: 'bob', ratings: { a: r } })),
       ...[6, 7, 8].map((r, i) => ({ id: `c${i}`, by: 'carol', ratings: { a: r } })),
       ...[10, 10].map((r, i) => ({ id: `d${i}`, by: 'dan', ratings: { a: r } })), // only 2: excluded
     ]);
-    expect(recommendationScoreLeaderboard(data)).toEqual([
-      { id: 'bob', rank: 1, value: 9, sampleSize: 3 },
-      { id: 'carol', rank: 2, value: 7, sampleSize: 3 },
-    ]);
+    expect(averageReceivedBoard(data)).toEqual({
+      ranked: [
+        { id: 'bob', rank: 1, value: 9, sampleSize: 3 },
+        { id: 'carol', rank: 2, value: 7, sampleSize: 3 },
+      ],
+      // Dan's two 10s don't outrank anyone (D30): he's provisional, with no number shown.
+      provisional: [{ id: 'dan', sampleSize: 2 }],
+      required: 3,
+    });
   });
 
   it('ties share a rank and the next rank skips (1, 2, 2, 4)', () => {
@@ -568,6 +595,215 @@ describe('recommendationScoreLeaderboard and rankEntries', () => {
       ['a', 1],
       ['b', 1],
       ['c', 3],
+    ]);
+  });
+});
+
+// ---------- P13.11: leaderboard boards, periods, profile and group extras ----------
+
+describe('personBoard (D30 provisional rankings)', () => {
+  it('ranks only people meeting the minimum; the rest are provisional, most data first, with no value', () => {
+    const board = personBoard(
+      [
+        { id: 'one-ten', value: 10, sampleSize: 1 },
+        { id: 'steady', value: 9.5, sampleSize: 100 },
+        { id: 'almost', value: 9.9, sampleSize: 4 },
+        { id: 'nobody', value: 0, sampleSize: 0 },
+      ],
+      5,
+      'highest',
+    );
+    expect(board.ranked).toEqual([{ id: 'steady', rank: 1, value: 9.5, sampleSize: 100 }]);
+    expect(board.provisional).toEqual([
+      { id: 'almost', sampleSize: 4 },
+      { id: 'one-ten', sampleSize: 1 },
+    ]);
+    expect(board.required).toBe(5);
+  });
+});
+
+describe('leaderboard boards (D30)', () => {
+  // Ann gives 9s, Cal gives 5s (10 ratings each); Bob gives one 10.
+  const specs: SongSpec[] = [
+    ...Array.from({ length: 10 }, (_, i) => ({ id: `d${i}`, by: 'dan', ratings: { ann: 9, cal: 5 } })),
+    { id: 'e0', by: 'eve', ratings: { bob: 10, ann: 9 } },
+  ];
+  const data = dataset(specs);
+
+  it('Highest Average Given needs 5 ratings', () => {
+    const board = averageGivenBoard(data);
+    expect(board.ranked.map((e) => [e.id, e.value, e.sampleSize])).toEqual([
+      ['ann', 9, 11],
+      ['cal', 5, 10],
+    ]);
+    expect(board.provisional).toEqual([{ id: 'bob', sampleSize: 1 }]);
+    expect(board.required).toBe(5);
+  });
+
+  it('Most Generous / Toughest Critic use generosity and need 10 ratings', () => {
+    expect(mostGenerousBoard(data).ranked.map((e) => e.id)).toEqual(['ann', 'cal']);
+    expect(toughestCriticBoard(data).ranked.map((e) => e.id)).toEqual(['cal', 'ann']);
+    expect(toughestCriticBoard(data).provisional).toEqual([{ id: 'bob', sampleSize: 1 }]);
+    expect(mostGenerousBoard(data).required).toBe(10);
+  });
+
+  it('Most Bops and Most Ratings are plain counts (anyone with one is ranked)', () => {
+    expect(mostBopsBoard(data).ranked.map((e) => [e.id, e.rank, e.value])).toEqual([
+      ['dan', 1, 10],
+      ['eve', 2, 1],
+    ]);
+    expect(mostRatingsBoard(data).ranked.map((e) => [e.id, e.value])).toEqual([
+      ['ann', 11],
+      ['cal', 10],
+      ['bob', 1],
+    ]);
+    expect(mostRatingsBoard(data).provisional).toEqual([]);
+  });
+
+  it('Most Popular lists people with 1–2 songs as provisional (needs 3 songs shared)', () => {
+    const board = popularityBoard(data);
+    expect(board.ranked.map((e) => [e.id, e.value])).toEqual([['dan', 10]]);
+    expect(board.provisional).toEqual([{ id: 'eve', sampleSize: 1 }]);
+  });
+
+  it('Crowd Favorites ranks songs rated by 75%+ of the week’s raters (3 ratings)', () => {
+    const week = dataset([
+      { id: 'wide', by: 'x', ratings: { a: 8, b: 8, c: 8, d: 8 } },
+      { id: 'narrow', by: 'y', ratings: { a: 10, b: 10, c: 10 } }, // 3 of 4 raters = 75%: counts
+      { id: 'few', by: 'z', ratings: { a: 10, b: 10 } }, // only 2 ratings
+    ]);
+    expect(crowdFavoriteLeaderboard(week).map((e) => [e.id, e.rank])).toEqual([
+      ['narrow', 1],
+      ['wide', 2],
+    ]);
+  });
+});
+
+describe('roundsInPeriod and lockMonth (D30)', () => {
+  const rounds = [
+    { roundId: 'aug', endsAt: '2026-08-31T05:00:00.000Z' }, // Monday 00:00 Chicago → locked Sunday 30 Aug
+    { roundId: 'sep-end', endsAt: '2026-10-01T05:00:00.000Z' }, // Thursday 1 Oct 00:00 → locked 30 Sep
+    { roundId: 'oct', endsAt: '2026-10-05T05:00:00.000Z' }, // Monday 5 Oct 00:00 → locked Sunday 4 Oct
+  ];
+  const now = new Date('2026-10-07T17:00:00.000Z');
+
+  it('the lock belongs to the moment before endsAt, in the party timezone', () => {
+    expect(lockMonth('2026-10-01T05:00:00.000Z', 'America/Chicago')).toBe('2026-09');
+    expect(lockMonth('2026-10-01T05:00:00.000Z', 'Europe/London')).toBe('2026-10');
+  });
+
+  it('week = most recent closed week; month = locked this month; all = everything', () => {
+    expect(roundsInPeriod(rounds, 'week', now, 'America/Chicago').map((r) => r.roundId)).toEqual(['oct']);
+    expect(roundsInPeriod(rounds, 'month', now, 'America/Chicago').map((r) => r.roundId)).toEqual(['oct']);
+    expect(roundsInPeriod(rounds, 'all', now, 'America/Chicago')).toHaveLength(3);
+    expect(roundsInPeriod([], 'week', now, 'America/Chicago')).toEqual([]);
+  });
+});
+
+describe('profile extras', () => {
+  it('favoriteGenres: highest average given per genre, needs 2 rated songs, ignores songs without a genre', () => {
+    const data = dataset([
+      { id: 'p1', by: 'bob', genre: 'Pop', ratings: { me: 6 } },
+      { id: 'p2', by: 'bob', genre: 'pop', ratings: { me: 8 } }, // same genre, different case
+      { id: 'r1', by: 'bob', genre: 'Rock', ratings: { me: 9 } },
+      { id: 'r2', by: 'bob', genre: 'Rock', ratings: { me: 9 } },
+      { id: 'j1', by: 'bob', genre: 'Jazz', ratings: { me: 10 } }, // only 1: not enough
+      { id: 'n1', by: 'bob', genre: null, ratings: { me: 10 } },
+      { id: 'n2', by: 'bob', ratings: { me: 10 } },
+    ]);
+    expect(favoriteGenres(data, 'me')).toEqual({
+      status: 'ok',
+      value: [
+        { genre: 'Rock', averageRating: 9, songCount: 2 },
+        { genre: 'Pop', averageRating: 7, songCount: 2 },
+      ],
+      sampleSize: 2,
+    });
+    expect(favoriteGenres(data, 'bob')).toEqual({ status: 'not-enough-data', sampleSize: 0, required: 2 });
+  });
+
+  it('recentSongs: your newest closed-week songs first, at most 5', () => {
+    const data = dataset([
+      ...Array.from({ length: 6 }, (_, i) => ({
+        id: `m${i}`,
+        by: 'me',
+        date: `2026-09-0${i + 1}`,
+        ratings: { a: 5 + i },
+      })),
+      { id: 'other', by: 'bob', date: '2026-09-09' },
+    ]);
+    const recent = recentSongs(data, 'me');
+    expect(recent.map((s) => s.recommendationId)).toEqual(['m5', 'm4', 'm3', 'm2', 'm1']);
+    expect(recent[0]).toMatchObject({ average: 10, ratingCount: 1, roundId: 'week1' });
+  });
+
+  it('weekRank: by average received as shown, ties share a rank, null without a rated song', () => {
+    const data = dataset([
+      { id: 'a', by: 'ann', round: 'w1', ratings: { x: 9 } },
+      { id: 'b', by: 'bob', round: 'w1', ratings: { x: 7 } },
+      { id: 'c', by: 'cal', round: 'w1', ratings: { x: 7 } },
+      { id: 'd', by: 'dan', round: 'w1' }, // unrated
+      { id: 'old', by: 'dan', round: 'w0', ratings: { x: 10 } },
+    ]);
+    expect(weekRank(data, 'w1', 'ann')).toEqual({ position: 1, of: 3 });
+    expect(weekRank(data, 'w1', 'cal')).toEqual({ position: 2, of: 3 });
+    expect(weekRank(data, 'w1', 'dan')).toBeNull();
+  });
+});
+
+describe('group extras', () => {
+  const data = dataset([
+    { id: 's1', by: 'a', artist: 'Robyn', round: 'w1', ratings: { b: 8, c: 6 } },
+    { id: 's2', by: 'b', artist: 'robyn ', round: 'w1', ratings: { a: 10 } },
+    { id: 's3', by: 'c', artist: 'Björk', round: 'w2', ratings: { a: 4 } },
+    { id: 's4', by: 'a', artist: 'Sade', round: 'w2' },
+    { id: 's5', by: 'b', artist: 'Prince', round: 'w2' },
+  ]);
+
+  it('groupAverage and distribution need 1 rating', () => {
+    expect(groupAverage(data)).toEqual({ status: 'ok', value: 7, sampleSize: 4 });
+    expect(groupRatingDistribution(data)).toEqual({
+      status: 'ok',
+      value: [0, 0, 0, 1, 0, 1, 0, 1, 0, 1], // one each of 4, 6, 8, 10
+      sampleSize: 4,
+    });
+    const empty = dataset([{ id: 'x', by: 'a' }]);
+    expect(groupAverage(empty)).toEqual({ status: 'not-enough-data', sampleSize: 0, required: 1 });
+    expect(groupRatingDistribution(empty)).toMatchObject({ status: 'not-enough-data' });
+  });
+
+  it('topArtists: most shared (spelling-insensitive), everyone tied at 3rd is included', () => {
+    const result = topArtists(data);
+    expect(result.status === 'ok' && result.value).toEqual([
+      { artist: 'Robyn', songCount: 2 },
+      { artist: 'Björk', songCount: 1 },
+      { artist: 'Prince', songCount: 1 },
+      { artist: 'Sade', songCount: 1 },
+    ]);
+    expect(topArtists(dataset([]))).toMatchObject({ status: 'not-enough-data' });
+  });
+
+  it('weekly and monthly activity: songs, ratings and average per period, newest first', () => {
+    const rounds = [
+      { roundId: 'w1', weekStart: '2026-09-21', endsAt: '2026-09-28T05:00:00.000Z' },
+      { roundId: 'w2', weekStart: '2026-09-28', endsAt: '2026-10-05T05:00:00.000Z' },
+    ];
+    expect(weeklyActivity(data, rounds)).toEqual([
+      { period: '2026-09-28', weeks: 1, songs: 3, ratings: 1, average: 4 },
+      { period: '2026-09-21', weeks: 1, songs: 2, ratings: 3, average: 8 },
+    ]);
+    const unrated = dataset([{ id: 'u1', by: 'a', round: 'w3' }]);
+    expect(weeklyActivity(unrated, [{ roundId: 'w3', weekStart: '2026-10-05' }])).toEqual([
+      { period: '2026-10-05', weeks: 1, songs: 1, ratings: 0, average: null },
+    ]);
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      roundId: `r${i}`,
+      weekStart: `2026-0${(i % 9) + 1}-1${i % 10}`,
+    }));
+    expect(weeklyActivity(unrated, many)).toHaveLength(12); // latest 12 only
+    expect(monthlyActivity(data, rounds, 'America/Chicago')).toEqual([
+      { period: '2026-10', weeks: 1, songs: 3, ratings: 1, average: 4 },
+      { period: '2026-09', weeks: 1, songs: 2, ratings: 3, average: 8 },
     ]);
   });
 });

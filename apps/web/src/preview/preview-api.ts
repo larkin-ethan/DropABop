@@ -15,7 +15,12 @@ import type {
   Party,
   PartyMember,
   PartyResponse,
+  PartySearchResponse,
+  PartySearchType,
   PersonalStatsResponse,
+  SearchArtistHit,
+  SearchSongHit,
+  SearchWeekHit,
   ResultsResponse,
   Round,
   RoundsResponse,
@@ -24,11 +29,21 @@ import type {
   User,
   Weekday,
   WeekSongsResponse,
+  HistoryDay,
+  HistoryResponse,
+  HistorySong,
+  HistoryWeek,
+  Achievement,
+  AchievementsResponse,
+  AppNotification,
+  NotificationsResponse,
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
+  PRIVACY_POLICY_VERSION,
   addCommentRequestSchema,
   checkSchedule,
+  parseAppleMusicSongUrl,
   shareDaysOf,
   sortWeekdays,
   weekPrivacyOf,
@@ -47,6 +62,10 @@ export interface PreviewState {
   songs: SongView[];
   pastRound: Round;
   pastResults: SongResult[];
+  /** When "you" last looked at your achievements (sample world; P13.9). */
+  achievementsSeenAt: string | null;
+  /** When "you" last opened your notifications in this party (P13.10). */
+  notificationsSeenAt: string | null;
   /** A party you're not in yet, joinable with its code (for trying the invite flow). */
   otherParty: Party;
   /** Set by closeWeek(): the current week has ended (ratings locked, results out). */
@@ -69,6 +88,31 @@ function catalogSong(id: string, title: string, artist: string, album: string): 
       { provider: 'appleMusic', providerSongId: id, externalUrl: `https://music.apple.com/us/song/${id}` },
     ],
   };
+}
+
+/**
+ * Pasting an Apple Music link in the sample (no Apple catalog here): the real API looks the track id up in iTunes.
+ * The stand-in keeps the link's track id and reads a title from the link's words (".../song/blinding-lights/123"),
+ * so what you paste is what you get. The artist isn't in the link, so it's labelled as a sample.
+ */
+function sampleResolve(state: PreviewState, url: string): Song {
+  const trackId = parseAppleMusicSongUrl(url);
+  if (trackId === null) {
+    throw new ApiError(400, 'VALIDATION_FAILED', 'That isn’t an Apple Music song link.');
+  }
+  const known = state.catalog.find((s) => s.providers[0]?.providerSongId === trackId);
+  if (known !== undefined) return known;
+  const slug = new URL(url).pathname.split('/')[3] ?? '';
+  const words = decodeURIComponent(slug).split('-').filter(Boolean);
+  const title =
+    words.length > 0 ? words.map((w) => w[0]?.toUpperCase() + w.slice(1)).join(' ') : `Song ${trackId}`;
+  const song: Song = {
+    ...catalogSong(trackId, title, 'Artist (sample lookup)', ''),
+    album: null,
+    providers: [{ provider: 'appleMusic', providerSongId: trackId, externalUrl: url }],
+  };
+  state.catalog = [...state.catalog, song]; // so sharing it works, like a real catalog song
+  return song;
 }
 
 /** Monday 00:00 (local) after the week whose ratings lock at `endsAt`: when the next week starts, like the real API. */
@@ -128,6 +172,8 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       displayName: 'Ethan Larkin',
       avatarColor: '#3B82F6',
       preferredProvider: null,
+      privacyAcceptedAt: '2026-10-09T12:00:00.000Z',
+      privacyVersion: PRIVACY_POLICY_VERSION,
       createdAt: '2026-09-01T12:00:00.000Z',
     },
     parties: [party],
@@ -163,6 +209,8 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       status: 'CLOSED',
     },
     pastResults: pastSongs,
+    achievementsSeenAt: '2026-10-01T00:00:00.000Z',
+    notificationsSeenAt: null,
     weekClosed: false,
     comments: [
       {
@@ -267,6 +315,99 @@ function memberNames(state: PreviewState) {
   }));
 }
 
+/**
+ * Party search in the sample world (P13.12). A simple stand-in for services/api/src/domain/search.ts with the same
+ * privacy: this week's songs show no sharer unless they're yours (D10), and nothing shows ratings.
+ */
+function sampleSearch(state: PreviewState, params: URLSearchParams): PartySearchResponse {
+  const fold = (t: string) =>
+    t
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+  const q = fold((params.get('q') ?? '').trim());
+  const type = (params.get('type') ?? 'all') as PartySearchType;
+  const offset = Number(params.get('cursor') ?? '0');
+  const hit = (...fields: (string | null | undefined)[]) => fields.some((f) => f && fold(f).includes(q));
+
+  const songs: SearchSongHit[] = [
+    ...state.songs.map((s) => ({
+      recommendationId: s.recommendationId,
+      roundId: state.round.roundId,
+      submittedOn: s.submittedOn,
+      title: s.song.title,
+      artist: s.song.artist,
+      album: s.song.album,
+      albumArtUrl: s.song.albumArtUrl,
+      weekOpen: !state.weekClosed,
+      isMine: s.isMine,
+      ...(s.isMine || state.weekClosed ? { recommendedBy: s.recommendedBy ?? ME } : {}),
+    })),
+    ...state.pastResults.map((r) => ({
+      recommendationId: r.recommendationId,
+      roundId: state.pastRound.roundId,
+      submittedOn: r.submittedOn,
+      title: r.song.title,
+      artist: r.song.artist,
+      album: r.song.album,
+      albumArtUrl: r.song.albumArtUrl,
+      weekOpen: false,
+      isMine: r.recommendedBy === ME,
+      recommendedBy: r.recommendedBy,
+    })),
+  ].filter((s) => hit(s.title, s.artist, s.album));
+  const artistCounts = new Map<string, SearchArtistHit>();
+  for (const s of songs) {
+    if (!hit(s.artist)) continue;
+    const entry = artistCounts.get(fold(s.artist)) ?? { artist: s.artist, songCount: 0 };
+    entry.songCount += 1;
+    artistCounts.set(fold(s.artist), entry);
+  }
+  const artists = [...artistCounts.values()];
+  const members = memberNames(state).filter((m) => hit(m.displayName));
+  const weeks: SearchWeekHit[] = [state.round, state.pastRound]
+    .filter((r) => hit(r.weekStart))
+    .map((r) => ({
+      roundId: r.roundId,
+      weekStart: r.weekStart,
+      status: r === state.round && !state.weekClosed ? 'OPEN' : 'CLOSED',
+      songCount: r === state.round ? state.songs.length : state.pastResults.length,
+    }));
+  const lists = { songs, artists, members, weeks };
+  const totals = {
+    songs: songs.length,
+    artists: artists.length,
+    members: members.length,
+    weeks: weeks.length,
+  };
+  if (type === 'all') {
+    return {
+      q,
+      type,
+      songs: songs.slice(0, 5),
+      artists: artists.slice(0, 5),
+      members: members.slice(0, 5),
+      weeks: weeks.slice(0, 5),
+      totals,
+      nextCursor: null,
+      truncated: false,
+    };
+  }
+  const page = 20;
+  return {
+    q,
+    type,
+    songs: [],
+    artists: [],
+    members: [],
+    weeks: [],
+    [type]: lists[type].slice(offset, offset + page),
+    totals,
+    nextCursor: offset + page < lists[type].length ? String(offset + page) : null,
+    truncated: false,
+  };
+}
+
 const notEnough = (sampleSize: number, required: number) =>
   ({ status: 'not-enough-data', sampleSize, required }) as const;
 
@@ -352,7 +493,16 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       return response;
     }
     if (is('PATCH', 'users', 'me')) {
-      state.user = { ...state.user, ...(body as Partial<User>) };
+      // Like the real API: `acceptPrivacy` becomes the time and current version (ADR-0011).
+      const { acceptPrivacy, ...changes } = body as Partial<User> & { acceptPrivacy?: true };
+      state.user = { ...state.user, ...changes };
+      if (acceptPrivacy === true) {
+        state.user = {
+          ...state.user,
+          privacyAcceptedAt: new Date().toISOString(),
+          privacyVersion: PRIVACY_POLICY_VERSION,
+        };
+      }
       state.members = state.members.map((m) =>
         m.userId === ME
           ? {
@@ -377,6 +527,30 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         ratingDistribution: { status: 'ok', value: [0, 0, 1, 1, 1, 2, 3, 2, 1, 1], sampleSize: 12 },
         favoriteArtists: notEnough(0, 2),
         musicalTwin: notEnough(3, 5),
+        ratingsGiven: 12,
+        favoriteGenres: {
+          status: 'ok',
+          value: [{ genre: 'Electronic', averageRating: 8.5, songCount: 2 }],
+          sampleSize: 1,
+        },
+        recentSongs: state.pastResults
+          .filter((r) => r.recommendedBy === ME)
+          .map((r) => ({
+            recommendationId: r.recommendationId,
+            roundId: state.pastRound.roundId,
+            submittedOn: r.submittedOn,
+            title: r.song.title,
+            artist: r.song.artist,
+            albumArtUrl: r.song.albumArtUrl,
+            average: r.averageRating,
+            ratingCount: r.ratingCount,
+          })),
+        lastWeekRank: {
+          roundId: state.pastRound.roundId,
+          weekStart: state.pastRound.weekStart,
+          position: 2,
+          of: 4,
+        },
         members: memberNames(state),
       };
       return response;
@@ -486,39 +660,141 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         darkHorse: notEnough(0, 3),
         mostGenerousVoter: { status: 'ok', value: [{ id: 'u2', value: 0.8, sampleSize: 11 }], sampleSize: 4 },
         toughestCritic: { status: 'ok', value: [{ id: 'u4', value: -0.9, sampleSize: 10 }], sampleSize: 4 },
+        memberCount: state.members.length,
+        groupAverage: { status: 'ok', value: 7.3, sampleSize: 32 },
+        ratingDistribution: { status: 'ok', value: [0, 1, 1, 2, 3, 5, 7, 6, 4, 3], sampleSize: 32 },
+        topArtists: {
+          status: 'ok',
+          value: [
+            { artist: 'Robyn', songCount: 2 },
+            { artist: 'Sade', songCount: 1 },
+          ],
+          sampleSize: state.pastResults.length,
+        },
+        mostConsistent: notEnough(2, 3),
+        weeklyActivity: [
+          {
+            period: state.pastRound.weekStart,
+            weeks: 1,
+            songs: state.pastResults.length,
+            ratings: 32,
+            average: 7.3,
+          },
+        ],
+        monthlyActivity: [
+          {
+            period: state.pastRound.weekStart.slice(0, 7),
+            weeks: 1,
+            songs: state.pastResults.length,
+            ratings: 32,
+            average: 7.3,
+          },
+        ],
         members: memberNames(state),
       };
       return response;
     }
     if (is('GET', 'parties', ':id', 'leaderboard')) {
+      const songEntries = state.pastResults.slice(0, 5).map((r, i) => ({
+        id: r.recommendationId,
+        rank: i + 1,
+        value: r.averageRating ?? 0,
+        sampleSize: r.ratingCount,
+        song: {
+          title: r.song.title,
+          artist: r.song.artist,
+          albumArtUrl: r.song.albumArtUrl,
+          recommendedBy: r.recommendedBy,
+          submittedOn: r.submittedOn,
+        },
+      }));
       const response: LeaderboardResponse = {
+        period: (params.get('period') ?? 'all') as LeaderboardResponse['period'],
         weeksPlayed: 1,
-        highestAverageSongRating: state.pastResults.slice(0, 5).map((r, i) => ({
-          id: r.recommendationId,
-          rank: i + 1,
-          value: r.averageRating ?? 0,
-          sampleSize: r.ratingCount,
-          song: {
-            title: r.song.title,
-            artist: r.song.artist,
-            albumArtUrl: r.song.albumArtUrl,
-            recommendedBy: r.recommendedBy,
-            submittedOn: r.submittedOn,
-          },
-        })),
-        highestAverageRecommendationScore: [
-          { id: 'u3', rank: 1, value: 8.4, sampleSize: 5 },
-          { id: ME, rank: 2, value: 8.1, sampleSize: 5 },
-          { id: 'u2', rank: 3, value: 7.2, sampleSize: 4 },
-        ],
-        mostConsistent: [{ id: 'u2', rank: 1, value: 0.6, sampleSize: 4 }],
-        mostSurprising: [],
-        mostPopular: [{ id: 'u3', rank: 1, value: 0.8, sampleSize: 5 }],
+        highestAverageSongRating: songEntries,
+        crowdFavorites: songEntries.slice(0, 2),
+        highestAverageReceived: {
+          ranked: [
+            { id: 'u3', rank: 1, value: 8.4, sampleSize: 5 },
+            { id: ME, rank: 2, value: 8.1, sampleSize: 5 },
+            { id: 'u2', rank: 3, value: 7.2, sampleSize: 4 },
+          ],
+          provisional: [{ id: 'u4', sampleSize: 2 }],
+          required: 3,
+        },
+        highestAverageGiven: {
+          ranked: [
+            { id: 'u2', rank: 1, value: 8.2, sampleSize: 11 },
+            { id: ME, rank: 2, value: 7.4, sampleSize: 12 },
+          ],
+          provisional: [{ id: 'u4', sampleSize: 3 }],
+          required: 5,
+        },
+        mostBops: {
+          ranked: [
+            { id: ME, rank: 1, value: 5, sampleSize: 5 },
+            { id: 'u3', rank: 1, value: 5, sampleSize: 5 },
+            { id: 'u2', rank: 3, value: 4, sampleSize: 4 },
+          ],
+          provisional: [],
+          required: 1,
+        },
+        mostRatings: {
+          ranked: [
+            { id: ME, rank: 1, value: 12, sampleSize: 12 },
+            { id: 'u2', rank: 2, value: 11, sampleSize: 11 },
+          ],
+          provisional: [],
+          required: 1,
+        },
+        mostGenerous: {
+          ranked: [
+            { id: 'u2', rank: 1, value: 0.8, sampleSize: 11 },
+            { id: 'u4', rank: 2, value: -0.9, sampleSize: 10 },
+          ],
+          provisional: [{ id: ME, sampleSize: 9 }],
+          required: 10,
+        },
+        toughestCritic: {
+          ranked: [
+            { id: 'u4', rank: 1, value: -0.9, sampleSize: 10 },
+            { id: 'u2', rank: 2, value: 0.8, sampleSize: 11 },
+          ],
+          provisional: [{ id: ME, sampleSize: 9 }],
+          required: 10,
+        },
+        mostConsistent: {
+          ranked: [{ id: 'u2', rank: 1, value: 0.6, sampleSize: 4 }],
+          provisional: [],
+          required: 3,
+        },
+        mostSurprising: { ranked: [], provisional: [], required: 1 },
+        mostPopular: {
+          ranked: [{ id: 'u3', rank: 1, value: 8, sampleSize: 5 }],
+          provisional: [],
+          required: 3,
+        },
         members: memberNames(state),
       };
       return response;
     }
     if (is('GET', 'rounds', ':id', 'recommendations')) {
+      // Last week's songs (closed: sharers revealed, D10), for Song Details from the results (P13.5).
+      if (parts[1] === state.pastRound.roundId) {
+        const response: WeekSongsResponse = {
+          round: state.pastRound,
+          songs: state.pastResults.map((r) => ({
+            recommendationId: r.recommendationId,
+            weekday: r.weekday,
+            submittedOn: r.submittedOn,
+            song: r.song,
+            isMine: r.recommendedBy === ME,
+            recommendedBy: r.recommendedBy,
+            myRating: r.myRating,
+          })),
+        };
+        return response;
+      }
       if (parts[1] !== state.round.roundId) notFound();
       // Like the real API (D10): who shared each song only for your own songs, or when this week reveals them.
       const reveal = weekPrivacyOf(state.round).revealRecommenderDuringVoting;
@@ -640,10 +916,42 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
       };
     }
+    if (is('GET', 'parties', ':id', 'search')) {
+      return sampleSearch(state, params);
+    }
+    if (is('GET', 'parties', ':id', 'notifications')) {
+      return sampleNotifications(state);
+    }
+    if (is('POST', 'parties', ':id', 'notifications', 'seen')) {
+      state.notificationsSeenAt = new Date().toISOString();
+      return { seenAt: state.notificationsSeenAt };
+    }
+    if (is('GET', 'parties', ':id', 'achievements')) {
+      return sampleAchievements(state);
+    }
+    if (is('POST', 'parties', ':id', 'achievements', 'seen')) {
+      state.achievementsSeenAt = new Date().toISOString();
+      return { seenAt: state.achievementsSeenAt };
+    }
+    if (is('GET', 'parties', ':id', 'history')) {
+      return sampleHistory(state, params.get('month') ?? '');
+    }
+    if (is('GET', 'songs', 'youtube')) {
+      // Sample YouTube suggestions (ADR-0012). M7lc1UVf-VE is the sample video in YouTube's IFrame API reference.
+      return {
+        videos: [
+          {
+            videoId: 'M7lc1UVf-VE',
+            title: 'Automatic embedded web player',
+            channelTitle: 'Sample video',
+          },
+          { videoId: 'zzzzzzzzzzz', title: 'A video that doesn’t exist', channelTitle: 'Nobody' },
+        ],
+        unavailable: null,
+      };
+    }
     if (is('POST', 'songs', 'resolve')) {
-      const song = state.catalog[0];
-      if (song === undefined) notFound();
-      return { song };
+      return { song: sampleResolve(state, (body as { url: string }).url) };
     }
     notFound();
   }
@@ -659,5 +967,294 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     put: (path, body) => request('PUT', path, body),
     patch: (path, body) => request('PATCH', path, body),
     delete: (path) => request('DELETE', path),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Sample history (P13.8): last week closed (from the sample results), this week open (counts only, D9).
+// ---------------------------------------------------------------------------------------------------------------
+
+const WEEK_ORDER: Weekday[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+function dayDate(weekStart: string, weekday: Weekday): string {
+  const [y = 1970, m = 1, d = 1] = weekStart.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + WEEK_ORDER.indexOf(weekday))).toISOString().slice(0, 10);
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10;
+}
+
+function ratingsFrom(distribution: number[]): number[] {
+  return distribution.flatMap((count, i) => new Array<number>(count).fill(i + 1));
+}
+
+function sampleHistory(state: PreviewState, month: string): HistoryResponse {
+  const members = state.members.map((m) => ({
+    userId: m.userId,
+    displayName: m.displayName,
+    avatarColor: m.avatarColor,
+    avatarImage: m.avatarImage ?? null,
+  }));
+  if (month !== '2026-10' && month !== '2026-09') return { month, weeks: [], members };
+
+  const past = state.pastRound;
+  const pastSongs: HistorySong[] = state.pastResults.map((r) => ({
+    recommendationId: r.recommendationId,
+    title: r.song.title,
+    artist: r.song.artist,
+    albumArtUrl: r.song.albumArtUrl,
+    average: r.averageRating,
+    ratingCount: r.ratingCount,
+    rank: r.rank,
+    myRating: r.myRating,
+    recommendedBy: r.recommendedBy,
+    isMine: r.recommendedBy === ME,
+  }));
+  const allPastRatings = state.pastResults.flatMap((r) => ratingsFrom(r.distribution));
+  const pastDays: HistoryDay[] = DEFAULT_SHARE_DAYS.map((weekday) => {
+    const results = state.pastResults.filter((r) => r.weekday === weekday);
+    const songs = pastSongs.filter((s) => results.some((r) => r.recommendationId === s.recommendationId));
+    const ratings = results.flatMap((r) => ratingsFrom(r.distribution));
+    const distribution = new Array<number>(10).fill(0);
+    for (const r of ratings) distribution[r - 1] = (distribution[r - 1] ?? 0) + 1;
+    const top = songs[0]?.average ?? null;
+    return {
+      date: dayDate(past.weekStart, weekday),
+      weekday,
+      songCount: songs.length,
+      iShared: songs.some((s) => s.isMine),
+      personalBest: songs.some((s) => s.isMine && s.rank === 1),
+      stats: {
+        songs,
+        ratingCount: ratings.length,
+        groupAverage: average(ratings),
+        myAverageGiven: average(songs.flatMap((s) => (s.myRating === null ? [] : [s.myRating]))),
+        myAverageReceived: average(
+          songs.filter((s) => s.isMine && s.average !== null).map((s) => s.average ?? 0),
+        ),
+        bopOfTheDay:
+          top === null ? [] : songs.filter((s) => s.average === top).map((s) => s.recommendationId),
+        lowestRated: songs.length > 1 ? [songs.at(-1)?.recommendationId ?? ''] : [],
+        myRatingCount: songs.filter((s) => s.myRating !== null).length,
+        distribution,
+        favoriteArtists: [],
+      },
+    };
+  });
+  const pastDistribution = new Array<number>(10).fill(0);
+  for (const r of allPastRatings) pastDistribution[r - 1] = (pastDistribution[r - 1] ?? 0) + 1;
+  const pastWeek: HistoryWeek = {
+    roundId: past.roundId,
+    weekStart: past.weekStart,
+    endsAt: past.endsAt,
+    status: 'CLOSED',
+    days: pastDays,
+    summary: {
+      songCount: pastSongs.length,
+      ratingCount: allPastRatings.length,
+      averageRating: average(allPastRatings),
+      bestSongs: pastSongs.filter((s) => s.rank === 1).map((s) => s.recommendationId),
+      topArtists: pastSongs.slice(0, 3).map((s) => ({ artist: s.artist, songs: 1 })),
+      mostAgreeableDays: pastDays[1] === undefined ? [] : [pastDays[1].date],
+      mostDivisive: pastSongs.length > 0 ? [pastSongs.at(-1)?.recommendationId ?? ''] : [],
+      distribution: pastDistribution,
+    },
+    yourWeek: {
+      songsRated: pastSongs.filter((s) => s.myRating !== null).length,
+      averageGiven: average(pastSongs.flatMap((s) => (s.myRating === null ? [] : [s.myRating]))),
+      averageReceived: average(
+        pastSongs.filter((s) => s.isMine && s.average !== null).map((s) => s.average ?? 0),
+      ),
+      topSong: pastSongs.find((s) => s.isMine)?.recommendationId ?? null,
+      rank: { position: 1, of: members.length },
+    },
+  };
+
+  const current = state.round;
+  const openWeek: HistoryWeek = {
+    roundId: current.roundId,
+    weekStart: current.weekStart,
+    endsAt: current.endsAt,
+    status: state.weekClosed ? 'CLOSED' : 'OPEN',
+    days: shareDaysOf(current).map((weekday) => {
+      const songs = state.songs.filter((s) => s.weekday === weekday);
+      return {
+        date: dayDate(current.weekStart, weekday),
+        weekday,
+        songCount: songs.length,
+        iShared: songs.some((s) => s.isMine),
+        personalBest: false,
+        stats: null,
+      };
+    }),
+    summary: null,
+    yourWeek: null,
+  };
+  return { month, weeks: month === '2026-09' ? [pastWeek] : [pastWeek, openWeek], members };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Sample achievements (P13.9): a few unlocked when last week closed, the rest with progress.
+// ---------------------------------------------------------------------------------------------------------------
+
+function sampleAchievements(state: PreviewState): AchievementsResponse {
+  const at = state.pastRound.endsAt;
+  const made = (
+    id: string,
+    group: Achievement['group'],
+    emoji: string,
+    title: string,
+    description: string,
+    unlocked: boolean,
+    current = 0,
+    target = 1,
+    label = 'Not yet',
+  ): Achievement => ({
+    id,
+    group,
+    emoji,
+    title,
+    description,
+    unlocked,
+    unlockedOn: unlocked ? at : null,
+    unlockedDay: unlocked ? '2026-10-04' : null, // last week locked Sunday night, party time
+    progress: unlocked ? { current: target, target, label: 'Unlocked' } : { current, target, label },
+  });
+  const achievements: Achievement[] = [
+    made('first-drop', 'participation', '🎵', 'First Drop', 'Share your first song.', true),
+    made('first-rating', 'participation', '⭐', 'First Rating', 'Rate your first song.', true),
+    made(
+      'weeks-10',
+      'participation',
+      '📅',
+      '10 Weeks',
+      'Take part in 10 weeks.',
+      false,
+      2,
+      10,
+      '2 of 10 weeks',
+    ),
+    made(
+      'artists-10',
+      'discovery',
+      '🧭',
+      '10 Artists',
+      'Share songs by 10 different artists.',
+      false,
+      6,
+      10,
+      '6 of 10 artists',
+    ),
+    made('first-10', 'rating', '🔟', 'First 10', 'Give a song a 10.', true),
+    made(
+      'generous-voter',
+      'rating',
+      '💝',
+      'Generous Voter',
+      'Rate at least 1 point above the group on average (10 ratings or more).',
+      false,
+      0.4,
+      1,
+      '+0.4 compared with the group (needs +1.0)',
+    ),
+    made('top-bop', 'songSuccess', '🏆', 'Top Bop', 'Have the #1 song of a week.', true),
+    made(
+      'crowd-favorite',
+      'songSuccess',
+      '🙌',
+      'Crowd Favorite',
+      'Have a week’s crowd favorite: the best average among songs most people rated.',
+      false,
+    ),
+    made(
+      'musical-twin',
+      'social',
+      '👯',
+      'Musical Twin',
+      'Rate within 1.0 point of someone on 5 songs you both rated.',
+      false,
+      3,
+      5,
+      '3 of 5 songs rated in common with someone',
+    ),
+    made(
+      'monthly-regular',
+      'consistency',
+      '🔥',
+      'Monthly Regular',
+      'Take part in 4 weeks in a row.',
+      false,
+      2,
+      4,
+      '2 of 4 weeks in a row',
+    ),
+  ];
+  const seenAt = state.achievementsSeenAt;
+  return {
+    memberId: ME,
+    achievements,
+    unlockedCount: achievements.filter((a) => a.unlocked).length,
+    newlyUnlocked:
+      seenAt === null
+        ? []
+        : achievements.filter((a) => a.unlockedOn !== null && a.unlockedOn > seenAt).map((a) => a.id),
+    seenAt,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Sample notifications (P13.10): what the sample world's week would produce.
+// ---------------------------------------------------------------------------------------------------------------
+
+function sampleNotifications(state: PreviewState): NotificationsResponse {
+  const unrated = state.songs.filter((s) => !s.isMine && s.myRating === null);
+  const all: AppNotification[] = [
+    ...(unrated.length > 0
+      ? [
+          {
+            id: `toRate:${state.round.roundId}`,
+            type: 'toRate' as const,
+            time: '2026-10-07T15:00:00.000Z',
+            title: `${unrated.length} songs are waiting for your rating`,
+            detail: null,
+            link: '/rate?show=unrated',
+          },
+        ]
+      : []),
+    {
+      id: `comments:${state.round.roundId}`,
+      type: 'comments',
+      time: '2026-10-07T16:02:00.000Z',
+      title: '2 comments on your songs this week',
+      detail: null,
+      link: '/rate',
+    },
+    {
+      id: `weeklyRank:${state.pastRound.roundId}`,
+      type: 'weeklyRank',
+      time: state.pastRound.endsAt,
+      title: `You finished #1 of ${state.members.length} last week`,
+      detail: 'By the average your songs received.',
+      link: `/history/week/${state.pastRound.weekStart}`,
+    },
+    {
+      id: `results:${state.pastRound.roundId}`,
+      type: 'results',
+      time: state.pastRound.endsAt,
+      title: 'Weekly results are ready',
+      detail: null,
+      link: `/results/${state.pastRound.roundId}`,
+    },
+  ];
+  const notifications = all
+    .filter((n) => state.user.notificationPrefs?.[n.type] !== false)
+    .sort((a, b) => b.time.localeCompare(a.time));
+  const seenAt = state.notificationsSeenAt;
+  return {
+    notifications,
+    unreadCount: notifications.filter((n) => seenAt === null || n.time > seenAt).length,
+    seenAt,
   };
 }

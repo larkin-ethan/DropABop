@@ -47,7 +47,10 @@ function securityHeadersFile(mode: string): Plugin {
       const region = env.VITE_AWS_REGION ?? '';
       const policy = [
         "default-src 'self'",
-        "script-src 'self'",
+        // YouTube's embedded player: its loader, the player script it fetches, and its frame. Only those paths, not
+        // all of www.youtube.com (ADR-0011, P13.3; checked with the real player on 2026-10-09).
+        "script-src 'self' https://www.youtube.com/iframe_api https://www.youtube.com/s/player/",
+        'frame-src https://www.youtube.com',
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://*.mzstatic.com",
         `connect-src 'self' ${api} https://cognito-idp.${region}.amazonaws.com`,

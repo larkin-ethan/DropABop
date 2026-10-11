@@ -22,17 +22,19 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 
 | Item | PK | SK | Main attributes |
 |---|---|---|---|
-| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, createdAt |
-| "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt |
+| User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, playInApp (missing = true), notificationPrefs, privacyAcceptedAt, privacyVersion (P13.2a; set only by the server), createdAt |
+| "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt, achievementsSeenAt (P13.9) and notificationsSeenAt (P13.10): when you last looked at your achievements / notifications in this party (server time; yours only) |
 | Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime; missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
 | Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, revealRecommenderDuringVoting, showWhoRatedWhat (fixed when the week starts), status |
-| Song shared (recommendation) | `PARTY#<partyId>` | `REC#<week>#<recommendationId>` | userId, submittedOn, weekday, song (embedded), createdAt |
+| Song shared (recommendation) | `PARTY#<partyId>` | `REC#<week>#<recommendationId>` | userId, submittedOn, weekday, song (embedded; `genre` from iTunes since P13.7, missing on older songs), createdAt |
 | "Already shared today" marker | `PARTY#<partyId>` | `SUBMITTED#<week>#<userId>#<date>` | recommendationId |
 | Rating (vote) | `PARTY#<partyId>` | `VOTE#<week>#<userId>#<recommendationId>` | rating, updatedAt |
 | Comment (D25) | `PARTY#<partyId>` | `COMMENT#<week>#<createdAt>#<commentId>` | roundId, recommendationId, userId, text, createdAt |
 | Invite code lookup | `INVITE#<code>` | `INVITE` | partyId |
 | Wrong invite codes (one hour) | `USER#<userId>` | `INVITEFAIL#<UTC hour, e.g. 2026-10-04T15>` | failures, expiresAt (TTL) |
+| A song's YouTube video (ADR-0012) | `PARTY#<partyId>` | `YTVIDEO#<week>#<recommendationId>` | recommendationId, videoId, source (`pasted` / `search`), expiresAt (TTL: share time + 29 days) |
+| YouTube searches (one UTC day) | `USER#<userId>` | `YTSEARCH#<date>` | searches (max 15), expiresAt (TTL: 2 days) |
 
 Notes:
 
@@ -45,6 +47,10 @@ Notes:
   separate song table because nothing reads songs on their own.
 - **Not stored in v1:** provider connections (no account linking, D20), and precomputed stats (computed when
   requested; see ADR-0006 in P5.10). Email lives in Cognito only (D19).
+- **YouTube videos** (ADR-0012): since 2026-10-09 a song's YouTube video id is stored in its own `YTVIDEO#` item, not
+  in the song, so DynamoDB deletes it 29 days after sharing (YouTube's 30-day rule). Reading a week's songs also
+  queries `YTVIDEO#<week>#` and adds unexpired ones as a `youtube` provider. Older songs may still have a pasted
+  YouTube link inside the song (the member's own content, ADR-0011).
 - Timestamps are UTC ISO strings set by the server.
 - **Invite failures** (P9.3): each wrong invite code a person tries adds 1 to that hour's counter; at 10, invite
   lookups and joins answer 429 until the next hour, so codes can't be guessed. The table's TTL deletes these items
@@ -73,6 +79,9 @@ Notes:
 | 22 | A week's comments, oldest first (D25) | `Query PK=PARTY#p, SK begins_with COMMENT#week#` |
 | 23 | Add a comment | `Put` with `attribute_not_exists(PK)` (random id; never overwrites) |
 | 24 | Delete a comment | Pattern 22 to find it by id, then `DeleteItem` |
+| 25 | History calendar for a month (P13.8) | Same as 15 (every week, because the ★ compares with your best ever), then the month's weeks are picked in code (ADR-0006) |
+| 26 | Achievements for one member (P13.9) | Same as 15 (every closed week is replayed in order to find each unlock date), plus `GetItem` of your own party link for `achievementsSeenAt` |
+| 27 | Party search (P13.12, D33) | `Query PK=PARTY#p, SK begins_with REC#`, **descending** (newest weeks first), stopping at 5,000 songs; plus patterns 4 and 9. Filtered in code: DynamoDB has no text search, and a party adds about 5,000 songs a year at most (D33's documented exception to "no fetching everything to filter") |
 
 Every query is limited to one partition. Lists that can grow (history, stats inputs) are paginated with
 `LastEvaluatedKey`.

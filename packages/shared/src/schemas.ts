@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import { parseAppleMusicSongUrl, parseSpotifyTrackUrl, parseYouTubeUrl } from './links';
+import type { NotificationType } from './types';
 import {
   AVATAR_IMAGE_MAX_LENGTH,
   COMMENT_MAX_LENGTH,
@@ -17,6 +18,7 @@ import {
   MIN_PARTY_SIZE,
   MIN_RATING,
   MUSIC_PROVIDERS,
+  NOTIFICATION_TYPES,
   PARTY_NAME_MAX_LENGTH,
   PROVIDER_SONG_ID_MAX_LENGTH,
   SEARCH_QUERY_MAX_LENGTH,
@@ -125,6 +127,7 @@ export const songSchema = z.strictObject({
   albumArtUrl: httpsUrlSchema.nullable(),
   durationMs: z.int().min(0).nullable(),
   releaseDate: z.string().nullable(),
+  genre: z.string().trim().min(1).max(100).nullable().optional(),
   providers: z.array(songProviderSchema).min(1, { error: 'A song needs at least one music service link.' }),
 });
 
@@ -137,6 +140,17 @@ export const updateProfileRequestSchema = z
     avatarColor: avatarColorSchema,
     avatarImage: avatarImageSchema.nullable(),
     preferredProvider: musicProviderSchema.nullable(),
+    playInApp: z.boolean({ error: 'Play videos must be on or off.' }),
+    // D29: which notification types are on. Only the known types, each true or false.
+    notificationPrefs: z.strictObject(
+      Object.fromEntries(NOTIFICATION_TYPES.map((type) => [type, z.boolean().optional()])) as Record<
+        NotificationType,
+        z.ZodOptional<z.ZodBoolean>
+      >,
+    ),
+    // Agreeing to the privacy policy and terms (ADR-0011). Only `true`: the server records the time and the current
+    // version itself, so a browser can't back-date it or claim a version it never saw.
+    acceptPrivacy: z.literal(true, { error: 'To agree to the privacy policy, send acceptPrivacy: true.' }),
   })
   .partial()
   .refine((body) => Object.keys(body).length > 0, { error: 'Nothing to update.' });
@@ -214,6 +228,8 @@ export const submitRecommendationRequestSchema = z.strictObject({
       youtube: youtubeLinkSchema.optional(),
     })
     .optional(),
+  /** Where links.youtube came from (ADR-0012): the sharer's own link, or the YouTube search result they kept. */
+  youtubeSource: z.enum(['pasted', 'search']).optional(),
 });
 
 /**
@@ -245,6 +261,27 @@ export const songSearchQuerySchema = z.strictObject({
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
 });
 
+/** GET /parties/{partyId}/achievements?memberId= (P13.9). Without memberId: your own. */
+export const achievementsQuerySchema = z.strictObject({
+  memberId: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'That member id isn’t valid.' })
+    .optional(),
+});
+
+/** GET /parties/{partyId}/history?month=YYYY-MM (P13.8). */
+export const historyQuerySchema = z.strictObject({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: 'Pick a month like 2026-10.' }),
+});
+
+/** GET /songs/youtube?providerSongId= (ADR-0012): the iTunes track id of the song being shared. */
+export const youtubeSuggestionQuerySchema = z.strictObject({
+  providerSongId: z
+    .string()
+    .trim()
+    .regex(/^\d{1,20}$/, { error: 'Please choose a song.' }),
+});
+
 /** GET /parties/{partyId}/rounds?limit=&cursor= (week history). Query strings arrive as text. */
 export const roundHistoryQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(50).optional(),
@@ -257,6 +294,28 @@ export const roundHistoryQuerySchema = z.strictObject({
 /** GET /users/me/stats?partyId=… */
 export const personalStatsQuerySchema = z.strictObject({
   partyId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' }),
+});
+
+/** GET /parties/{partyId}/search?q=&type=&cursor= (D33): searches only your current party. */
+export const partySearchQuerySchema = z.strictObject({
+  q: z
+    .string()
+    .trim()
+    .min(2, { error: 'Type at least 2 characters to search.' })
+    .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
+  type: z
+    .enum(['all', 'songs', 'artists', 'members', 'weeks'], { error: 'Pick a search category.' })
+    .default('all'),
+  /** Where the next page starts (a plain position from the previous response's nextCursor). */
+  cursor: z
+    .string()
+    .regex(/^\d{1,5}$/, { error: 'That page link isn’t valid.' })
+    .optional(),
+});
+
+/** GET /parties/{partyId}/leaderboard?period= (D30). Defaults to all time. */
+export const leaderboardQuerySchema = z.strictObject({
+  period: z.enum(['week', 'month', 'all'], { error: 'Pick week, month or all.' }).default('all'),
 });
 
 /** POST /songs/resolve — paste an Apple Music song link instead of searching (D21). */
@@ -274,5 +333,8 @@ export type SubmitRecommendationRequest = z.infer<typeof submitRecommendationReq
 export type CastVoteRequest = z.infer<typeof castVoteRequestSchema>;
 export type AddCommentRequest = z.infer<typeof addCommentRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
+export type HistoryQuery = z.infer<typeof historyQuerySchema>;
+export type PartySearchQuery = z.infer<typeof partySearchQuerySchema>;
+export type YouTubeSuggestionQuery = z.infer<typeof youtubeSuggestionQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
 export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

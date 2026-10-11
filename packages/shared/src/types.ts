@@ -2,7 +2,7 @@
 // These describe the app's data. API responses may hide some fields (for example, who recommended
 // a song while the week is open, per D10); those response shapes are defined alongside each endpoint.
 
-import type { MEMBER_ROLES, MUSIC_PROVIDERS, ROUND_STATUSES, WEEKDAYS } from './limits';
+import type { MEMBER_ROLES, MUSIC_PROVIDERS, NOTIFICATION_TYPES, ROUND_STATUSES, WEEKDAYS } from './limits';
 
 /** Calendar date in the party's timezone, formatted YYYY-MM-DD. */
 export type IsoDate = string;
@@ -13,6 +13,7 @@ export type Weekday = (typeof WEEKDAYS)[number];
 export type RoundStatus = (typeof ROUND_STATUSES)[number];
 export type MusicProviderId = (typeof MUSIC_PROVIDERS)[number];
 export type MemberRole = (typeof MEMBER_ROLES)[number];
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /** D19: the only personal data we keep. Email lives in Cognito, not here. */
 export interface User {
@@ -28,6 +29,14 @@ export interface User {
   avatarImage?: string | null;
   /** D22: whose "Open in …" link is shown first. */
   preferredProvider: MusicProviderId | null;
+  /** "Play videos in Drop a Bop" (D27, P13.6). Missing = true; false = links only, no in-app player. */
+  playInApp?: boolean;
+  /** Settings → Notifications (D29): a type set to false is switched off. Missing = everything on. */
+  notificationPrefs?: Partial<Record<NotificationType, boolean>>;
+  /** When this person agreed to the privacy policy and terms (server time, ADR-0011). Missing = never. */
+  privacyAcceptedAt?: IsoDateTime | null;
+  /** Which version they agreed to (PRIVACY_POLICY_VERSION at the time). */
+  privacyVersion?: string | null;
   createdAt: IsoDateTime;
 }
 
@@ -135,6 +144,8 @@ export interface Song {
   albumArtUrl: string | null;
   durationMs: number | null;
   releaseDate: IsoDate | null;
+  /** The catalog's main genre, e.g. "Electronic" (iTunes `primaryGenreName`, P13.7). Missing on songs shared before. */
+  genre?: string | null;
   providers: SongProvider[];
 }
 

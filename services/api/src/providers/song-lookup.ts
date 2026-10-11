@@ -13,11 +13,14 @@ export interface SongLookup {
   getSong(provider: MusicProviderId, providerSongId: string): Promise<Song | null>;
 }
 
-/** Spec §10: what each provider can do in v1 (ADR-0007). */
+/**
+ * Spec §10: what each provider can do (ADR-0007). Song search is iTunes only. YouTube videos a sharer linked play in
+ * the website's embedded player (ADR-0011); the player's own, more detailed table is apps/web/src/player/capabilities.ts.
+ */
 export const PROVIDER_CAPABILITIES: Record<MusicProviderId, ProviderCapabilities> = {
   appleMusic: { canSearch: true, canPlayInApp: false, requiresSubscription: false, canOpenExternal: true },
   spotify: { canSearch: false, canPlayInApp: false, requiresSubscription: false, canOpenExternal: true },
-  youtube: { canSearch: false, canPlayInApp: false, requiresSubscription: false, canOpenExternal: true },
+  youtube: { canSearch: false, canPlayInApp: true, requiresSubscription: false, canOpenExternal: true },
   youtubeMusic: { canSearch: false, canPlayInApp: false, requiresSubscription: false, canOpenExternal: true },
 };
 

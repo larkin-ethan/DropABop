@@ -2,12 +2,26 @@
 
 ## Current focus
 
-**Prod is live at https://dropabop.pages.dev** (Cloudflare Pages until CloudFront, ADR-0010). The repo now lives in `~/Documents/GitHub/DropABop` (GitHub: larkin-ethan/DropABop, public). Deploys are by hand
-with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). Waiting on Ethan:
-weekday checks **P4.3** and **P10.3** (Monday), AWS's CloudFront verification (§4c), then **P11.3** (protect `main`,
-merge `build` → `main`, first prod deploy). Remaining AI work follows those: P9.2 website publish, P11.4, P12.2.
+**Phase 13 (spec v2, 2026-10-09):** Ethan pasted a new master spec (`docs/SPEC_V2.md`) and three mockup sheets.
+It's being fitted onto the live weekly app (`docs/SPEC_V2_RECONCILIATION.md`, D26–D33), task by task. P13.1–P13.4a
+are done; YouTube auto-find is live on dev (key stored, deployed from 6cb2ce5). P13.5 and P13.6 are done; P13.7–P13.14 are done (genre, calendar history, achievements, notifications, leaderboard/group stats/profile/home, search, navigation, responsive + accessibility, docs); next is **P13.16** (dev deploy + smoke, then prod; prod is Ethan's). The P13.4 prod hold is lifted (the "Play videos" switch exists). Prod
+still needs its own key (`/dropabop/prod/youtube-api-key`) when prod is deployed.  P13.2a (privacy page + agreement) still needs a dev deploy and
+`deploy.sh prod` before members see it; members will be asked to agree once on their next visit. Phase 13 runs
+while the older open items wait on AWS or Ethan: P9.2 (CloudFront verification), P11.4 (prod walkthrough), P12.2
+(cost check after a week of use), P12.3 (launch).
+
+**Prod is live at https://dropabop.pages.dev** (Cloudflare Pages until CloudFront, ADR-0010). The repo now lives in
+**`~/GitHub/DropABop`** (moved out of iCloud on 2026-10-09; GitHub: larkin-ethan/DropABop, public). Deploys are by
+hand with `bash scripts/deploy.sh dev|prod` (ADR-0009: this account type blocks GitHub's OIDC sign-in). P8.14
+(comments) still needs a dev deploy (approval) and `deploy.sh prod` (Ethan).
 
 ## Blocked / Questions for Ethan
+
+- **Leaderboard "This week" and who-rated-what (P13.11, not blocking).** D30 asks for Highest Average Given in every
+  period. On the one-week board, someone whose 5+ ratings that week average exactly 10.0 (or 1.0) shows how they
+  rated every song, even when "show who rated what" is off (D11). Rare and only at the extremes. Options: keep as
+  D30 says (current), or hide the week period for the rater-side boards (average given, most generous, toughest
+  critic) when that switch is off. Ethan to decide.
 
 - **CloudFront verification (blocks P9.2's deploy, 2026-10-04).** Creating the distribution failed: "Your account must
   be verified before you can add new CloudFront resources. ... contact AWS Support". Ethan opens a free Account and
@@ -32,6 +46,8 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
   CLI profile `dropabop-dev` signs in with `aws login --profile dropabop-dev` (role `AccountFullAccessRole`, 12 h credentials;
   verified 2026-10-03). See DEPLOYMENT.md §2.8.
 - Stacks: `dropabop-dev` (live since 2026-10-03), `dropabop-prod` (planned). Old `sotd-dev` and its table and user pool were deleted by Ethan (2026-10-03).
+- Repo location: `~/GitHub/DropABop` (2026-10-09). The old `~/Documents/GitHub/DropABop` copy was left as
+  iCloud placeholders (all of `.git` evicted, git unusable): don't work there. iCloud "Optimize Mac Storage" did it.
 - Lambda runtime: `nodejs24.x` (newest GA as of 2026-10-01; Node 26 is preview only). Local Node must be 24.
 - Local Node: v24.21.0, npm 11.19.0 (verified 2026-10-01).
 - AWS CLI 2.37.9, SAM CLI 1.166.2 (verified 2026-10-03). Set `SAM_CLI_TELEMETRY=0` to skip SAM's telemetry.
@@ -42,6 +58,242 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 ## Session log
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
+
+- 2026-10-11 — **P13.16 (dev part done)** — Ethan ran `bash scripts/deploy.sh dev` (commit 5b6b1c6): changeset added
+  the 6 Phase 13 functions (history, achievements ×2, notifications ×2, search) with their roles, modified the rest,
+  deleted nothing; `UPDATE_COMPLETE`. Dev hosts no website (HostWebsite off), so nothing was published. Smoke:
+  `node scripts/smoke-dev.mjs` **54/54 passed** (a Sunday: sharing correctly closed, 409 WEEKEND; rating, comments,
+  history, achievements, notifications, leaderboard periods, search and the non-member refusal all checked). Fixed
+  on the way: the smoke script's "users exist but `.test-users.json` was lost" path skipped the password reset, so
+  sign-in failed; it now resets the passwords (file re-created, git-ignored). Leftover: **prod** (Ethan): its YouTube
+  key in SSM (DEPLOYMENT.md §4e step 5), Phase 13 merged to `main`, then `bash scripts/deploy.sh prod`.
+
+- 2026-10-11 — **Planning: saved songs (D34, Phase 14)** — Ethan chose option A (a playlist inside the app; no
+  Apple/YouTube/Spotify sign-in) and answered the edge cases: private to the owner; any song shared in your parties,
+  yours included; kept after leaving a party; one list; saving allowed in open weeks with the sharer hidden until
+  results; one song at a time; one entry per song; 500 max. Recorded as D34; tasks P14.1–P14.3 added after P13.16.
+  No code yet. Also: the sample-mode Apple Music paste now finds the pasted track (e187f0e).
+
+- 2026-10-10 — **P13.15 done: docs** — README (Phase 13 features; 33 functions; in-app YouTube player and the
+  ADR-0012 suggestions, replacing the stale "we don't call the YouTube API"; the one secret is the YouTube key in
+  SSM; e2e row), ARCHITECTURE (33 functions, the SSM key outside the template, code layout incl. player, navigation,
+  preview, providers, new domain modules), DEVELOPMENT (player and navigation notes; e2e row done in P13.14),
+  SECURITY (what's stored now: switches, seen times, 29-day video ids; privacy rules in history, notifications,
+  search, achievements; secrets paragraph fixed), MUSIC_PROVIDERS (in-app player layer, adding Apple MusicKit later,
+  how to add a provider rewritten to the real `SongLookup` / `MusicPlayerProvider` structure), API_COMPLIANCE
+  (statuses, keyboard e2e result; iPhone Safari still unchecked). DATABASE, API and STATISTICS were already updated
+  task by task (checked). Two stale code comments/values fixed: the unused server capability table now says YouTube
+  plays in the app; the web capability comment points at ADR-0012. Verified: `npm run verify` (655 + 1 skipped),
+  every relative link and referenced file in the edited docs exists. Not deployed.
+
+- 2026-10-10 — **P13.14 done: responsive + accessibility pass** — `e2e/screens.spec.ts` now covers 33 screens
+  (added the Drop hub and a week's results) at 320/375/390/430/768/1024/1440 px and also checks that the first Tab
+  shows a real focus outline. New `e2e/keyboard.spec.ts` (both widths): calendar (Tab to a day, Enter opens it),
+  rating picker (arrow keys, End), video player (Enter opens it, Tab reaches "Close player", Enter closes; YouTube
+  blocked in tests), achievement banner (Tab to View and Dismiss, Enter dismisses). Charts: `RatingDistribution`
+  bars are now hidden from screen readers and come with a screen-reader table (rating → count); group activity
+  already had tables. Web screen tests get a 15 s timeout (the P13.13 flake: long flows under load). Verified:
+  `npm run verify` (655 + 1 skipped), **`npm run e2e` 43 passed** (33 skipped = desktop duplicates of the screen
+  sweep, by design). Not deployed.
+
+- 2026-10-10 — **P13.13 done: navigation (D32)** — desktop sidebar in three groups (Home, Today's Drop, History,
+  Stats, Leaderboard, Achievements, Search · Party, Members → `/settings/party#members`, Settings · bell, Profile,
+  Sign out); mobile bar Home · Drop · History · Stats · Profile; mobile header has the bell, Search (added so Search
+  is reachable on phones; D32 didn't place it) and Settings (the avatar moved to the bar). Drop hub: a layout route
+  puts Share · Rate · Results tabs over those screens (addresses unchanged); `/drop` opens the fitting tab
+  (`dropPath` in `lib/home-action.ts`: share → rate → results between weeks). Drop stays highlighted on all three;
+  Stats on Leaderboard, Profile on Achievements (phone bar). Design README layout notes rewritten. Verified: `npm run
+  verify` (655 + 1 skipped; 3 new navigation screen tests + `dropPath` tests), e2e 33 passed (journey now goes
+  through the Drop hub at 375 and 1440), checked in the browser pane at phone and desktop widths. Not deployed.
+  Leftover: one `npm run verify` run had 1 failing test that didn't reproduce in 8 reruns; most likely the known
+  5-second timeout on the long Rate-screen test under load (seen in P13.11 too). Worth raising its timeout in P13.14.
+
+- 2026-10-09 — **P13.12 done: party search** — `GET /parties/{partyId}/search?q=&type=all|songs|artists|members|weeks&cursor=`
+  (D33): membership checked first; the party's songs read with one descending key query on `REC#`, capped at 5,000
+  (`truncated`), plus weeks and members; pure matching in `domain/search.ts` (case- and accent-insensitive, word
+  starts first). Open-week songs leave out who shared them unless yours or that week reveals sharers (D10); no
+  ratings at all (D9). `all` = best 5 per category; one category pages 20 at a time. New read-only Lambda
+  `SearchPartyFunction` (GetItem + Query on the table only), route limit 5/s burst 10. Website: `/search` (category
+  buttons with counts, query in the address, "Show more", artist → its songs, week → Week view), sidebar link
+  (mobile entry comes with P13.13's navigation). spec-reviewer: PASS; applied exact-fields test, accent-only query
+  guard, route limit, doc order. Verified: `npm run verify` (651 + 1 skipped), integration 226 (5 new), template
+  tests 15, `sam validate --lint`, e2e 33 passed (search at 7 widths), page checked in the browser pane. Not deployed.
+
+- 2026-10-09 — **P13.11 done: leaderboard periods, group stats, profile, home** — `GET …/leaderboard?period=week|month|all`
+  (D30: latest closed week / weeks whose lock falls in this month, party timezone / all). Person boards are now
+  `{ ranked, provisional, required }`: people below a minimum are listed as "Provisional" with "2 of 3", never with a
+  number. New boards: Highest Average Given, Most Bops, Most Ratings, Crowd Favorites, Most Generous, Toughest Critic
+  (plus the existing ones). Group stats add members, group average, rating distribution, top artists, most
+  consistent, weekly/monthly activity (text tables). Personal stats add ratings given, favourite genres, recent
+  songs, last finished week's rank. `/profile` is now a stats page (editing stays in Settings → Account). Home: one
+  main button from the real state (`lib/home-action.ts`: share → rate → "All caught up"; results or waiting between
+  weeks), "Today's drop" counts first on phones, plus your averages, latest achievement and last week's rank.
+  `artistCounts`/`dayIn` moved into `stats.ts` for reuse. spec-reviewer: PASS; applied its should-fixes (home text
+  before any finished week, helper reuse, more tests, STATISTICS note on Most Surprising per period); its privacy
+  note is in Blocked / Questions. Verified: `npm run verify` (634 + 1 skipped), integration 221 (4 new leaderboard
+  `period` tests), e2e 32 passed, Home/Profile/Leaderboard/Group stats checked in the browser pane at 320/375 px
+  and desktop (no horizontal overflow, no console errors). Not deployed.
+
+- 2026-10-09 — **P13.10 done: notifications** — in-app only (D29). `GET /parties/{partyId}/notifications` worked
+  out from this week and the latest week with results (key queries only, so the bell's 5-minute checks stay cheap):
+  songs to rate, share reminder on sharing days, comments on your songs, results ready, your rank last week; types
+  you switched off are left out; unread = newer than when you last opened them in that party (`POST …/notifications/
+  seen`, stored on your party link, so per party). Profile gets `notificationPrefs`. Website: bell with unread count
+  in the header and sidebar (checks on focus and every 5 min), `/notifications` (marks read once loaded, keeps this
+  visit's "new" markers, adds recent achievements), Settings → Notifications switches; the achievement banner obeys its
+  switch; privacy text updated (not yet deployed, so the policy version is unchanged). spec-reviewer: PASS; applied
+  per-party "seen", consistent read after a week closes, more tests (rank switched off, comments, no other members'
+  ids), docs (prefs replace the saved set; D29 note that achievements aren't in the bell count). Verified: `npm run
+  verify` (607 + 1 skipped), integration 218, template tests 15, `sam validate --lint`, e2e 32 passed (notifications
+  and its settings page at 7 widths). Not deployed.
+
+- 2026-10-09 — **P13.9 done: achievements** — the 26 achievements of D28 in pure `domain/achievements.ts`: closed
+  weeks replayed oldest first with running totals; each records the lock time and lock day (party timezone) of the
+  first week that earned it and stays unlocked; progress with plain-words labels. `GET /parties/{partyId}/achievements`
+  (yours, or a member's via `memberId`; for others First 1 / First 10 / Full House show no date, D11) and
+  `POST …/achievements/seen` (stored on your own party link; your party list now returns only public link fields).
+  Website: `/achievements` (grid by group, detail dialog, empty shelf), a calm "Achievement unlocked" banner on Home
+  and Results only (first visit announces nothing old; View / Dismiss), 🏆 on calendar lock days, Achievements tab
+  next to the stats. spec-reviewer: fixed replay speed (two years × 20 people now ~0.13 s, was several seconds),
+  date privacy for others, party-timezone unlock days, contrast, more failure-path tests, docs. Verified: `npm run
+  verify` (599 + 1 skipped; 27 achievement unit tests incl. a speed test), integration 213 (4 new), `sam validate
+  --lint`, e2e 30 passed (achievements page at 7 widths), page checked in the browser pane. Not deployed.
+
+- 2026-10-09 — **P13.8 done: calendar history** — `GET /parties/{partyId}/history?month=YYYY-MM` (new Lambda + route,
+  same permissions as stats) and pure `domain/history.ts`: every week overlapping the month with each sharing day's
+  song count, your sharing and ★ (your best-ever song average, across all closed weeks); closed weeks add day stats
+  (group average, yours given/received, songs you rated, Bop of the Day, lowest rated, distribution, favourite
+  artists), a week summary (best songs, top artists, most agreeable day, most divisive) and "Your week" (rank among
+  sharers). Open weeks: counts only (D9); who rated what never included (D11); ties are joint winners. Loads party
+  data like stats (ADR-0006 extended; DATABASE pattern 25) because the ★ needs every closed week. Website: `/history`
+  calendar (month nav, Today, legend, weeks list) with a Calendar/List toggle (old list at `?view=list`),
+  `/history/day/:date`, `/history/week/:weekStart`; past months cached 10 min. spec-reviewer: fixed lowest-rated not
+  shown, docs for the loading choice, ties, toggle/labels accessibility, bad dates, best song by name, songs you
+  rated. Verified: `npm run verify` (567 + 1 skipped; 13 history unit tests), integration 209 (4 new), `sam validate
+  --lint`, e2e 29 passed (calendar, list, day, week at 7 widths), browser pane at 375 px. Not deployed.
+
+- 2026-10-09 — **P13.7 done: genre on new songs** — songs now keep iTunes `primaryGenreName` as optional `genre`
+  (confirmed in Apple's documented example result, 2026-10-09); blank or over-long genres become null and never drop
+  the song; older songs have none, so genre stats/achievements will count only songs with a genre. Shared type +
+  schema, provider mapping, API/DATABASE/MUSIC_PROVIDERS docs. Verified: `npm run verify`, provider unit tests
+  (`cleanGenre` cases, missing genre), integration 205 (a shared song keeps its genre). Not deployed. Leftovers: none.
+
+- 2026-10-09 — **P13.6 done: Settings hub + Music Services** — `/settings` is now a list (Account, Music, Party,
+  Privacy, Help + contact line); party settings moved to `/settings/party` (nav label "Settings"; tests and the dev
+  smoke updated). Account: name/picture/colour, email read-only (Amplify `fetchUserAttributes`), change password
+  (`updatePassword`; wrong current password vs lockout messages). Music: preferred app, "Play videos in Drop a Bop"
+  switch (`playInApp` on the profile; Play video buttons hide when off), what each service does. Help: "Listening in
+  Drop a Bop". Notification switches moved to P13.10 (§29: no controls that don't work yet). The P13.4 prod hold is
+  lifted. spec-reviewer: PASS; applied its fixes (lockout message, switch keeps its position, one save at a time,
+  stale docs). Verified: `npm run verify` (540 + 1 skipped), integration 204 (+ users file re-run after fixes, 14),
+  e2e 26 passed (3 new settings pages at 7 widths), 6 new screen tests. Leftovers: Profile still has the full edit form until
+  P13.11 turns it into a stats page.
+
+- 2026-10-09 — **P13.5 done: Song Details screen** — `/songs/:roundId/:recommendationId`: large artwork, title,
+  artist, album · year, shared day, sharer (only when the API reveals it, D10) or "Your pick", links + Play video,
+  comments; open week: your rating only (D9) with "Rate this song"/"Change it" and when results appear; closed
+  week: average, "#n of N", distribution, your rating, who rated what if the party shows it (D11); not-found state.
+  No new API (week songs + results + comments). Song titles on Rate, Results and Home now link to it (SongRow
+  `href`, `SongTitleLink`); sample mode serves last week's songs too. Verified: `npm run verify` (533 + 1 skipped),
+  4 new screen tests, e2e 23 passed (both song pages added to the 7-width sweep), browser pane at 375 px (no
+  overflow). Leftovers: none.
+
+- 2026-10-09 — **P13.4b done (dev): YouTube API key** — Ethan created the Google Cloud key and stored it as SSM
+  SecureString `/dropabop/dev/youtube-api-key` (checked by metadata only: SecureString, `alias/aws/ssm`, Standard, v1)
+  and deployed dev from 6cb2ce5 (changeset: 3 adds for the new function, modifies only, no deletes). Live check:
+  invoked the deployed function with a test event (made-up user id, iTunes 828259377) → 3 real YouTube results,
+  official M83 video first, so SSM access and the `x-goog-api-key` header both work. Leftovers: prod key at prod
+  deploy time.
+
+- 2026-10-09 — **P13.4a done: auto-find the YouTube video (ADR-0012)** — Ethan asked for the video to be added
+  automatically, and whether song search should move to YouTube: no (100 searches/day for the whole app; YouTube
+  data must be deleted after 30 days), so iTunes stays and one `search.list` runs per chosen song. New
+  `GET /songs/youtube` (new Lambda; key from SSM SecureString `/dropabop/<stage>/youtube-api-key`, read only by that
+  function via `ssm:GetParameter` + `kms:Decrypt` through SSM for that parameter; 15 real searches per person per
+  day; 1-hour cache; route 1/s); new runtime dependency `@aws-sdk/client-ssm`. Every new YouTube video id (found or
+  pasted) is now stored in a `YTVIDEO#` item that DynamoDB deletes 29 days after sharing, merged into the week's
+  songs on read. Share dialog (Ethan: fewer words for end users): "Video from YouTube", one-line titles + channel,
+  first one picked, "No video", "Preview video"; hidden when no key is set up. Docs: ADR-0012, D27, API, DATABASE,
+  DEPLOYMENT §4e (key steps), API_COMPLIANCE, PRIVACY + in-app privacy text, SECURITY, ARCHITECTURE,
+  MUSIC_PROVIDERS. spec-reviewer: PASS; applied its suggestions (non-JSON → busy, only real searches count, hex
+  escapes, exact-permission test, header citation). Verified: `npm run verify` (529 + 1 skipped), integration 203,
+  template tests, `sam validate --lint`, Lambda bundle builds and exports the handler, e2e 21 passed (before the
+  wording tweak), browser pane: dialog suggestions + Preview video in sample mode. Not verified: real YouTube calls
+  (needs the key, P13.4b), including that YouTube accepts the `x-goog-api-key` header.
+
+- 2026-10-09 — **Play card: close X above the video** (Ethan) — a "Now playing" row with the X now sits above the
+  video; on short screens the same single X moves to the card's top-right corner (no room above). Verified: player +
+  screen tests 108 passed, `npm run verify`, browser pane (X above the video on a phone width; at 568 × 320 one X,
+  on screen, not over the video, video fully visible).
+
+- 2026-10-09 — **P13.3 follow-up: play-card layout** — Ethan asked for controls without the video; YouTube forbids
+  hidden players and separating audio from video (ADR-0011), so he chose to keep the video and restack the card:
+  video on top (card width × 200 px), song + controls below; short screens keep video beside the controls. Offered
+  alternatives he declined: 30-second Apple previews (controls-only), links only, MusicKit. Verified: player tests 37
+  passed, `npm run verify`, browser pane: playing at 320 px (278 × 200 video, fully visible, no overflow), 568 × 320
+  (200 × 200, fully visible) and 1440 px (358 × 200, volume shown).
+
+- 2026-10-09 — **P13.4 done: YouTube video on songs** — shared `youtubeVideoId(song)` (re-parses the stored link)
+  and `IN_APP_VIDEO_MAX_AGE_DAYS`; web `toPlayableSong` / `withinInAppPlayWindow` (29 days + a day of margin for
+  parties east of UTC, spec-reviewer catch) and `PlayVideoButton` ("Play video" · "YouTube video linked by the
+  sharer"; hidden without a linked video, after the window, or before the privacy agreement) on Rate cards, Results
+  cards and the share confirmation (preview of the typed YouTube link; never required to share). Sample song r13
+  links YouTube's API sample video for the preview. No backend change. Verified: `npm run verify` passed; e2e 21
+  passed (run before the review fixes, which touched only tests, a comment and the date margin); the privacy-check
+  test fails if the check is removed (tried, then restored); browser pane: Play video on a Rate card played the video
+  in the play card. Not checked: iPhone Safari, an embed-disabled real video (the missing-video fallback was checked
+  in P13.3). Leftovers: prod hold until P13.6.
+
+- 2026-10-09 — **P13.3 done: player layer (play-card style)** — Ethan asked for a play card instead of a video
+  window. `apps/web/src/player/`: capabilities (YouTube embed; Apple/Spotify links only), `youtube-player.ts` (loads
+  YouTube's script on first Play only, documented IFrame API calls, errors → fallback kinds), one-song-at-a-time
+  context, `PlaybackFallback`, and `DockedPlayer`: a card docked above the mobile nav / bottom-right on desktop, the
+  video as a 200 × 200 square in the album-art spot (YouTube's minimum, not clipped, nothing over it, above dialogs),
+  our play/pause, progress (seeks on release) and volume beside/below; short screens keep the whole video visible.
+  CSP (both copies): `script-src` adds only `www.youtube.com/iframe_api` and `/s/player/`; `frame-src
+  www.youtube.com`. No AWS resource change (aws-change checks: template test + `sam validate --lint`). Dev-only
+  gallery demo. spec-reviewer: fixed "next song never loads after a failed one" (card keyed per song), unclipped
+  video, seek on release, short-screen layout, narrower CSP (tested with the real player). Verified: `npm run
+  verify` (496 tests + 1 skipped; 25 player tests), template tests 14, `sam validate --lint`, e2e 21 passed, browser
+  pane: real YouTube video played in a 200 × 200 frame, kept playing across navigation, missing video → fallback,
+  no overflow at 320 px, video fully visible at 568 × 320; a production `_headers` CSP served locally loaded the
+  real player with no violations. Not checked: iPhone Safari (P13.4). Leftovers: none.
+
+- 2026-10-09 — **P13.2a done: privacy page + agreement** — public `/privacy` page (policy + terms of use incl. the
+  YouTube Terms of Service sentence, contact droppa.bop@gmail.com, version `PRIVACY_POLICY_VERSION` 2026-10-09),
+  linked from sign-up, Help, Landing and Profile. Sign-up has a required "I agree" checkbox; the agreement is
+  remembered for that new account id (Cognito `sub` from `signUp`) and saved on its first signed-in visit, so it's
+  never counted for someone else on a shared computer (spec-reviewer catch; cleared on sign-out too). Signed-in
+  members who haven't agreed to the current version see a one-time prompt (`PrivacyGate`; I agree / Sign out).
+  API: `PATCH /users/me` takes `acceptPrivacy: true` only; the server stores `privacyAcceptedAt` (its clock) +
+  `privacyVersion`. Verified: `npm run verify` (471 tests + 1 skipped), `npm run test:integration` 197 passed (4 new),
+  `npm run e2e -- --workers=1` 21 passed (privacy page added at all 7 widths), e2e types, browser pane check of
+  `/privacy` and sign-up at 320 px (no overflow, no console errors). Not run: `e2e:dev` (its sign-in now clicks
+  "I agree" when asked). Leftovers: dev deploy (approval) + prod (Ethan).
+
+- 2026-10-09 — **P13.2 done: provider compliance research** — re-read the official YouTube pages (Developer
+  Policies, Required Minimum Functionality, API Services Terms, IFrame API reference, player parameters, branding
+  guidelines), Apple's developer-token and user-authentication pages and the iTunes Search terms; wrote ADR-0011
+  (YouTube embedded player for sharer-pasted links; supersedes ADR-0007 #6 for YouTube only), `docs/API_COMPLIANCE.md`
+  (§3.4 checklist per provider, 3 open questions) and `docs/PRIVACY.md` (policy text + developer notes). Findings:
+  the docked player is allowed if it stays visible at ≥ 200 × 200 px with nothing on top (the mockups' mini-bar is
+  not); YouTube requires a privacy policy with a contact and agreement before use. Ethan answered: contact
+  droppa.bop@gmail.com, agreement at sign-up + one-time prompt for existing members, in-app play only for songs
+  shared in the last 30 days. Repo kept public (Ethan left it to me: the address is public on the site anyway; `gh`
+  isn't signed in here either). Added task P13.2a for the privacy page + agreement.
+  spec-reviewer: fixed its findings (terms-of-use sentence binding users to the YouTube ToS, confirmed on the live
+  page §III.A.1; Apple sees IPs via album art; host can't leave; session storage; 30-day wording; comments in D19 and
+  SECURITY). Ethan: no account deletion offered yet, so the policy doesn't promise it. Not confirmed from official docs:
+  MusicKit's non-subscriber playback and v3 script URL (docs page didn't render; noted for P13.L). Verified:
+  `npm run verify` passed. Leftovers: none.
+
+- 2026-10-09 — **P13.1 done: spec v2 intake + decisions** — saved Ethan's pasted master spec v2 word for word as
+  `docs/SPEC_V2.md` (only headings/fences added) and the three mockup sheets as `docs/design/mockup-v3-*.webp`; wrote
+  `docs/SPEC_V2_RECONCILIATION.md` (all 47 sections: done / adapt / new / deferred); added D26–D33 (weekly mapping,
+  provider plan v2 from Ethan's answers, 26 achievements, in-app notifications, leaderboard periods + provisional,
+  history metrics, navigation, party-scoped search); added roadmap Phase 13 (P13.1–P13.16 + deferred P13.L Apple
+  MusicKit); mapped the new mockups in `docs/design/README.md`; CLAUDE.md now points at SPEC_V2. Docs only.
+  Verified: `npm run verify` (format, lint, typecheck, 462 tests + 1 skipped, guardrails) passed. Leftovers: none.
 
 - 2026-10-07 — **P8.14 done: comments on songs (Ethan's request; D25)** — Ethan chose: names always shown, comments only
   while the week is open. Three routes (list / add / delete) as three least-privilege functions, `COMMENT#week#time#id`

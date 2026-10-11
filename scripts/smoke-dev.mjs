@@ -1,7 +1,8 @@
 // Dev smoke test (roadmap P4.3, reused by P10.3): calls every API endpoint on the deployed dev stack.
 // Run from the repo root after `aws login --profile dropabop-dev`:   node scripts/smoke-dev.mjs
 //
-// Creates two throwaway users the first time (passwords only in the git-ignored .test-users.json, never printed),
+// Creates two throwaway users the first time (passwords only in the git-ignored .test-users.json, never printed;
+// if the users already exist but that file was lost, they get new random passwords),
 // signs in with SRP through Amplify like the website does, and prints only statuses and error codes.
 // On a non-sharing day sharing is closed (409 WEEKEND); on a sharing day it also shares a song and rates it.
 import { execFileSync } from 'node:child_process';
@@ -27,6 +28,16 @@ const api = outputs.ApiUrl;
 const poolId = outputs.UserPoolId;
 const clientId = outputs.UserPoolClientId;
 const usersFile = '.test-users.json';
+
+/** True if the dev user pool already has this test user (only our two throwaway addresses are ever looked up). */
+function cognitoUserExists(email) {
+  try {
+    aws(['cognito-idp', 'admin-get-user', '--user-pool-id', poolId, '--username', email]);
+    return true;
+  } catch {
+    return false;
+  }
+}
 let users;
 if (existsSync(usersFile)) {
   users = JSON.parse(readFileSync(usersFile, 'utf8'));
@@ -36,19 +47,23 @@ if (existsSync(usersFile)) {
     password: `Aa1-${randomBytes(18).toString('base64url')}`,
   }));
   for (const u of users) {
-    aws([
-      'cognito-idp',
-      'admin-create-user',
-      '--user-pool-id',
-      poolId,
-      '--username',
-      u.email,
-      '--user-attributes',
-      'Name=email,Value=' + u.email,
-      'Name=email_verified,Value=true',
-      '--message-action',
-      'SUPPRESS',
-    ]);
+    // If the file was lost (e.g. a fresh clone) the user already exists: skip creating it, but still set the new
+    // password below so the file and Cognito agree.
+    if (!cognitoUserExists(u.email)) {
+      aws([
+        'cognito-idp',
+        'admin-create-user',
+        '--user-pool-id',
+        poolId,
+        '--username',
+        u.email,
+        '--user-attributes',
+        'Name=email,Value=' + u.email,
+        'Name=email_verified,Value=true',
+        '--message-action',
+        'SUPPRESS',
+      ]);
+    }
     aws([
       'cognito-idp',
       'admin-set-user-password',
@@ -62,7 +77,7 @@ if (existsSync(usersFile)) {
     ]);
   }
   writeFileSync(usersFile, JSON.stringify(users, null, 2) + '\n', { mode: 0o600 });
-  print('created 2 test users');
+  print('set up 2 test users');
 }
 
 Amplify.configure({ Auth: { Cognito: { userPoolId: poolId, userPoolClientId: clientId } } });
@@ -302,6 +317,79 @@ if (roundId) {
 await call('GET /users/me/stats', 'GET', `/users/me/stats?partyId=${partyId}`, t1.access, null, [200, 403]);
 await call('GET party stats', 'GET', `/parties/${partyId}/stats`, t1.access, null, [200, 403]);
 await call('GET leaderboard', 'GET', `/parties/${partyId}/leaderboard`, t1.access, null, [200, 403]);
+
+// Phase 13 (P13.8–P13.12): history, achievements, notifications, leaderboard periods and party search.
+const month = new Date().toISOString().slice(0, 7);
+await call(
+  'GET history (month)',
+  'GET',
+  `/parties/${partyId}/history?month=${month}`,
+  t1.access,
+  null,
+  [200],
+);
+await call(
+  'GET history bad month -> 400',
+  'GET',
+  `/parties/${partyId}/history?month=2026-13`,
+  t1.access,
+  null,
+  [400],
+);
+await call('GET achievements (u1)', 'GET', `/parties/${partyId}/achievements`, t1.access, null, [200]);
+await call(
+  'POST achievements/seen (u1)',
+  'POST',
+  `/parties/${partyId}/achievements/seen`,
+  t1.access,
+  null,
+  [200],
+);
+await call(
+  'GET achievements of u2 (u1)',
+  'GET',
+  `/parties/${partyId}/achievements?memberId=${me2?.user?.userId}`,
+  t1.access,
+  null,
+  [200],
+);
+await call('GET notifications (u2)', 'GET', `/parties/${partyId}/notifications`, t2.access, null, [200]);
+await call(
+  'POST notifications/seen (u2)',
+  'POST',
+  `/parties/${partyId}/notifications/seen`,
+  t2.access,
+  null,
+  [200],
+);
+for (const period of ['week', 'month', 'all']) {
+  await call(
+    `GET leaderboard?period=${period}`,
+    'GET',
+    `/parties/${partyId}/leaderboard?period=${period}`,
+    t1.access,
+    null,
+    [200],
+  );
+}
+await call(
+  'GET leaderboard?period=year -> 400',
+  'GET',
+  `/parties/${partyId}/leaderboard?period=year`,
+  t1.access,
+  null,
+  [400],
+);
+const found = await call(
+  'GET search?q=smoke (u2)',
+  'GET',
+  `/parties/${partyId}/search?q=smoke`,
+  t2.access,
+  null,
+  [200],
+);
+print(`     search: ${found?.totals ? JSON.stringify(found.totals) : '?'}`);
+await call('GET search?q=x -> 400', 'GET', `/parties/${partyId}/search?q=x`, t1.access, null, [400]);
 await call(
   'POST new invite code (u2 not host) -> 403',
   'POST',
@@ -318,6 +406,14 @@ await call(
   t2.access,
   null,
   [200, 204],
+);
+await call(
+  'GET search (u2 after leaving) -> 403',
+  'GET',
+  `/parties/${partyId}/search?q=smoke`,
+  t2.access,
+  null,
+  [403],
 );
 await call(
   'GET /parties/{id} (u2 after leaving) -> 403',

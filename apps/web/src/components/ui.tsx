@@ -2,9 +2,19 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = '',
+  id,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** For links that jump to this card (e.g. /settings/party#members). */
+  id?: string;
+}) {
   return (
     <section
+      id={id}
       className={`card-glow rounded-[var(--radius-card)] border border-line bg-surface p-5 ${className}`}
     >
       {children}
@@ -21,8 +31,15 @@ const BUTTON_STYLES: Record<ButtonVariant, string> = {
 };
 
 /** Button look for things that aren't <button>s, e.g. a router <Link> that should look like a button. */
+/**
+ * `extra` can set its own padding (e.g. `px-3` for an icon button). Two padding classes on one element don't
+ * reliably override each other (Tailwind orders them by its own rules, not by the class list), so the default
+ * padding is left out when `extra` has its own.
+ */
 export function buttonClassName(variant: ButtonVariant = 'primary', extra = ''): string {
-  return `inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${BUTTON_STYLES[variant]} ${extra}`;
+  const px = /(^|\s)px-/.test(extra) ? '' : 'px-5';
+  const py = /(^|\s)py-/.test(extra) ? '' : 'py-2.5';
+  return `inline-flex items-center justify-center gap-2 rounded-full ${px} ${py} text-sm font-semibold transition disabled:opacity-50 ${BUTTON_STYLES[variant]} ${extra}`;
 }
 
 export function Button({
@@ -90,9 +107,9 @@ export function AlbumArt({
 }: {
   url?: string | null;
   hue?: number;
-  size?: 'md' | 'lg';
+  size?: 'md' | 'lg' | 'xl';
 }) {
-  const sizes = { md: 'size-14', lg: 'size-20' };
+  const sizes = { md: 'size-14', lg: 'size-20', xl: 'size-32 sm:size-40' };
   if (url) {
     return (
       <img src={url} alt="" className={`${sizes[size]} shrink-0 rounded-lg object-cover`} loading="lazy" />

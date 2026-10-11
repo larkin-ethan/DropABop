@@ -7,9 +7,11 @@ import type {
   IsoDate,
   IsoDateTime,
   MemberRole,
+  NotificationType,
   Party,
   PartyMember,
   Round,
+  RoundStatus,
   Song,
   User,
   Weekday,
@@ -98,6 +100,19 @@ export interface FavoriteArtist {
   songCount: number;
 }
 
+/** A genre the user rated highest on average (P13.11; genres exist only on songs shared since P13.7). */
+export interface FavoriteGenre {
+  genre: string;
+  averageRating: number;
+  songCount: number;
+}
+
+/** An artist the party shared most, with how many songs (spelling-insensitive). */
+export interface ArtistCount {
+  artist: string;
+  songCount: number;
+}
+
 export interface MusicalTwin {
   userId: string;
   /** Average gap between your rating and theirs on songs you both rated (0 = identical taste). */
@@ -112,6 +127,23 @@ export interface LeaderboardEntry {
   value: number;
   /** Shown as "Based on N …" next to every row. */
   sampleSize: number;
+}
+
+/** Leaderboard periods (D30): the most recent closed week, closed weeks locking this month, or all of them. */
+export type LeaderboardPeriod = 'week' | 'month' | 'all';
+
+/** Someone below a board's minimum (D30): listed apart with how much data they have, never with a number. */
+export interface ProvisionalEntry {
+  id: string;
+  sampleSize: number;
+}
+
+/** A board of people: those meeting the minimum are ranked; the rest are "Provisional" (D30). */
+export interface PersonBoard {
+  ranked: LeaderboardEntry[];
+  provisional: ProvisionalEntry[];
+  /** The minimum each person needs to be ranked (the unit is board-specific, see docs/STATISTICS.md). */
+  required: number;
 }
 
 /** Title and artwork next to a song-based stat. */
@@ -251,7 +283,37 @@ export interface PersonalStatsResponse {
   ratingDistribution: Stat<number[]>;
   favoriteArtists: Stat<FavoriteArtist[]>;
   musicalTwin: Stat<MusicalTwin[]>;
+  /** Valid ratings you gave in closed weeks (spec §18 "votes cast"). */
+  ratingsGiven: number;
+  favoriteGenres: Stat<FavoriteGenre[]>;
+  /** Your latest songs from closed weeks, newest first (up to 5). */
+  recentSongs: RecentSong[];
+  /** Your place among the sharers of the most recent closed week, or null if none of your songs were rated in it. */
+  lastWeekRank: { roundId: string; weekStart: IsoDate; position: number; of: number } | null;
   members: MemberName[];
+}
+
+export interface RecentSong {
+  recommendationId: string;
+  roundId: string;
+  submittedOn: IsoDate;
+  title: string;
+  artist: string;
+  albumArtUrl: string | null;
+  /** Exact average (the app rounds it), or null if nobody rated it. */
+  average: number | null;
+  ratingCount: number;
+}
+
+/** Songs and ratings in one closed week or month (group stats "activity"). */
+export interface ActivityPoint {
+  /** The week's Monday (weekly) or "YYYY-MM" of the lock day (monthly). */
+  period: string;
+  weeks: number;
+  songs: number;
+  ratings: number;
+  /** Mean of every rating in the period, or null if none. */
+  average: number | null;
 }
 
 export interface GroupStatsResponse {
@@ -266,23 +328,272 @@ export interface GroupStatsResponse {
   darkHorse: SongSuperlative;
   mostGenerousVoter: Superlative;
   toughestCritic: Superlative;
+  /** Current members. */
+  memberCount: number;
+  /** Mean of every valid rating in closed weeks (1 rating). */
+  groupAverage: Stat<number>;
+  ratingDistribution: Stat<number[]>;
+  /** Artists shared most, top 3 (ties at 3rd all shown). */
+  topArtists: Stat<ArtistCount[]>;
+  mostConsistent: Superlative;
+  /** Newest first, up to 12 weeks / 12 months. */
+  weeklyActivity: ActivityPoint[];
+  monthlyActivity: ActivityPoint[];
   members: MemberName[];
 }
 
 export interface LeaderboardResponse {
+  period: LeaderboardPeriod;
+  /** Closed weeks in the period. */
   weeksPlayed: number;
   highestAverageSongRating: (LeaderboardEntry & { song: SongSummary | null })[];
-  highestAverageRecommendationScore: LeaderboardEntry[];
-  mostConsistent: LeaderboardEntry[];
-  mostSurprising: LeaderboardEntry[];
-  mostPopular: LeaderboardEntry[];
+  /** Songs rated by at least 75% of their week's raters, by average (D30). */
+  crowdFavorites: (LeaderboardEntry & { song: SongSummary | null })[];
+  highestAverageReceived: PersonBoard;
+  highestAverageGiven: PersonBoard;
+  mostBops: PersonBoard;
+  mostRatings: PersonBoard;
+  mostGenerous: PersonBoard;
+  toughestCritic: PersonBoard;
+  mostConsistent: PersonBoard;
+  mostSurprising: PersonBoard;
+  mostPopular: PersonBoard;
   members: MemberName[];
+}
+
+// ---------------------------------------------------------------------------
+// Party search (P13.12, D33): only the current party's songs, artists, members and weeks.
+// ---------------------------------------------------------------------------
+
+export type PartySearchType = 'all' | 'songs' | 'artists' | 'members' | 'weeks';
+
+export interface SearchSongHit {
+  recommendationId: string;
+  roundId: string;
+  submittedOn: IsoDate;
+  title: string;
+  artist: string;
+  album: string | null;
+  albumArtUrl: string | null;
+  /** True while the song's week is open: no sharer (unless yours or the week reveals sharers, D10) and no ratings (D9). */
+  weekOpen: boolean;
+  isMine: boolean;
+  /** Left out while the week is open, unless the song is yours or that week reveals sharers (D10). */
+  recommendedBy?: string;
+}
+
+export interface SearchArtistHit {
+  artist: string;
+  songCount: number;
+}
+
+export interface SearchWeekHit {
+  roundId: string;
+  weekStart: IsoDate;
+  status: RoundStatus;
+  songCount: number;
+}
+
+export interface PartySearchResponse {
+  q: string;
+  type: PartySearchType;
+  /** For `all`: the best few of each category. For one category: one page of it (the others are empty). */
+  songs: SearchSongHit[];
+  artists: SearchArtistHit[];
+  members: MemberName[];
+  weeks: SearchWeekHit[];
+  /** How many matches each category has in total (for the tab labels). */
+  totals: Record<Exclude<PartySearchType, 'all'>, number>;
+  /** Pass back as `cursor` for the next page of a single category; null when there's no more (always null for `all`). */
+  nextCursor: string | null;
+  /** True if the party has more songs than one search reads (the newest are searched). */
+  truncated: boolean;
 }
 
 export interface SongSearchResponse {
   songs: Song[];
 }
 
+/** One YouTube search result, exactly as YouTube returned it (ADR-0012: results aren't changed or reordered). */
+export interface YouTubeVideoSuggestion {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+}
+
+/**
+ * GET /songs/youtube (ADR-0012). `videos` in YouTube's order (best first), or empty with the reason:
+ * `notConfigured` (no API key yet), `busy` (YouTube's daily quota used up or YouTube unreachable),
+ * `dailyLimit` (this person used their searches for today). Sharing works the same either way.
+ */
+export interface YouTubeSuggestionsResponse {
+  videos: YouTubeVideoSuggestion[];
+  unavailable: 'notConfigured' | 'busy' | 'dailyLimit' | null;
+}
+
 export interface ResolveSongResponse {
   song: Song;
+}
+
+// ---------------------------------------------------------------------------
+// History calendar (P13.8, D31). Ratings only for weeks whose ratings have locked (D9).
+// ---------------------------------------------------------------------------
+
+/** One song in a closed week, as the history views show it. Sharers are revealed once the week ends (D10). */
+export interface HistorySong {
+  recommendationId: string;
+  title: string;
+  artist: string;
+  albumArtUrl: string | null;
+  /** Rounded to 1 decimal (D12), or null if nobody rated it. */
+  average: number | null;
+  ratingCount: number;
+  /** Rank in its week (1 = best; ties share a rank). */
+  rank: number;
+  myRating: number | null;
+  recommendedBy: string;
+  isMine: boolean;
+}
+
+/** A closed day's numbers (D31). */
+export interface HistoryDayStats {
+  /** That day's songs, best first. */
+  songs: HistorySong[];
+  ratingCount: number;
+  /** Mean of every rating on that day's songs. */
+  groupAverage: number | null;
+  /** Mean of your ratings on that day's songs. */
+  myAverageGiven: number | null;
+  /** Mean of the averages of your songs that day. */
+  myAverageReceived: number | null;
+  /** Bop of the Day (D12): the day's highest average; ties share it. */
+  bopOfTheDay: string[];
+  /** Lowest average with at least 3 ratings (ties all listed); empty if none, or if it's also the top. */
+  lowestRated: string[];
+  /** How many of that day's songs you rated. */
+  myRatingCount: number;
+  /** Count of each rating 1–10 on that day's songs. */
+  distribution: number[];
+  /** Artists with at least 2 songs that day. */
+  favoriteArtists: string[];
+}
+
+export interface HistoryDay {
+  date: IsoDate;
+  weekday: Weekday;
+  songCount: number;
+  /** You shared a song that day. */
+  iShared: boolean;
+  /** One of your songs that day got your best-ever song average (closed weeks only). */
+  personalBest: boolean;
+  /** Null while the week is open, or if it ended without results. */
+  stats: HistoryDayStats | null;
+}
+
+export interface HistoryWeekSummary {
+  songCount: number;
+  ratingCount: number;
+  averageRating: number | null;
+  /** Rank-1 songs (ties share it). */
+  bestSongs: string[];
+  /** Artists with the most songs shared that week, top 3 (ties shared). */
+  topArtists: { artist: string; songs: number }[];
+  /** The day(s) whose songs had the lowest average spread (songs with ≥ 4 ratings; needs 2 such songs). */
+  mostAgreeableDays: IsoDate[];
+  /** The song(s) with the widest spread of ratings (≥ 4 ratings); ties all listed. */
+  mostDivisive: string[];
+  distribution: number[];
+}
+
+/** "Your week" (spec §23, D26). */
+export interface HistoryYourWeek {
+  songsRated: number;
+  averageGiven: number | null;
+  averageReceived: number | null;
+  /** Your best song that week. */
+  topSong: string | null;
+  /** Your place among that week's sharers, by average received (needs 1 rated song). */
+  rank: { position: number; of: number } | null;
+}
+
+export interface HistoryWeek {
+  roundId: string;
+  weekStart: IsoDate;
+  endsAt: IsoDateTime;
+  /** OPEN, CLOSED, or NOT_ENOUGH_SONGS (decided from the server clock). */
+  status: RoundStatus;
+  /** Every sharing day of the week, in order. */
+  days: HistoryDay[];
+  /** Closed weeks only. */
+  summary: HistoryWeekSummary | null;
+  yourWeek: HistoryYourWeek | null;
+}
+
+export interface HistoryResponse {
+  month: string;
+  /** Weeks that overlap the month (whole weeks), oldest first. */
+  weeks: HistoryWeek[];
+  members: MemberName[];
+}
+
+// ---------------------------------------------------------------------------
+// Achievements (P13.9, D28). Worked out from closed weeks on request, never stored as awards.
+// ---------------------------------------------------------------------------
+
+export type AchievementGroup =
+  'participation' | 'discovery' | 'rating' | 'songSuccess' | 'social' | 'consistency';
+
+export interface Achievement {
+  id: string;
+  group: AchievementGroup;
+  title: string;
+  /** How to unlock it, in one sentence. */
+  description: string;
+  /** Decorative only. */
+  emoji: string;
+  unlocked: boolean;
+  /**
+   * When ratings locked on the first week that earned it, or null if not yet. Also null on another member's
+   * rating-revealing badges (First 1, First 10, Full House), so they can't be tied to a week (D11).
+   */
+  unlockedOn: IsoDateTime | null;
+  /** The same moment as a day in the party's timezone (D31), for the calendar. */
+  unlockedDay: IsoDate | null;
+  /** How close you are (for a progress bar), and the same in words, e.g. "7 of 10 weeks". */
+  progress: { current: number; target: number; label: string };
+}
+
+export interface AchievementsResponse {
+  /** Whose achievements these are (yours unless you asked for another member's). */
+  memberId: string;
+  achievements: Achievement[];
+  unlockedCount: number;
+  /** Yours only: unlocked since you last opened them (for the "Achievement unlocked" banner). */
+  newlyUnlocked: string[];
+  /** Yours only: when you last saw your achievements, or null if never (no banner the first time). */
+  seenAt: IsoDateTime | null;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (P13.10, D29): in-app only, worked out when you open the app.
+// ---------------------------------------------------------------------------
+
+export interface AppNotification {
+  /** Stable for the same news (e.g. "results:<roundId>"), so the app can list it without duplicates. */
+  id: string;
+  type: NotificationType;
+  /** When it happened; newer than your last visit to Notifications = unread. */
+  time: IsoDateTime;
+  title: string;
+  detail: string | null;
+  /** Where tapping it goes, e.g. "/rate". */
+  link: string;
+}
+
+export interface NotificationsResponse {
+  /** Newest first. Only types you have switched on. */
+  notifications: AppNotification[];
+  unreadCount: number;
+  /** When you last opened your notifications, or null if never. */
+  seenAt: IsoDateTime | null;
 }

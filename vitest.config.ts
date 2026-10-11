@@ -20,6 +20,10 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['apps/web/src/**/*.test.{ts,tsx}'],
           setupFiles: ['apps/web/src/test/setup.ts'],
+          // Screen tests type and click through whole flows in a simulated browser. When the machine is busy (the
+          // full suite runs everything in parallel) a long one can pass 5 s, the default, without anything being
+          // wrong; 15 s still catches a test that really hangs.
+          testTimeout: 15_000,
         },
       },
     ],

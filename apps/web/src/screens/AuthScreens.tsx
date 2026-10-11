@@ -4,6 +4,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
+import { rememberSignUpAgreement } from '../lib/privacy-consent';
 import { friendlyAuthError, isUnconfirmedError } from '../auth/auth-errors';
 import { TextField } from '../components/TextField';
 import { BigLogo, Button, Card } from '../components/ui';
@@ -158,6 +159,7 @@ export function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const { busy, error, setError, run } = useFormAction();
 
   function submit(event: FormEvent) {
@@ -166,8 +168,15 @@ export function SignUpScreen() {
       setError('The passwords don’t match.');
       return;
     }
+    if (!agreed) {
+      setError('Please agree to the privacy policy and terms to create an account.');
+      return;
+    }
     void run(async () => {
-      await service.signUp(email.trim(), password);
+      const { userId } = await service.signUp(email.trim(), password);
+      // Saved on the account's first signed-in visit (PrivacyGate); it doesn't exist on our server yet. Without an
+      // id from Cognito, the app just asks once more after sign-in.
+      if (userId !== null) rememberSignUpAgreement(userId);
       await navigate('/verify', { state: { email: email.trim() } });
     });
   }
@@ -201,6 +210,21 @@ export function SignUpScreen() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
+        <label className="flex items-start gap-3 text-sm text-muted">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-5 shrink-0 accent-[var(--color-primary)]"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+          />
+          <span>
+            I agree to the{' '}
+            <Link to="/privacy" target="_blank" rel="noopener" className="text-blue hover:underline">
+              privacy policy and terms
+            </Link>
+            , including the YouTube Terms of Service for videos played in the app.
+          </span>
+        </label>
         <Button type="submit" disabled={busy} className="mt-2 w-full">
           {busy ? 'Creating account…' : 'Create account'}
         </Button>

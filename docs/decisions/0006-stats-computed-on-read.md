@@ -22,6 +22,11 @@ the raw songs and ratings each time someone opens a stats screen.
 
 **Compute on read.** It's simpler, always consistent with the current definitions, and has nothing to keep in sync.
 
+**Also covers the history calendar (P13.8, 2026-10-09).** `GET /parties/{partyId}/history` loads the same party data
+as stats and works out one month. It needs every closed week, not just the month's, because the calendar ★ compares
+each of your songs with your best-ever average. Same cost envelope as one stats view; the website keeps past months
+for 10 minutes.
+
 ## Cost
 
 - **Why needed:** spec §17–18.

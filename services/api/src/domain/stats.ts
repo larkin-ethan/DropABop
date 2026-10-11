@@ -10,7 +10,14 @@
 // - Ratings on your own song (never accepted by the API) and ratings for unknown songs are ignored.
 
 import type {
+  ActivityPoint,
+  ArtistCount,
   FavoriteArtist,
+  FavoriteGenre,
+  LeaderboardPeriod,
+  PersonBoard,
+  ProvisionalEntry,
+  RecentSong,
   LeaderboardEntry,
   MusicalTwin,
   Recommendation,
@@ -28,7 +35,7 @@ import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
 // (when not enough data) = the per-candidate minimum.
 // ---------------------------------------------------------------------------
 
-export type { FavoriteArtist, LeaderboardEntry, MusicalTwin, Stat, Superlative, Winner };
+export type { FavoriteArtist, LeaderboardEntry, MusicalTwin, PersonBoard, Stat, Superlative, Winner };
 
 /** Minimum samples from the PRODUCT_DECISIONS stats table. */
 export const MINIMUMS = {
@@ -47,7 +54,14 @@ export const MINIMUMS = {
   crowdFavoriteShare: 0.75,
   controversialLow: 3,
   controversialHigh: 8,
+  favoriteGenreSongs: 2,
+  groupAverageRatings: 1,
+  countBoard: 1,
 } as const;
+
+/** How many items the profile's recent songs and the group activity tables show. */
+export const RECENT_SONGS = 5;
+export const ACTIVITY_PERIODS = 12;
 
 // ---------------------------------------------------------------------------
 // Preparing the data once
@@ -140,6 +154,18 @@ export function populationStdDev(values: number[]): number | null {
   return Math.sqrt(values.reduce((sum, v) => sum + (v - avg) ** 2, 0) / values.length);
 }
 
+/** Artists grouped case-insensitively, keeping the first spelling seen, with how many songs each has. */
+export function artistCounts(songs: { artist: string }[]): { artist: string; songs: number }[] {
+  const byKey = new Map<string, { artist: string; songs: number }>();
+  for (const song of songs) {
+    const key = song.artist.trim().toLowerCase();
+    const entry = byKey.get(key) ?? { artist: song.artist.trim(), songs: 0 };
+    entry.songs += 1;
+    byKey.set(key, entry);
+  }
+  return [...byKey.values()].sort((a, b) => b.songs - a.songs || a.artist.localeCompare(b.artist));
+}
+
 function notEnough<T>(sampleSize: number, required: number): Stat<T> {
   return { status: 'not-enough-data', sampleSize, required };
 }
@@ -181,7 +207,7 @@ function ratedSongsBy(data: StatsData, userId: string): (SongData & { average: n
   return songsBy(data, userId).filter((s): s is SongData & { average: number } => s.average !== null);
 }
 
-function ratingsGivenBy(data: StatsData, userId: string): number[] {
+export function ratingsGivenBy(data: StatsData, userId: string): number[] {
   return data.votes.filter((v) => v.userId === userId).map((v) => v.rating);
 }
 
@@ -343,9 +369,8 @@ export function highestRatedSong(data: StatsData): Superlative {
   return pickWinners(candidates, 'highest', MINIMUMS.songRatings);
 }
 
-/** Highest average among songs rated by 75%+ of that week's active raters (3+ ratings). */
-export function crowdFavorite(data: StatsData): Superlative {
-  const candidates = songsWithAtLeast(data, MINIMUMS.songRatings)
+function crowdFavoriteCandidates(data: StatsData): Winner[] {
+  return songsWithAtLeast(data, MINIMUMS.songRatings)
     .filter(
       (s) =>
         s.activeRatersInWeek > 0 && s.ratings.length / s.activeRatersInWeek >= MINIMUMS.crowdFavoriteShare,
@@ -355,7 +380,11 @@ export function crowdFavorite(data: StatsData): Superlative {
       value: s.average as number,
       sampleSize: s.ratings.length,
     }));
-  return pickWinners(candidates, 'highest', MINIMUMS.songRatings);
+}
+
+/** Highest average among songs rated by 75%+ of that week's active raters (3+ ratings). */
+export function crowdFavorite(data: StatsData): Superlative {
+  return pickWinners(crowdFavoriteCandidates(data), 'highest', MINIMUMS.songRatings);
 }
 
 /** Highest standard deviation of ratings (4+ ratings). */
@@ -525,13 +554,122 @@ export function rankEntries(
   return entries;
 }
 
-/** Highest Average Recommendation Score: average rating received by songs the user recommended (3+ rated songs). */
-export function recommendationScoreLeaderboard(data: StatsData): LeaderboardEntry[] {
-  const candidates = distinctUsers(data).flatMap((userId) => {
-    const stat = averageScoreReceived(data, userId);
-    return stat.status === 'ok' ? [{ id: userId, value: stat.value, sampleSize: stat.sampleSize }] : [];
+// Every person board (D30) is built from one row per person, including people below the minimum: they are listed
+// apart as "Provisional" with how much data they have, never with a value, and never ranked above anyone who
+// qualifies (so one 10 can't beat 100 ratings averaging 9.5). People with no data at all aren't listed.
+
+/** One person's value for a board, whatever their sample size. */
+interface PersonRow {
+  id: string;
+  value: number;
+  sampleSize: number;
+}
+
+export function personBoard(
+  rows: PersonRow[],
+  required: number,
+  direction: 'highest' | 'lowest',
+  decimals = 1,
+): PersonBoard {
+  const provisional: ProvisionalEntry[] = rows
+    .filter((r) => r.sampleSize > 0 && r.sampleSize < required)
+    .sort((a, b) => b.sampleSize - a.sampleSize || a.id.localeCompare(b.id))
+    .map(({ id, sampleSize }) => ({ id, sampleSize }));
+  return {
+    ranked: rankEntries(
+      rows.filter((r) => r.sampleSize >= required),
+      direction,
+      decimals,
+    ),
+    provisional,
+    required,
+  };
+}
+
+function rowsPerUser(data: StatsData, row: (userId: string) => PersonRow | null): PersonRow[] {
+  return distinctUsers(data).flatMap((userId) => {
+    const r = row(userId);
+    return r === null ? [] : [r];
   });
-  return rankEntries(candidates, 'highest');
+}
+
+/** Highest Average Received (= Average Recommendation Score): mean of a person's song averages (3 rated songs). */
+export function averageReceivedBoard(data: StatsData): PersonBoard {
+  const rows = rowsPerUser(data, (id) => {
+    const averages = ratedSongsBy(data, id).map((s) => s.average);
+    return { id, value: mean(averages) ?? 0, sampleSize: averages.length };
+  });
+  return personBoard(rows, MINIMUMS.averageScoreReceived, 'highest');
+}
+
+/** Highest Average Given: mean of the ratings a person gave (5 ratings). */
+export function averageGivenBoard(data: StatsData): PersonBoard {
+  const rows = rowsPerUser(data, (id) => {
+    const ratings = ratingsGivenBy(data, id);
+    return { id, value: mean(ratings) ?? 0, sampleSize: ratings.length };
+  });
+  return personBoard(rows, MINIMUMS.averageRatingGiven, 'highest');
+}
+
+/** Most Bops: songs shared. A plain count, so anyone with one song is ranked. */
+export function mostBopsBoard(data: StatsData): PersonBoard {
+  const rows = rowsPerUser(data, (id) => {
+    const count = songsBy(data, id).length;
+    return { id, value: count, sampleSize: count };
+  });
+  return personBoard(rows, MINIMUMS.countBoard, 'highest', 0);
+}
+
+/** Most Ratings: valid ratings given. A plain count. */
+export function mostRatingsBoard(data: StatsData): PersonBoard {
+  const rows = rowsPerUser(data, (id) => {
+    const count = ratingsGivenBy(data, id).length;
+    return { id, value: count, sampleSize: count };
+  });
+  return personBoard(rows, MINIMUMS.countBoard, 'highest', 0);
+}
+
+function generosityRows(data: StatsData): PersonRow[] {
+  const partyAverage = data.partyAverageGiven;
+  if (partyAverage === null) return [];
+  return rowsPerUser(data, (id) => {
+    const ratings = ratingsGivenBy(data, id);
+    return { id, value: (mean(ratings) ?? partyAverage) - partyAverage, sampleSize: ratings.length };
+  });
+}
+
+/** Most Generous: highest generosity (10 ratings). */
+export function mostGenerousBoard(data: StatsData): PersonBoard {
+  return personBoard(generosityRows(data), MINIMUMS.generosity, 'highest');
+}
+
+/** Toughest Critic: lowest generosity (10 ratings). */
+export function toughestCriticBoard(data: StatsData): PersonBoard {
+  return personBoard(generosityRows(data), MINIMUMS.generosity, 'lowest');
+}
+
+/** Most Consistent: lowest spread of a person's song averages (3 rated songs). */
+export function consistencyBoard(data: StatsData): PersonBoard {
+  const rows = rowsPerUser(data, (id) => {
+    const averages = ratedSongsBy(data, id).map((s) => s.average);
+    return { id, value: populationStdDev(averages) ?? 0, sampleSize: averages.length };
+  });
+  return personBoard(rows, MINIMUMS.consistencySongs, 'lowest');
+}
+
+/** Most Surprising: songs that beat the person's own earlier average by 1+ point (1 such song). */
+export function surpriseBoard(data: StatsData): PersonBoard {
+  return personBoard(surpriseCountCandidates(data), 1, 'highest', 0);
+}
+
+/** Most Popular: ratings of 8+ received (3 songs shared). Sample = songs shared. */
+export function popularityBoard(data: StatsData): PersonBoard {
+  const rows = rowsPerUser(data, (id) => {
+    const songs = songsBy(data, id);
+    const high = songs.flatMap((s) => s.ratings).filter((r) => r >= MINIMUMS.popularRating).length;
+    return { id, value: high, sampleSize: songs.length };
+  });
+  return personBoard(rows, MINIMUMS.popularRecommendations, 'highest', 0);
 }
 
 /** Highest Average Song Rating: songs ranked by average (3+ ratings). */
@@ -544,17 +682,214 @@ export function songRatingLeaderboard(data: StatsData): LeaderboardEntry[] {
   return rankEntries(candidates, 'highest');
 }
 
-/** Most Consistent: lowest spread of a user's song averages (3+ rated songs). */
-export function consistencyLeaderboard(data: StatsData): LeaderboardEntry[] {
-  return rankEntries(consistencyCandidates(data), 'lowest');
+/** Crowd Favorites: songs rated by 75%+ of their week's raters (3+ ratings), by average. */
+export function crowdFavoriteLeaderboard(data: StatsData): LeaderboardEntry[] {
+  return rankEntries(crowdFavoriteCandidates(data), 'highest');
 }
 
-/** Most Surprising: songs that beat the recommender's own earlier average by 1+ point. */
-export function surpriseLeaderboard(data: StatsData): LeaderboardEntry[] {
-  return rankEntries(surpriseCountCandidates(data), 'highest');
+// ---------------------------------------------------------------------------
+// Periods (D30)
+// ---------------------------------------------------------------------------
+
+/** The calendar day of a moment in a timezone ("en-CA" formats dates as YYYY-MM-DD). */
+export function dayIn(moment: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(moment);
 }
 
-/** Most Popular: ratings of 8+ received (3+ recommendations). */
-export function popularityLeaderboard(data: StatsData): LeaderboardEntry[] {
-  return rankEntries(popularityCandidates(data), 'highest');
+/** "YYYY-MM" of a moment in a timezone. */
+function monthIn(moment: Date, timeZone: string): string {
+  return dayIn(moment, timeZone).slice(0, 7);
+}
+
+/**
+ * The month a week's ratings locked in. `endsAt` is exclusive (Monday 00:00 for "Sunday 11:59 pm"), so the lock
+ * belongs to the moment just before it: a week locking at the end of Sunday 31 May counts for May, not June.
+ */
+export function lockMonth(endsAt: string, timeZone: string): string {
+  return monthIn(new Date(new Date(endsAt).getTime() - 1), timeZone);
+}
+
+/**
+ * The closed weeks a leaderboard period covers (D30): `week` = the most recent closed week, `month` = closed weeks
+ * whose ratings locked in the current calendar month (party timezone), `all` = every closed week.
+ */
+export function roundsInPeriod<R extends Pick<Round, 'endsAt'>>(
+  closedRounds: R[],
+  period: LeaderboardPeriod,
+  now: Date,
+  timeZone: string,
+): R[] {
+  if (period === 'all') return closedRounds;
+  if (period === 'week') {
+    const latest = [...closedRounds].sort((a, b) => b.endsAt.localeCompare(a.endsAt))[0];
+    return latest === undefined ? [] : [latest];
+  }
+  const thisMonth = monthIn(now, timeZone);
+  return closedRounds.filter((r) => lockMonth(r.endsAt, timeZone) === thisMonth);
+}
+
+// ---------------------------------------------------------------------------
+// Profile (spec §18, P13.11)
+// ---------------------------------------------------------------------------
+
+/** Genres the user rated highest on average, top 3. Each needs 2+ songs of that genre rated by the user. */
+export function favoriteGenres(data: StatsData, userId: string): Stat<FavoriteGenre[]> {
+  const genreOf = new Map(
+    data.songs.map((s) => [s.recommendation.recommendationId, s.recommendation.song.genre?.trim() ?? '']),
+  );
+  const byKey = new Map<string, { genre: string; ratings: number[] }>();
+  for (const vote of data.votes) {
+    if (vote.userId !== userId) continue;
+    const genre = genreOf.get(vote.recommendationId) ?? '';
+    if (genre === '') continue; // songs shared before P13.7 have no genre
+    const key = genre.toLowerCase();
+    const entry = byKey.get(key) ?? { genre, ratings: [] };
+    entry.ratings.push(vote.rating);
+    byKey.set(key, entry);
+  }
+  const qualifying = [...byKey.values()]
+    .filter((g) => g.ratings.length >= MINIMUMS.favoriteGenreSongs)
+    .map((g) => ({ genre: g.genre, averageRating: mean(g.ratings) as number, songCount: g.ratings.length }))
+    .sort(
+      (a, b) =>
+        b.averageRating - a.averageRating || b.songCount - a.songCount || a.genre.localeCompare(b.genre),
+    );
+  if (qualifying.length === 0) return notEnough(0, MINIMUMS.favoriteGenreSongs);
+  return { status: 'ok', value: qualifying.slice(0, 3), sampleSize: qualifying.length };
+}
+
+/** The user's latest songs from closed weeks, newest first. */
+export function recentSongs(data: StatsData, userId: string): RecentSong[] {
+  return songsBy(data, userId)
+    .sort(
+      (a, b) =>
+        b.recommendation.submittedOn.localeCompare(a.recommendation.submittedOn) ||
+        b.recommendation.createdAt.localeCompare(a.recommendation.createdAt),
+    )
+    .slice(0, RECENT_SONGS)
+    .map((s) => ({
+      recommendationId: s.recommendation.recommendationId,
+      roundId: s.recommendation.roundId,
+      submittedOn: s.recommendation.submittedOn,
+      title: s.recommendation.song.title,
+      artist: s.recommendation.song.artist,
+      albumArtUrl: s.recommendation.song.albumArtUrl,
+      average: s.average,
+      ratingCount: s.ratings.length,
+    }));
+}
+
+/**
+ * The user's place among one week's sharers, by average received (mean of their rated songs' averages), compared
+ * as shown (1 decimal) so equal values share a rank, the same as the history's "Your week" (D31). Null if none of
+ * the user's songs that week were rated.
+ */
+export function weekRank(
+  data: StatsData,
+  roundId: string,
+  userId: string,
+): { position: number; of: number } | null {
+  const bySharer = new Map<string, number[]>();
+  for (const song of data.songs) {
+    if (song.recommendation.roundId !== roundId || song.average === null) continue;
+    const id = song.recommendation.userId;
+    bySharer.set(id, [...(bySharer.get(id) ?? []), song.average]);
+  }
+  const shown = new Map(
+    [...bySharer].map(([id, averages]) => [id, shownValueKey(mean(averages) as number, 1)]),
+  );
+  const mine = shown.get(userId);
+  if (mine === undefined) return null;
+  return { position: [...shown.values()].filter((v) => v > mine).length + 1, of: shown.size };
+}
+
+// ---------------------------------------------------------------------------
+// Group extras (spec §19, P13.11)
+// ---------------------------------------------------------------------------
+
+/** Mean of every valid rating (1 rating). */
+export function groupAverage(data: StatsData): Stat<number> {
+  if (data.votes.length < MINIMUMS.groupAverageRatings) {
+    return notEnough(data.votes.length, MINIMUMS.groupAverageRatings);
+  }
+  return { status: 'ok', value: data.partyAverageGiven as number, sampleSize: data.votes.length };
+}
+
+/** How many of each rating (1–10) the whole party gave. */
+export function groupRatingDistribution(data: StatsData): Stat<number[]> {
+  if (data.votes.length === 0) return notEnough(0, 1);
+  const distribution = new Array<number>(MAX_RATING - MIN_RATING + 1).fill(0);
+  for (const vote of data.votes) {
+    distribution[vote.rating - MIN_RATING] = (distribution[vote.rating - MIN_RATING] ?? 0) + 1;
+  }
+  return { status: 'ok', value: distribution, sampleSize: data.votes.length };
+}
+
+/** Artists shared most (spelling-insensitive), top 3; everyone tied with 3rd place is shown too. */
+export function topArtists(data: StatsData): Stat<ArtistCount[]> {
+  const counts = artistCounts(data.songs.map((s) => s.recommendation.song));
+  if (counts.length === 0) return notEnough(0, 1);
+  const third = counts[Math.min(2, counts.length - 1)]?.songs ?? 0;
+  return {
+    status: 'ok',
+    value: counts.filter((c) => c.songs >= third).map((c) => ({ artist: c.artist, songCount: c.songs })),
+    sampleSize: data.songs.length,
+  };
+}
+
+function activityPoint(period: string, weeks: number, songs: SongData[], votes: Vote[]): ActivityPoint {
+  return {
+    period,
+    weeks,
+    songs: songs.length,
+    ratings: votes.length,
+    average: mean(votes.map((v) => v.rating)),
+  };
+}
+
+/** Songs, ratings and average per closed week, newest first (last 12). */
+export function weeklyActivity(
+  data: StatsData,
+  closedRounds: Pick<Round, 'roundId' | 'weekStart'>[],
+): ActivityPoint[] {
+  return [...closedRounds]
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart))
+    .slice(0, ACTIVITY_PERIODS)
+    .map((r) =>
+      activityPoint(
+        r.weekStart,
+        1,
+        data.songs.filter((s) => s.recommendation.roundId === r.roundId),
+        data.votes.filter((v) => v.roundId === r.roundId),
+      ),
+    );
+}
+
+/** The same per calendar month of the lock day (party timezone), newest first (last 12). */
+export function monthlyActivity(
+  data: StatsData,
+  closedRounds: Pick<Round, 'roundId' | 'endsAt'>[],
+  timeZone: string,
+): ActivityPoint[] {
+  const roundsByMonth = new Map<string, Set<string>>();
+  for (const r of closedRounds) {
+    const month = lockMonth(r.endsAt, timeZone);
+    roundsByMonth.set(month, (roundsByMonth.get(month) ?? new Set()).add(r.roundId));
+  }
+  return [...roundsByMonth.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, ACTIVITY_PERIODS)
+    .map(([month, ids]) =>
+      activityPoint(
+        month,
+        ids.size,
+        data.songs.filter((s) => ids.has(s.recommendation.roundId)),
+        data.votes.filter((v) => ids.has(v.roundId)),
+      ),
+    );
 }

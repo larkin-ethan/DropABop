@@ -88,7 +88,7 @@ describe('recommendations (D1: one per member per day)', () => {
     await putRecommendation(ctx, rec);
 
     expect(await getRecommendation(ctx, round.roundId, rec.recommendationId)).toEqual(rec);
-    expect(await listWeekRecommendations(ctx, round.roundId)).toEqual([rec]);
+    expect(await listWeekRecommendations(ctx, round.roundId, new Date())).toEqual([rec]);
   });
 
   it('rejects a second song on the same day with the friendly message', async () => {
@@ -101,7 +101,7 @@ describe('recommendations (D1: one per member per day)', () => {
     );
     expect(error).toBeInstanceOf(DomainError);
     expect((error as DomainError).code).toBe('ALREADY_SUBMITTED_TODAY');
-    expect(await listWeekRecommendations(ctx, round.roundId)).toHaveLength(1);
+    expect(await listWeekRecommendations(ctx, round.roundId, new Date())).toHaveLength(1);
   });
 
   it('lets only one of two simultaneous same-day shares through', async () => {
@@ -114,7 +114,7 @@ describe('recommendations (D1: one per member per day)', () => {
     expect(ok).toBe(1);
     expect(errors).toHaveLength(1);
     expect((errors[0] as DomainError).code).toBe('ALREADY_SUBMITTED_TODAY');
-    expect(await listWeekRecommendations(ctx, round.roundId)).toHaveLength(1);
+    expect(await listWeekRecommendations(ctx, round.roundId, new Date())).toHaveLength(1);
   });
 
   it('allows one song per day across the week, and lists the days used', async () => {
@@ -130,7 +130,7 @@ describe('recommendations (D1: one per member per day)', () => {
       '2026-10-07',
       '2026-10-09',
     ]);
-    expect(await listWeekRecommendations(ctx, round.roundId)).toHaveLength(4);
+    expect(await listWeekRecommendations(ctx, round.roundId, new Date())).toHaveLength(4);
   });
 
   it('lists every song in the party across weeks (for stats), and only that party', async () => {
@@ -142,7 +142,7 @@ describe('recommendations (D1: one per member per day)', () => {
     await putRecommendation(ctx, aRecommendation(aRound(newId()), newId(), '2026-10-05')); // other party
 
     expect(await listPartyRecommendations(ctx, partyId)).toHaveLength(2);
-    expect(await listWeekRecommendations(ctx, week2.roundId)).toHaveLength(1);
+    expect(await listWeekRecommendations(ctx, week2.roundId, new Date())).toHaveLength(1);
   });
 });
 

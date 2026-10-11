@@ -389,6 +389,137 @@ ticking the box. Each screen also needs loading, empty, and error states; works 
 
 ---
 
+## Phase 13 — Spec v2: music player, history, achievements (Ethan, 2026-10-09)
+
+Spec v2 (`docs/SPEC_V2.md`) fitted onto the existing weekly app: `docs/SPEC_V2_RECONCILIATION.md` and decisions
+D26–D33. Work top to bottom like the earlier phases. No new AWS resource types: only new Lambdas/routes in the
+existing HTTP API. Every new screen gets loading / empty / error states and works at 320 px.
+
+- [x] **P13.1 — Spec intake + decisions** (docs only) — save the pasted spec as `docs/SPEC_V2.md` (word for word)
+  and the three mockup sheets in `docs/design/`; write the section-by-section reconciliation; add D26–D33; add this
+  phase; map the new mockups in `docs/design/README.md`; point CLAUDE.md at the new files. *Done when:* all files
+  exist, formatting check passes, `npm run verify` passes.
+- [x] **P13.2 — Provider compliance research** (§3, §4, §34–§36) — read the current official docs and cite URL +
+  date: YouTube API Services Terms, Developer Policies, IFrame Player API reference, Required Minimum Functionality
+  (player size, visibility, overlays, autoplay, ads, `youtube-nocookie.com`, Referer, embed-disabled errors 101/150,
+  whether a user-pasted video id is "API data"), privacy-policy requirements; Apple MusicKit on the Web requirements
+  (documented as deferred) and the iTunes Search terms again. *Do:* ADR-0011 (YouTube embed; supersedes ADR-0007 #6
+  for YouTube only), `docs/API_COMPLIANCE.md` (spec §43 checklist per provider), `docs/PRIVACY.md`.
+  **Stop and ask Ethan** if the terms need something only he can do (e.g. publishing a privacy policy, accepting
+  terms) or forbid the docked player. *Done when:* every capability P13.3 relies on is cited, open questions are
+  listed in API_COMPLIANCE.md, Ethan has answered any stop question.
+- [x] **P13.2a — Privacy page + agreement** (§36; ADR-0011, D27) — a `/privacy` page anyone can open (privacy policy + terms of use incl. the
+  YouTube Terms of Service sentence, text from `docs/PRIVACY.md`, linked from sign-up, Help and settings); a required
+  "I agree to the privacy policy and terms" checkbox at sign-up; a one-time prompt for signed-in members who haven't agreed to the current version.
+  Backend: `PATCH /users/me` accepts `acceptPrivacy: true` and stores `privacyAcceptedAt` (server time) +
+  `privacyVersion` (shared zod schema); `GET /users/me` returns them. *Done when:* unit + integration tests (the
+  server sets the time, a client can't set an old/new version), screen tests for the page, checkbox and prompt,
+  e2e journeys still green, SECURITY "What we store" and DATABASE/API docs updated.
+- [x] **P13.3 — Player layer** (§7, §14, §15, §28, §34, §38) — `apps/web/src/player/`: `capabilities.ts` (values from
+  P13.2; Apple and Spotify links only), a `MusicPlayerContext` with one active song (starting one stops the last),
+  `youtube-player.ts` (loads YouTube's IFrame script on first Play only; play/pause/seek/volume/state; errors →
+  fallback; `destroy()`; ADR-0011's rules: ≥ 200 × 200 px, visible, no overlays, no autoplay, `origin` parameter), `PlaybackFallback` (loading / can't play here / provider failure, only links that exist),
+  and a docked, visible player in `AppShell` that survives navigation and sits above the mobile bottom bar. CSP:
+  add the YouTube frame/script hosts in all three copies (`vite.config.ts`, generated `_headers`, CloudFront policy
+  in `infra/template.yaml`) via the `aws-change` check. *Done when:* unit tests with a mocked `window.YT` cover lazy
+  load, one-at-a-time, error → fallback, hidden unsupported controls and cleanup; template tests pass;
+  `npm run verify` passes.
+- [x] **P13.4 — YouTube video on songs** (prod hold lifted 2026-10-09: P13.6 added the "Play videos" switch) (§12, §13) — a `youtubeVideoId()` helper in `packages/shared` (watch,
+  youtu.be, music.youtube.com) with tests; Rate, Results and confirmation cards show "▶ Play video" when the sharer
+  linked YouTube, labelled "YouTube video linked by the sharer", only for songs shared in the last 30 days and only after the
+  user agreed to the privacy policy (ADR-0011), otherwise the existing links; honours the user's
+  "Play videos" setting once P13.6 adds it (default on). No backend change. *Done when:* unit + screen tests; manual
+  check in the browser pane that a real pasted video plays and an embed-disabled one falls back; e2e still green.
+- [x] **P13.4a — Auto-find the YouTube video** (ADR-0012; Ethan, 2026-10-09) — `GET /songs/youtube` (new Lambda +
+  route + throttle; reads the key from SSM; one `search.list` per chosen song, top 3 results unchanged; 15 searches
+  per person per day; 1-hour cache); every new YouTube video id stored in its own item that DynamoDB deletes after
+  29 days (pasted or found), merged into the week's songs on read; share dialog pre-selects YouTube's first result
+  (title + channel, Play preview, pick another / paste / remove). Works quietly without a key. *Done when:* unit +
+  integration tests (auth, cap, quota/no-key fallbacks, expiry, merge), screen tests, `sam validate --lint`,
+  template tests, aws-change checks, API/DATABASE/API_COMPLIANCE/MUSIC_PROVIDERS updated, spec-reviewer.
+- [x] **P13.4b — YouTube API key** [HUMAN] (dev done 2026-10-09; prod key goes in with the prod deploy, DEPLOYMENT.md §4e step 5) (ADR-0012) — Ethan creates the Google Cloud project + YouTube Data API v3
+  key and stores it in SSM for dev (and later prod); then a dev deploy (approval) and a live check that choosing a
+  song lists real YouTube results (not "busy": that would mean YouTube refused the `x-goog-api-key` header, see
+  `providers/youtube-search.ts`), and that a kept video plays.
+- [x] **P13.5 — Song Details screen** (§21) — `/songs/:week/:songId`: artwork, title, artist, album, year, player or
+  fallback, links, Apple badge; closed week: average, "#n of N", distribution, your rating, comments; open week:
+  your rating only (D9), sharer hidden per D10. Reuses existing results/week/comments data. Linked from every song
+  card. *Done when:* screen tests for open/closed/not-found, 320 px screenshot, e2e still green.
+- [x] **P13.6 — Settings hub + Music Services** (§9, §29, §30) — `/settings` becomes sections (Account, Music,
+  Party, Privacy, Help; the old party settings move to `/settings/party`) with only working controls: name/picture,
+  change password (Amplify), email read-only; `/settings/music` (D27: preferred app, "Play videos" switch, what each
+  service does); help gains "Listening in Drop a Bop". Backend: `PATCH /users/me` accepts `playInApp`. Notification
+  switches moved to P13.10 and no About page (a contact line instead), so nothing that doesn't work yet is shown
+  (§29). *Done when:* unit + integration tests for the new field, screen tests, DATABASE/API docs updated.
+- [x] **P13.7 — Genre on new songs** (§8) — store iTunes `primaryGenreName` in the song snapshot for new shares
+  (type, schema, provider mapping); old songs have none. *Done when:* unit + integration tests; MUSIC_PROVIDERS and
+  DATABASE updated.
+- [x] **P13.8 — Calendar history** (§16, §23; D31) — pure `domain/history.ts` (day/week aggregates, "Your week",
+  calendar marks) with unit tests; `GET /parties/{partyId}/history?month=YYYY-MM` (new Lambda + route; loads the
+  party's data like stats, ADR-0006, because the ★ needs every closed week; server clock decides closed weeks); web
+  `/history` (calendar + List toggle),
+  `/history/day/:date`, `/history/week/:weekStart`, charts reuse `RatingDistribution` with text alternatives.
+  *Done when:* unit + integration tests (auth, membership, month validation, aggregation), screen tests,
+  STATISTICS/API docs updated, spec-reviewer run.
+- [x] **P13.9 — Achievements** (§17; D28) — pure `domain/achievements.ts` (criteria, progress, unlock date) with a
+  test per achievement; `GET /parties/{partyId}/achievements` (yours, or a member's); `achievementsSeenAt` on your own
+  party link (private) for the unlock banner; web `/achievements` grid, detail dialog, a calm banner (not a pop-up)
+  on Home/Results only, 🏆 on calendar unlock days. *Done when:* unit + integration tests, screen tests, STATISTICS/API/DATABASE docs updated,
+  spec-reviewer run.
+- [x] **P13.10 — Notifications** (§22; D29) — Settings → Notifications switches (moved here from P13.6); `GET /parties/{partyId}/notifications` (party in the path like the other party routes; this week and last week only, so the bell's checks stay cheap; achievement news comes from the achievements data on the list page) built on read for the current party;
+  `notificationsSeenAt` per party via `POST /parties/{partyId}/notifications/seen`; per-type switches respected; bell with unread count in `AppShell` (refetch on
+  focus, ≤ every 5 min) and `/notifications`. *Done when:* unit + integration tests, screen tests, API/DATABASE docs.
+- [x] **P13.11 — Leaderboard, group stats, profile, home** (§18–§20, §26; D30) — leaderboard `period` and the new
+  boards with a "Provisional" list; group stats counts, weekly/monthly activity, top artists; profile as a stats
+  page (badges, top artists/genres, recent songs); home shows averages, latest achievement, last week's rank and a
+  main button that matches the real state. *Done when:* unit tests for every new stat and minimum, integration tests
+  for `period`, screen tests, STATISTICS updated.
+- [x] **P13.12 — Search** (§24; D33) — `GET /parties/{partyId}/search?q=` over the party's songs, artists, members
+  and weeks (one key query, capped, paginated; D10 respected); web search screen with category tabs. *Done when:*
+  unit + integration tests (membership, privacy of open weeks, cap), screen tests, API/DATABASE docs, spec-reviewer.
+- [x] **P13.13 — Navigation** (§27, §40; D32) — desktop sidebar per D32; mobile bar Home · Drop · History · Stats ·
+  Profile; `/drop` hub with Share · Rate · Results tabs; bell and settings in the mobile header. *Done when:*
+  screen tests, e2e journeys updated and green.
+- [x] **P13.14 — Responsive + accessibility pass** (§27, §37) — extend `e2e/screens.spec.ts` to all new screens at
+  320/375/390/430/768/1024/1440 (no horizontal overflow, visible focus); keyboard checks for calendar, rating,
+  player and toast; text tables for charts. *Done when:* the e2e run passes and is recorded.
+- [x] **P13.15 — Docs** (§43) — README, ARCHITECTURE, DEVELOPMENT, DEPLOYMENT, SECURITY, MUSIC_PROVIDERS (player
+  layer, adding MusicKit later, adding a provider), DATABASE, API, STATISTICS, API_COMPLIANCE test results.
+  *Done when:* a reader can follow every new feature from the docs; only tests actually run are reported.
+- [ ] **P13.16 — Dev deploy + smoke, then prod** [HUMAN for prod] — `bash scripts/deploy.sh dev` after Ethan
+  approves; extend `scripts/smoke-dev.mjs` for history, achievements, notifications, search and leaderboard
+  periods; Ethan runs `bash scripts/deploy.sh prod`. *Done when:* smoke passes on dev and Ethan confirms prod.
+
+**Deferred (not a task until Ethan funds it): P13.L — Apple MusicKit.** [HUMAN] join the Apple Developer Program
+($99/year), create a MusicKit key, store the `.p8` in SSM SecureString. AI part: `GET /music/apple/developer-token`
+(ES256 with `node:crypto`, short-lived, cached), an `AppleMusicPlayer` in the player layer via MusicKit JS, and
+Connect/Disconnect in Settings → Music. The user's Music User Token stays in the browser and is never sent to or
+stored by our server. Handle cancel, failure, expiry, revocation and disconnect (spec §10).
+
+---
+
+## Phase 14 — Saved songs (D34; Ethan, 2026-10-11)
+
+Starts after P13.16 (the Phase 13 release), unless Ethan says otherwise.
+
+- [ ] **P14.1 — Saved songs: data + API** (D34) — items `USER#<userId> / SAVED#<appleTrackId>` (the song snapshot,
+  where it came from: partyId, roundId, recommendationId, week end, sharer kept server-side only) and a `savedCount`
+  on the profile, changed in the same transaction with a condition (≤ 500, no double count). `POST /users/me/saved`
+  `{ roundId, recommendationId }` (member of that party; the server builds the snapshot itself; `200` "already
+  saved" for a duplicate; `409` at 500), `GET /users/me/saved?cursor=` (newest first, pages of 100; "shared by" only
+  after the week ended and while still a member; "Play video" data only within the 30-day window via the party's
+  `YTVIDEO#` item), `DELETE /users/me/saved/{trackId}`. New functions with least-privilege IAM (aws-change).
+  *Done when:* unit + integration tests (membership, D10 before/after results, after leaving, duplicate, limit and
+  its race, no YouTube data copied), authorization sweep updated, API / DATABASE / SECURITY / PRIVACY (+ D19)
+  docs, spec-reviewer.
+- [ ] **P14.2 — Saved songs: website** — a Save (heart) toggle on song cards (Rate, Results, Song Details, History
+  day/week, Search, Home), a **Saved songs** page (`/saved`: artwork, title, artist, "From <party> · week of …",
+  listen links, Play video when allowed, Remove with Undo, empty state, at-limit message), reached from Profile and
+  the desktop sidebar; sample-mode support. *Done when:* screen tests, `e2e/screens.spec.ts` + keyboard checks for
+  the toggle, privacy page text updated, docs.
+- [ ] **P14.3 — Release** [HUMAN for prod] — dev deploy + `scripts/smoke-dev.mjs` (save, list, duplicate, remove,
+  non-member refused), then Ethan deploys prod.
+
 ## Later (do not build until a real need appears — spec §42)
 
-Real-time updates · notifications · email invites · avatar upload · more providers · caching · queue-based stats.
+Real-time updates · push/email notifications · YouTube Data API search · email invites · avatar upload · more providers · caching · queue-based stats.

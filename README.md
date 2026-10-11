@@ -35,9 +35,19 @@ It runs on AWS serverless services at (or very near) **$0/month** at this scale.
   change a rating until ratings lock (Sunday 11:59 pm in the party's timezone by default). You never rate your own song.
 - **After the lock:** results unlock: every song ranked, each day's Bop of the Day, rating spreads, and your rating next
   to the group's. Who shared each song is revealed then (or during the week, if the host turns that on).
+- **Play in the app:** when a sharer linked a YouTube video (pasted, or picked from the app's suggestions), the song
+  plays in a docked player that keeps playing as you move around (YouTube's own player; songs from the last 30 days).
+- **Song details:** artwork, album, year, listen links, comments and (after the week) its ratings.
+- **History:** a month calendar, Day and Week views, and "Your week" (your rank, averages and top song).
 - **Stats & leaderboards** from finished weeks, each showing what it's based on (or "Not enough data yet").
+  Leaderboards cover this week, this month or all time; people without enough data yet are listed as "Provisional".
+- **Achievements:** 26 badges worked out from finished weeks, with progress and unlock dates.
+- **Notifications** inside the app (songs to rate, results ready, comments on your songs…), each type switchable.
+- **Search** within your party: songs, artists, members and weeks.
 - **Comments:** talk about any song while the week is open (names shown; collapsed until you open them).
-- **Profiles:** display name, avatar colour or photo, and a preferred music app.
+- **Profile** as a stats page (your averages, badges, favourite artists and genres, recent songs); name, photo and
+  settings live under Settings (Account, Music, Notifications, Party).
+- **Privacy page** with the privacy policy and terms; everyone agrees once before using the app.
 
 The rules in detail: [docs/PRODUCT_DECISIONS.md](docs/PRODUCT_DECISIONS.md). The original spec:
 [docs/SPEC.md](docs/SPEC.md). Stats definitions: [docs/STATISTICS.md](docs/STATISTICS.md).
@@ -106,7 +116,7 @@ Open http://localhost:5173.
 ## How the AWS deployment works
 
 One SAM template (`infra/template.yaml`) defines everything: the DynamoDB table, Cognito user pool, the HTTP API with
-its token check and rate limits, 26 Lambda functions (one per route, each allowed only the database actions it
+its token check and rate limits, 33 Lambda functions (one per route, each allowed only the database actions it
 needs), logs kept 14 days (30 in prod), failure alarms that email you, a $5 budget alert, and the website (private S3
 bucket behind CloudFront with security headers). There are two copies, **`dropabop-dev`** and **`dropabop-prod`**,
 each with its own data and accounts. Nothing runs (or bills) while idle: weeks open and close lazily when someone
@@ -119,8 +129,13 @@ Resource list: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Step-by-step: [docs
 - **Search and song details** come from Apple's iTunes Search API: free, no key, no account (ADR-0007).
 - **Listen links:** Apple Music (exact link), plus Spotify and YouTube Music: the sharer's own pasted link when they
   gave one, otherwise a search on that app. Your preferred app's link comes first.
-- We don't call the Spotify or YouTube APIs: their terms forbid how this app would use them, and their costs or
-  quotas don't fit. Pasted Spotify / YouTube Music links are kept and attached to the song you pick.
+- **In-app videos:** a song with a linked YouTube video plays in YouTube's embedded player inside the app
+  (ADR-0011). When you choose a song to share, the server makes one YouTube Data API search and suggests up to 3
+  videos; you keep one or none (ADR-0012, 100 searches a day for the whole app).
+- We don't call the Spotify API, and no in-app sign-in to any music service exists yet (Apple MusicKit is deferred:
+  it needs a paid Apple Developer membership). Pasted Spotify / YouTube Music links are kept and attached to the song.
+- How the in-app player is built and how to add a service: [docs/MUSIC_PROVIDERS.md](docs/MUSIC_PROVIDERS.md);
+  each provider's rules and our test results: [docs/API_COMPLIANCE.md](docs/API_COMPLIANCE.md).
 - Full research with sources: [docs/MUSIC_PROVIDERS.md](docs/MUSIC_PROVIDERS.md).
 
 ## Environment variables
@@ -136,7 +151,8 @@ stack outputs:
 | `VITE_COGNITO_CLIENT_ID` | The website's app client | `UserPoolClientId` |
 | `VITE_AWS_REGION` | The AWS region (`us-east-2`) | `Region` |
 
-The API's settings (table name and so on) are set by the template; there are no secret keys anywhere in this app.
+The API's settings (table name and so on) are set by the template. The only secret is the YouTube API key, kept in
+AWS SSM Parameter Store (never in the code or the website; DEPLOYMENT.md §4e).
 The deploy script reads `ALERT_EMAIL` from your shell only for a stage's first deploy ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §6).
 
 ## Running the tests
@@ -146,7 +162,7 @@ The deploy script reads `ALERT_EMAIL` from your shell only for a stage's first d
 | `npm run verify` | Format, lint, typecheck, unit tests, and guardrail checks. Run before every commit. |
 | `npm test` | Unit tests only (domain rules, screens against a pretend API, template checks). |
 | `npm run db:up` then `npm run test:integration` | API tests against DynamoDB Local in Docker. |
-| `npm run e2e` | A real browser walks join → share → rate → week ends → results at phone and desktop widths, then checks every screen at 7 widths (screenshots in `e2e/screenshots/`). |
+| `npm run e2e` | A real browser walks join → share → rate → week ends → results at phone and desktop widths, checks every screen at 7 widths (screenshots in `e2e/screenshots/`), and uses the calendar, rating picker, player and achievement banner with the keyboard only. |
 | `node scripts/smoke-dev.mjs`, then `npm run e2e:dev` | Every endpoint, then the browser journey, against your deployed dev stack (manual; the first creates the test users the second needs). |
 
 GitHub runs the first four on every pull request ([.github/workflows/ci.yml](.github/workflows/ci.yml)).

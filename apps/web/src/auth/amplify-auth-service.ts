@@ -6,12 +6,14 @@ import {
   confirmResetPassword,
   confirmSignUp,
   fetchAuthSession,
+  fetchUserAttributes,
   getCurrentUser,
   resendSignUpCode,
   resetPassword,
   signIn,
   signOut,
   signUp,
+  updatePassword,
 } from 'aws-amplify/auth';
 import type { AppConfig } from '../config';
 import type { AuthService } from './auth-service';
@@ -48,7 +50,8 @@ export function createAmplifyAuthService(config: AppConfig): AuthService {
     },
 
     async signUp(email, password) {
-      await signUp({ username: email, password, options: { userAttributes: { email } } });
+      const result = await signUp({ username: email, password, options: { userAttributes: { email } } });
+      return { userId: result.userId ?? null };
     },
 
     async confirmSignUp(email, code) {
@@ -81,6 +84,18 @@ export function createAmplifyAuthService(config: AppConfig): AuthService {
 
     async confirmResetPassword(email, code, newPassword) {
       await confirmResetPassword({ username: email, confirmationCode: code, newPassword });
+    },
+
+    async getEmail() {
+      try {
+        return (await fetchUserAttributes()).email ?? null;
+      } catch {
+        return null; // shown as "not available"; nothing else depends on it
+      }
+    },
+
+    async changePassword(oldPassword, newPassword) {
+      await updatePassword({ oldPassword, newPassword });
     },
   };
 }

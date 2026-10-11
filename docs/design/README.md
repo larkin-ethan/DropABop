@@ -59,11 +59,17 @@ once the website is hosted (CloudFront), since email needs a public image addres
 
 ## Layout
 
-- **Desktop/tablet:** left sidebar nav (logo at top, then Home, Recommend, Vote, Results, Stats, Leaderboard,
-  History, Settings), with the main content in cards to the right.
-- **Mobile:** bottom tab bar with Home, Recommend, Voting, Results, Stats (see the "Mobile Responsive (Key
-  Screens)" strip, bottom-right of the mockup). Single-column cards. Settings and History are reached from Home
-  or the profile menu.
+Navigation follows D32 (built in P13.13, `apps/web/src/components/AppShell.tsx`):
+
+- **Desktop/tablet sidebar:** logo, party switcher, then three groups: Home, Today's Drop, History, Stats,
+  Leaderboard, Achievements, Search · Party, Members (jumps to the members card on Party settings), Settings ·
+  Notifications, Profile, Sign out. Main content in cards to the right.
+- **Mobile:** bottom bar **Home · Drop · History · Stats · Profile**. The header holds the logo, party switcher,
+  notifications bell, Search and Settings. Leaderboard is reached from Stats' tabs, Achievements from Stats and
+  Profile. Single-column cards.
+- **Drop hub:** Share · Rate · Results tabs above those three screens (they keep their addresses). `/drop` opens the
+  tab that fits right now: Share if you haven't shared on a sharing day, otherwise Rate during the week and Results
+  between weeks. "Drop" stays highlighted on all three.
 - **Auth screens** (Landing, Login, Sign Up, Forgot Password, Email Verification): illustration panel and form
   side by side on desktop; illustration becomes a header on mobile.
 
@@ -95,6 +101,61 @@ once the website is hosted (CloudFront), since email needs a public image addres
 | — | Connected Providers & Privacy panel | P8.11 | v1 has **no account connections** (D20). Replace "Connect" buttons with a **Preferred music app** picker (D22). Drop Notifications toggles (out of scope v1). "Vote visibility / Profile visibility" are party settings (D10/D11), not per-user. |
 | — | Mobile Responsive strip | P8.12 | Bottom tab bar layout; check every screen at 320–430 px. |
 | — | Key UX Rules & Callouts strip | — | Mostly matches. "One recommendation per round" → one per day; "Results visible after voting closes" → after the week ends. |
+
+## Mockup v3 (2026-10-09, with spec v2)
+
+Three sheets Ethan supplied with `docs/SPEC_V2.md`. Same visual language as above; they add screens for Phase 13.
+**Precedence is unchanged:** keep the look, follow `PRODUCT_DECISIONS.md` (D26–D33) for behaviour. Several panels
+show features we can't or won't build (account "Connect" buttons, Amazon Music/Tidal, push/email toggles, a tiny
+mini-player); the adaptations say what replaces them.
+
+### `mockup-v3-history.webp` — History
+
+![Mockup v3 history](mockup-v3-history.webp)
+
+| # | Panel | Task | Adaptation |
+|---|---|---|---|
+| 1 | History / Calendar (month grid, Today / This Week cards, Quick Stats, Calendar ↔ List toggle) | P13.8 | As drawn. "1 round completed" → the week the day belongs to; Quick Stats = weeks, songs, ratings. Activity dots and ★ per D31. |
+| 2 | Day view (averages, top song, the day's songs with avg + your rating) | P13.8 | Ratings only for closed weeks; open-week days say "Results after ratings lock". "Top Song of the Day" = **Bop of the Day** (D12). |
+| 3 | Week view (averages, top songs, distribution, top artists) | P13.8 | As drawn, plus the **"Your week"** section (D26). "3 rounds" → one week. |
+| 4 | Day details expanded (Overview / Songs / Ratings / Stats tabs, rating trend, notes) | P13.8 | Tabs fold into one scrolling page on mobile. **No Export button and no Notes** (not in the spec's requirements; notes would be a new messaging feature). Rating trend only if it adds something over the distribution. |
+| 5 | Week overview detail (daily breakdown, distribution, top songs) | P13.8 | Daily breakdown rows link to Day view. No Export. |
+| 6 | Mobile calendar | P13.8 / P13.13 | Bottom bar per D32 (the drawing shows an older bar). |
+
+### `mockup-v3-music.webp` — Music
+
+![Mockup v3 music](mockup-v3-music.webp)
+
+| # | Panel | Task | Adaptation |
+|---|---|---|---|
+| 1 | Song Details with embedded player (Spotify "Connected") | P13.5 / P13.4 | The player is **YouTube's own embedded player** (visible, ≥ 200 × 200 px per P13.2), shown only when the sharer linked a YouTube video and labelled "YouTube video linked by the sharer". No Spotify connection (D27). Shuffle / skip buttons don't apply (one song). |
+| 2 | Song Details, external links (not connected) | P13.5 | This is the **default** look: "Listen on" buttons for the links that exist (Apple Music badge, Spotify, YouTube Music), preferred app first (D22). |
+| 3 | Link Music Account modal | — | **Not built.** No provider accounts are connected (D27). Settings → Music explains why. |
+| 4 | Spotify OAuth screen | — | **Not built** (spec §4: no Spotify in the first release). |
+| 5 | Linked Account settings (Spotify, Apple, YouTube Music, YouTube, Amazon, Tidal) | P13.6 | Becomes **Settings → Music**: Apple Music (links only, why), YouTube (embedded videos, "Play videos in Drop a Bop" toggle), Spotify (links only), preferred app. No Amazon/Tidal. No Connect/Disconnect buttons. |
+| 6 | Embedded player, mobile | P13.3 | **Play card** (Ethan, 2026-10-09): docked above the bottom bar; a "Now playing" row with the close X, then the video (full card width × 200 px, YouTube's minimum height), then title and our controls below, never on top of the video. Short landscape screens: 200 × 200 video beside the controls. Desktop: bottom-right card, 24 rem wide. Pages get extra bottom space while it's open, so rating stays reachable. A controls-only (no video) player isn't allowed for YouTube. |
+| 7 | Mobile link-account screen | — | Not built (as 3). |
+| 8 | Song card with player controls | P13.4 | Card gets "▶ Play video" + "View song details"; controls come from the YouTube player itself. |
+
+### `mockup-v3-screens.webp` — Other screens
+
+![Mockup v3 screens](mockup-v3-screens.webp)
+
+| # | Panel | Task | Adaptation |
+|---|---|---|---|
+| 14 | Invite friends (link, code, QR) | — (exists, P8.10) | Invite link + code exist. QR code not added (would need a new dependency for little gain; can be added later). |
+| 15 | Party settings (General / Members / Rounds / Voting / Music tabs, Delete Party) | — (exists) | Existing settings stay. **No Delete Party** (deleting data is out of scope and a human action). "Rounds" = sharing days + lock time (P8.13). |
+| 16 | Notifications settings (in-app, email, push) | P13.6 / P13.10 | **In-app switches only** (D29). No email or push. |
+| 17 | Achievements grid | P13.9 | As drawn with D28's list; locked ones show progress. |
+| 18 | Song details page (distribution, user ratings, provider list) | P13.5 | "User ratings" with names only if the party shows who rated what (D11). Provider list = existing links only, no Amazon. |
+| 19 | Weekly summary | P13.8 | The "Your week" section of the Week view. "Top genres" only for songs with a genre (P13.7). |
+| 1.9 | Group stats (Overview / Genres / Artists / Trends) | P13.11 | Genres tab hidden until enough songs have genres. |
+| 22 | Search results (All / Songs / Artists / Albums, "Select") | P13.12 | Party-scoped (D33): All / Songs / Artists / Members / History. "Select" opens Song Details (picking a new song stays in Share). |
+| 23 | Profile / account | P13.11 / P13.6 | Profile shows stats + badges; account items move to Settings. "Connected providers" → preferred app only. |
+| 24 | Mobile navigation | P13.13 | D32 bar. |
+| 24 | Settings – Music providers | P13.6 | As panel 5 of the music sheet. |
+| 25 | Error & empty states | each task | As drawn; "Connection failed … Spotify" becomes a generic "We couldn't play this here" (spec §14). |
+| 16 | Help / how it works | P13.6 | Existing `/how-it-works` + a "Listening in Drop a Bop" section. FAQ/contact link only if there's a real destination. |
 
 ## Open questions (defaults in use until Ethan says otherwise)
 

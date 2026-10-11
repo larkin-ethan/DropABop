@@ -72,6 +72,36 @@ export const AVATAR_IMAGE_MAX_LENGTH = 9_000;
 /** Shown until the person picks a name during onboarding (P8.2). */
 export const DEFAULT_DISPLAY_NAME = 'New member';
 
+/**
+ * Version of the privacy policy and terms (docs/PRIVACY.md, ADR-0011). YouTube requires people to agree before using
+ * its player; bumping this asks everyone to agree again.
+ */
+export const PRIVACY_POLICY_VERSION = '2026-10-09';
+
+/**
+ * In-app YouTube playback is offered only for songs shared in the last 30 days (ADR-0011: cautious reading of
+ * YouTube's 30-day rule). Older songs keep their plain link.
+ */
+export const IN_APP_VIDEO_MAX_AGE_DAYS = 30;
+
+/**
+ * In-app notification types (D29). Each can be switched off in Settings → Notifications. `achievements` covers the
+ * "Achievement unlocked" banner and the achievements listed on the Notifications page.
+ */
+export const NOTIFICATION_TYPES = [
+  'toRate',
+  'shareToday',
+  'results',
+  'weeklyRank',
+  'comments',
+  'achievements',
+] as const;
+
+/** ADR-0012: YouTube allows the whole app 100 searches a day, so each person gets at most this many. */
+export const YOUTUBE_SEARCHES_PER_PERSON_PER_DAY = 15;
+/** ADR-0012: every stored YouTube video id is deleted this many days after the song is shared (30-day rule). */
+export const YOUTUBE_VIDEO_KEEP_DAYS = 29;
+
 /** Avatar background colors from the design palette (docs/design), D18. Also the choices on the Profile screen. */
 export const AVATAR_COLORS = [
   '#3B82F6',

@@ -49,6 +49,17 @@ export function parseAppleMusicSongUrl(url: string): string | null {
   return null;
 }
 
+/**
+ * The YouTube video a sharer linked to this song, if any (P13.4). Read from the stored link rather than trusted
+ * blindly, so only a valid 11-character id ever reaches the player.
+ */
+export function youtubeVideoId(song: {
+  providers: { provider: string; externalUrl: string }[];
+}): string | null {
+  const link = song.providers.find((p) => p.provider === 'youtube' || p.provider === 'youtubeMusic');
+  return link === undefined ? null : parseYouTubeUrl(link.externalUrl);
+}
+
 /** Canonical links we store (no tracking parameters). */
 export const canonicalLinks = {
   spotify: (id: string) => `https://open.spotify.com/track/${id}`,

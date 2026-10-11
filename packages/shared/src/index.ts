@@ -8,3 +8,4 @@ export * from './schemas';
 export * from './links';
 export * from './schedule';
 export * from './api-types';
+export * from './privacy';

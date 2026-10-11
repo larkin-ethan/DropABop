@@ -43,7 +43,7 @@ Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend us
 ### Rate limits (P9.1)
 
 API Gateway limits each route for **all callers together** (requests per second / short burst; 429 above them).
-Default 25/s, burst 50. Tighter: song search 3/s (burst 10), resolve link 2/s (5), invite preview and join 2/s (5),
+Default 25/s, burst 50. Tighter: song search 3/s (burst 10), party search 5/s (10), resolve link 2/s (5), invite preview and join 2/s (5),
 create party and new invite link 1/s (3), settings / profile / remove member 2/s (5), share a song 5/s (10), rate
 10/s (20). Per-person limits come from the rules themselves: 5 parties per person, one song per day, invite code
 required. Sign-in is protected by Cognito: after 5 wrong passwords an account is locked for 1 s, doubling each time
@@ -78,7 +78,7 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 
 ```json
 {
-  "user": { "userId": "…", "displayName": "Ethan", "avatarColor": "#3B82F6", "preferredProvider": null, "createdAt": "…" },
+  "user": { "userId": "…", "displayName": "Ethan", "avatarColor": "#3B82F6", "preferredProvider": null, "privacyAcceptedAt": "…", "privacyVersion": "2026-10-09", "createdAt": "…" },
   "parties": [{ "partyId": "…", "partyName": "Ethan's Music Party", "role": "host", "joinedAt": "…" }]
 }
 ```
@@ -87,8 +87,14 @@ generated avatar color; D18). Code: `services/api/src/handlers/users.ts`.
 
 Body (`updateProfileRequestSchema`, at least one field): `displayName` (1–40 chars, trimmed), `avatarColor`
 (`#RRGGBB`), `avatarImage` (profile picture: a `data:image/jpeg|webp;base64,…` URL up to 9,000 characters, or
-`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22).
-Updates only the given fields; your name/color in party member lists updates too.
+`null` to remove it; D18), `preferredProvider` (`spotify` | `appleMusic` | `youtube` | `youtubeMusic` | `null`, D22), `playInApp` (`true` |
+`false`: the "Play videos in Drop a Bop" switch, D27; missing on a profile = on), `notificationPrefs` (an object of
+`toRate`, `shareToday`, `results`, `weeklyRank`, `comments`, `achievements`, each `true`/`false`; D29; missing = on;
+the object you send replaces the saved one, so send every type you care about),
+`acceptPrivacy` (only `true`: agree to the privacy policy and terms, ADR-0011; the server saves `privacyAcceptedAt`
+from its own clock and `privacyVersion` = the current `PRIVACY_POLICY_VERSION`, so neither can be sent).
+Updates only the given fields; your name/color in party member lists updates too. `privacyAcceptedAt` /
+`privacyVersion` are missing on profiles that never agreed; the website asks again when the version changes.
 
 `200`: `{ "user": { … } }`. Errors: `400 VALIDATION_FAILED` (bad value, empty update, or any unexpected field such
 as `userId`).
@@ -214,11 +220,16 @@ Share today's song. Body:
 
 ```json
 { "provider": "appleMusic", "providerSongId": "828259377",
-  "links": { "spotify": "https://open.spotify.com/track/…", "youtube": "https://youtu.be/…" } }
+  "links": { "spotify": "https://open.spotify.com/track/…", "youtube": "https://youtu.be/…" },
+  "youtubeSource": "search" }
 ```
 
 `providerSongId` is the iTunes/Apple Music track id from song search (ADR-0007). `links` is optional: the sharer's
 own Spotify/YouTube links to the same song, validated and stored as clean URLs (tracking parameters removed).
+`youtubeSource` (optional, `pasted` | `search`) says whether the YouTube link is the sharer's own or the
+`GET /songs/youtube` result they kept. It's an informational label stored with the video, never shown or used for
+any decision, so it isn't verified. Since ADR-0012 the YouTube video is stored in its own item that DynamoDB
+deletes 29 days after sharing; song lists include it (as a `youtube` provider) only until then.
 Nothing else is accepted (no title, artwork, or date). The server decides today's date in the week's timezone and
 looks the song up itself.
 
@@ -235,7 +246,7 @@ The week's songs so far, oldest first. `200`: `{ "round": Round, "songs": SongVi
 {
   "recommendationId": "…", "weekday": "MON", "submittedOn": "2026-10-05",
   "song": { "songId": "…", "title": "…", "artist": "…", "album": "…", "albumArtUrl": "https://…",
-            "durationMs": 243000, "releaseDate": "…", "providers": [{ "provider": "spotify", "providerSongId": "…", "externalUrl": "https://…" }] },
+            "durationMs": 243000, "releaseDate": "…", "genre": "Electronic", "providers": [{ "provider": "spotify", "providerSongId": "…", "externalUrl": "https://…" }] },
   "isMine": false,
   "myRating": 8
 }
@@ -327,19 +338,106 @@ Results only change when a week closes, so clients should cache these.
 
 Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRecommended` (number),
 `highestRatedRecommendation`, `lowestRatedRecommendation`, `generosity`, `ratingDistribution` (10 counts),
-`favoriteArtists` (top 3), `musicalTwin`. Errors: `400` (missing partyId), `403 NOT_A_MEMBER`,
+`favoriteArtists` (top 3), `musicalTwin`, `ratingsGiven` (number), `favoriteGenres` (top 3, like favourite artists),
+`recentSongs` (your latest 5 songs from closed weeks: `recommendationId`, `roundId`, `submittedOn`, `title`, `artist`,
+`albumArtUrl`, exact `average` or null, `ratingCount`), `lastWeekRank` (`{ roundId, weekStart, position, of }` for the
+most recent closed week, or null if none of your songs were rated in it; P13.11). Errors: `400` (missing partyId), `403 NOT_A_MEMBER`,
 `404 NOT_FOUND` (unknown party).
 
 #### `GET /parties/{partyId}/stats`
 
 `songsShared`, `ratingsGiven`, `highestRatedSong`, `crowdFavorite`, `mostDivisive`, `mostControversial`,
-`everyoneAgreed`, `darkHorse`, `mostGenerousVoter`, `toughestCritic`. Members only.
+`everyoneAgreed`, `darkHorse`, `mostGenerousVoter`, `toughestCritic`, and (P13.11) `memberCount`, `groupAverage`,
+`ratingDistribution` (10 counts), `topArtists` (`{ artist, songCount }`, top 3 with ties), `mostConsistent`,
+`weeklyActivity` and `monthlyActivity` (newest first, up to 12 each: `{ period, weeks, songs, ratings, average }`,
+`period` = the week's Monday or the lock month `YYYY-MM`). Members only.
 
-#### `GET /parties/{partyId}/leaderboard`
+#### `GET /parties/{partyId}/leaderboard?period=week|month|all`
 
-`highestAverageSongRating` (songs, with `song` summary), `highestAverageRecommendationScore`, `mostConsistent`,
-`mostSurprising`, `mostPopular`: each a ranked list of `{ id, rank, value, sampleSize }` containing only entries
-that meet the minimum sample. Ties share a rank. Members only.
+`period` (D30, default `all`): `week` = the most recent closed week; `month` = closed weeks whose ratings locked in
+the current calendar month (party timezone); `all` = every closed week. Unknown values → `400`. The response echoes
+`period`, and `weeksPlayed` counts the weeks in it.
+
+Song boards, ranked lists of `{ id, rank, value, sampleSize, song }`: `highestAverageSongRating`, `crowdFavorites`.
+Person boards, each `{ ranked: [{ id, rank, value, sampleSize }], provisional: [{ id, sampleSize }], required }`:
+`highestAverageReceived`, `highestAverageGiven`, `mostBops`, `mostRatings`, `mostGenerous`, `toughestCritic`,
+`mostConsistent`, `mostSurprising`, `mostPopular`. Only people meeting `required` are ranked; people with some data
+but below it are in `provisional` (most data first) **with no value**, so they never appear to outrank anyone.
+Ties share a rank. Members only (`403 NOT_A_MEMBER`).
+
+### Search
+
+#### `GET /parties/{partyId}/search?q=…&type=all|songs|artists|members|weeks&cursor=…`
+
+Searches **only this party** (P13.12, D33): its shared songs (title, artist, album), artists, current members (by
+name) and weeks (by date: `2026-10-05`, `October 5`, `Oct 5`, `week of October`). Nothing outside the party and no
+external music search. Code: `services/api/src/handlers/search.ts`, matching in `services/api/src/domain/search.ts`.
+Members only: a non-member gets `403 NOT_A_MEMBER` before the query is even checked.
+
+- `q`: 2–100 characters; case- and accent-insensitive; matches that start a word come first.
+- `type` (default `all`): `all` returns the best 5 of each category and `nextCursor: null`; a single category
+  returns 20 at a time (the other lists are empty) and `nextCursor` (a position, e.g. `"20"`) until the last page.
+- `200`: `{ q, type, songs, artists, members, weeks, totals: { songs, artists, members, weeks }, nextCursor,
+  truncated }`.
+  - `songs[]`: `{ recommendationId, roundId, submittedOn, title, artist, album, albumArtUrl, weekOpen, isMine,
+    recommendedBy? }`. While the song's week is open, `recommendedBy` is **left out** unless it's your song or that
+    week reveals sharers (D10). Search never returns ratings or averages (D9).
+  - `artists[]`: `{ artist, songCount }` (spelling-insensitive). `members[]`: `MemberName`. `weeks[]`: `{ roundId,
+    weekStart, status, songCount }` (status from the server clock).
+  - `truncated`: true when the party has more than 5,000 songs; the newest 5,000 were searched.
+- Errors: `400 VALIDATION_FAILED` (short/long `q`, unknown `type`, bad `cursor`), `403 NOT_A_MEMBER`. Rate limit: 5/s, bursts of 10.
+
+### History
+
+#### `GET /parties/{partyId}/history?month=2026-10`
+
+The history calendar (P13.8, D31). Code: `services/api/src/handlers/history.ts`, numbers in
+`services/api/src/domain/history.ts` (definitions in STATISTICS.md → History). Members only. `month`: `YYYY-MM`.
+`200`: `{ "month", "weeks": HistoryWeek[], "members": MemberName[] }`: every week that overlaps the month (whole
+weeks, oldest first), each with `roundId`, `weekStart`, `endsAt`, `status` (from the server clock), `days` (every
+sharing day: `date`, `weekday`, `songCount`, `iShared`, `personalBest`, `stats`), `summary` and `yourWeek`.
+Ratings appear only for weeks whose ratings have locked (`status: CLOSED`); open weeks and weeks without results
+have `stats`, `summary` and `yourWeek` set to `null` (D9). Who rated what is never included. Errors: `400
+VALIDATION_FAILED` (bad month), `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+
+### Notifications
+
+#### `GET /parties/{partyId}/notifications`
+
+In-app notifications for one party (P13.10, D29). Code: `services/api/src/handlers/notifications.ts`, rules in
+`domain/notifications.ts`. Members only. Worked out on request from this week and the latest week with results
+(key queries only), so the bell can check every few minutes. `200`: `{ "notifications": [{ "id", "type", "time",
+"title", "detail", "link" }], "unreadCount", "seenAt" }`, newest first. Types: `toRate` (songs waiting for your
+rating), `shareToday` (a sharing day and you haven't shared), `comments` (others' comments on your songs this
+week), `results` (latest weekly results), `weeklyRank` (your place last week). Types switched off in your
+`notificationPrefs` are left out. Unread = newer than when you last opened your notifications in this party
+(`seenAt`; all of them if you've never looked). Achievement news isn't here (it needs the whole history): the website
+adds it from the achievements endpoint on the Notifications page, and it isn't counted in the bell.
+
+#### `POST /parties/{partyId}/notifications/seen`
+
+Members only, no body. Records "seen now" (server time) on your own party link, so it's per party. `200`:
+`{ "seenAt": "…" }`.
+
+### Achievements
+
+Code: `services/api/src/handlers/achievements.ts`, rules in `services/api/src/domain/achievements.ts` (D28,
+STATISTICS.md → Achievements). Worked out on request from closed weeks; nothing is stored as an award.
+
+#### `GET /parties/{partyId}/achievements?memberId=`
+
+Members only. Without `memberId`: your own; with it: another member's (members can see each other's, D28;
+`404 NOT_FOUND` if they aren't in the party). `200`: `{ "memberId", "achievements": Achievement[], "unlockedCount",
+"newlyUnlocked": string[], "seenAt" }`. Each achievement: `id`, `group`, `title`, `description`, `emoji`,
+`unlocked`, `unlockedOn` (the lock time of the first closed week that earned it, or `null`), `unlockedDay` (that
+lock as a day in the party's timezone) and `progress: { current, target, label }`. For another member, First 1,
+First 10 and Full House have `unlockedOn`/`unlockedDay` set to `null` even when `unlocked` (D11). `newlyUnlocked` (your own only) lists ids unlocked after `seenAt`; it's empty the first time (`seenAt:
+null`). Errors: `400 VALIDATION_FAILED`, `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
+
+#### `POST /parties/{partyId}/achievements/seen`
+
+Members only, no body. Records "seen now" (server time) on your own party link, which clears `newlyUnlocked`.
+`200`: `{ "seenAt": "…" }`.
 
 ### Song search
 
@@ -358,4 +456,15 @@ it). Errors: `400 VALIDATION_FAILED`, `502 PROVIDER_UNAVAILABLE` ("Song search i
 Paste an Apple Music song link instead of searching (D21). Body: `{ "url": "https://music.apple.com/us/album/…?i=…" }`
 (or `…/song/<name>/<id>`). `200`: `{ "song": Song }`. Errors: `400 VALIDATION_FAILED` (not an Apple Music song
 link, or Apple doesn't have the song), `502 PROVIDER_UNAVAILABLE`.
+
+#### `GET /songs/youtube?providerSongId=828259377`
+
+Suggest YouTube videos for the song being shared (ADR-0012). `providerSongId`: the iTunes track id (digits). The
+server looks the song up in iTunes and makes one YouTube Data API `search.list` call for "artist title" (embeddable
+music videos, up to 3), cached for an hour per song. `200`:
+`{ "videos": [{ "videoId": "…", "title": "…", "channelTitle": "…" }], "unavailable": null }`, in YouTube's order
+with text as YouTube returned it. Instead of an error, `videos` is empty and `unavailable` says why:
+`notConfigured` (no API key set up), `dailyLimit` (this person's 15 YouTube searches for today are used; cached answers don't count), `busy` (YouTube's
+daily quota used up, or YouTube didn't answer). Errors: `400 VALIDATION_FAILED`, `404 NOT_FOUND` (no such song),
+`502 PROVIDER_UNAVAILABLE` (iTunes). Rate limit: 1/s, bursts of 3.
 

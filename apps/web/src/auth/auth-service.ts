@@ -12,24 +12,31 @@ export interface AuthService {
   getCurrentUserId: () => Promise<string | null>;
   /** A valid access token (refreshed automatically when needed), or null if signed out. */
   getAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string | null>;
-  signUp: (email: string, password: string) => Promise<void>;
+  /** Returns the new account's Cognito id (`sub`) when Cognito reports it, so consent can be tied to it. */
+  signUp: (email: string, password: string) => Promise<{ userId: string | null }>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   resendSignUpCode: (email: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<SignInResult>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  /** The signed-in person's email, read from Cognito (we don't store it ourselves, D19). */
+  getEmail: () => Promise<string | null>;
+  /** Change the password while signed in (Settings → Account). */
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 /** For the sample-data preview (dev only): always signed in as the sample user, no network. */
 export const previewAuthService: AuthService = {
   getCurrentUserId: () => Promise.resolve('me'),
   getAccessToken: () => Promise.resolve('preview-token'),
-  signUp: () => Promise.resolve(),
+  signUp: () => Promise.resolve({ userId: 'me' }),
   confirmSignUp: () => Promise.resolve(),
   resendSignUpCode: () => Promise.resolve(),
   signIn: () => Promise.resolve({ status: 'signedIn' }),
   signOut: () => Promise.resolve(),
   resetPassword: () => Promise.resolve(),
   confirmResetPassword: () => Promise.resolve(),
+  getEmail: () => Promise.resolve('you@example.com'),
+  changePassword: () => Promise.resolve(),
 };

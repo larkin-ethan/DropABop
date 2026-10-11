@@ -11,6 +11,9 @@ import type {
   GroupStatsResponse,
   InviteCodeResponse,
   InvitePreviewResponse,
+  LeaderboardPeriod,
+  PartySearchResponse,
+  PartySearchType,
   LeaderboardResponse,
   MeResponse,
   PartyResponse,
@@ -25,6 +28,10 @@ import type {
   UpdateProfileRequest,
   VoteResponse,
   WeekSongsResponse,
+  YouTubeSuggestionsResponse,
+  HistoryResponse,
+  AchievementsResponse,
+  NotificationsResponse,
 } from '@dropabop/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
@@ -45,8 +52,11 @@ export const keys = {
   invite: (code: string) => ['invite', code] as const,
   personalStats: (partyId: string) => ['personalStats', partyId] as const,
   groupStats: (partyId: string) => ['groupStats', partyId] as const,
-  leaderboard: (partyId: string) => ['leaderboard', partyId] as const,
+  leaderboard: (partyId: string, period?: LeaderboardPeriod) =>
+    period === undefined ? (['leaderboard', partyId] as const) : (['leaderboard', partyId, period] as const),
   search: (q: string) => ['search', q] as const,
+  partySearch: (partyId: string, q: string, type: PartySearchType) =>
+    ['partySearch', partyId, q, type] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -162,11 +172,12 @@ export function useGroupStats(partyId: string | null) {
   });
 }
 
-export function useLeaderboard(partyId: string | null) {
+export function useLeaderboard(partyId: string | null, period: LeaderboardPeriod = 'all') {
   const api = useApi();
   return useQuery({
-    queryKey: keys.leaderboard(partyId ?? ''),
-    queryFn: () => api.get<LeaderboardResponse>(`/parties/${enc(partyId ?? '')}/leaderboard`),
+    queryKey: keys.leaderboard(partyId ?? '', period),
+    queryFn: () =>
+      api.get<LeaderboardResponse>(`/parties/${enc(partyId ?? '')}/leaderboard?period=${period}`),
     enabled: partyId !== null,
     staleTime: STATS_STALE_MS,
   });
@@ -181,6 +192,105 @@ export function useSongSearch(q: string) {
     queryFn: () => api.get<SongSearchResponse>(`/songs/search?q=${enc(query)}`),
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+/**
+ * Party search (P13.12, D33). Runs for 2+ characters. Pages (for one category) load with "Show more"; results are
+ * kept for a minute so switching tabs back and forth doesn't ask again.
+ */
+export function usePartySearch(partyId: string | null, q: string, type: PartySearchType) {
+  const api = useApi();
+  const query = q.trim();
+  return useInfiniteQuery({
+    queryKey: keys.partySearch(partyId ?? '', query, type),
+    queryFn: ({ pageParam }) =>
+      api.get<PartySearchResponse>(
+        `/parties/${enc(partyId ?? '')}/search?q=${enc(query)}&type=${type}${pageParam ? `&cursor=${enc(pageParam)}` : ''}`,
+      ),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: partyId !== null && query.length >= 2,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+/**
+ * In-app notifications (P13.10, D29). Checked when you come back to the app and at most every 5 minutes while it's
+ * open (no real-time connection). The server reads only this week and last week, so this stays cheap.
+ */
+export function useNotifications(partyId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['notifications', partyId ?? ''] as const,
+    queryFn: () => api.get<NotificationsResponse>(`/parties/${enc(partyId ?? '')}/notifications`),
+    enabled: partyId !== null,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+/** "I've read my notifications" in this party: the server records the time. */
+export function useMarkNotificationsSeen(partyId: string | null) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ seenAt: string }>(`/parties/${enc(partyId ?? '')}/notifications/seen`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', partyId ?? ''] }),
+  });
+}
+
+/** Achievements in a party (P13.9): yours, or another member's. They only change when a week closes. */
+export function useAchievements(partyId: string | null, memberId?: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['achievements', partyId ?? '', memberId ?? 'me'] as const,
+    queryFn: () =>
+      api.get<AchievementsResponse>(
+        `/parties/${enc(partyId ?? '')}/achievements${memberId === undefined ? '' : `?memberId=${enc(memberId)}`}`,
+      ),
+    enabled: partyId !== null,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** "I've seen my achievements": clears the unlock banner. */
+export function useMarkAchievementsSeen(partyId: string | null) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ seenAt: string }>(`/parties/${enc(partyId ?? '')}/achievements/seen`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['achievements', partyId ?? ''] }),
+  });
+}
+
+/** One month of the history calendar (P13.8). Past months don't change, so they're kept for a while. */
+export function useHistory(partyId: string | null, month: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['history', partyId ?? '', month] as const,
+    queryFn: () => api.get<HistoryResponse>(`/parties/${enc(partyId ?? '')}/history?month=${enc(month)}`),
+    enabled: partyId !== null,
+    // Months before this one only change when a week closes, so they're kept longer (ADR-0006: computed on read).
+    staleTime: month < new Date().toISOString().slice(0, 7) ? 10 * 60_000 : 60_000,
+  });
+}
+
+/**
+ * YouTube videos for the song being shared (ADR-0012). One search per chosen song, so it's kept for an hour and
+ * never retried automatically (YouTube allows the whole app 100 searches a day).
+ */
+export function useYouTubeSuggestions(providerSongId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['youtubeSuggestions', providerSongId ?? ''] as const,
+    queryFn: () =>
+      api.get<YouTubeSuggestionsResponse>(`/songs/youtube?providerSongId=${enc(providerSongId ?? '')}`),
+    enabled: providerSongId !== null,
+    staleTime: 60 * 60_000,
     retry: false,
   });
 }
