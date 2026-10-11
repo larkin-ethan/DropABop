@@ -59,6 +59,15 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-11 — **P13.16 (dev part done)** — Ethan ran `bash scripts/deploy.sh dev` (commit 5b6b1c6): changeset added
+  the 6 Phase 13 functions (history, achievements ×2, notifications ×2, search) with their roles, modified the rest,
+  deleted nothing; `UPDATE_COMPLETE`. Dev hosts no website (HostWebsite off), so nothing was published. Smoke:
+  `node scripts/smoke-dev.mjs` **54/54 passed** (a Sunday: sharing correctly closed, 409 WEEKEND; rating, comments,
+  history, achievements, notifications, leaderboard periods, search and the non-member refusal all checked). Fixed
+  on the way: the smoke script's "users exist but `.test-users.json` was lost" path skipped the password reset, so
+  sign-in failed; it now resets the passwords (file re-created, git-ignored). Leftover: **prod** (Ethan): its YouTube
+  key in SSM (DEPLOYMENT.md §4e step 5), Phase 13 merged to `main`, then `bash scripts/deploy.sh prod`.
+
 - 2026-10-11 — **Planning: saved songs (D34, Phase 14)** — Ethan chose option A (a playlist inside the app; no
   Apple/YouTube/Spotify sign-in) and answered the edge cases: private to the owner; any song shared in your parties,
   yours included; kept after leaving a party; one list; saving allowed in open weeks with the sharer hidden until

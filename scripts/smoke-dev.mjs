@@ -47,20 +47,23 @@ if (existsSync(usersFile)) {
     password: `Aa1-${randomBytes(18).toString('base64url')}`,
   }));
   for (const u of users) {
-    if (cognitoUserExists(u.email)) continue; // the file was lost (e.g. a fresh clone): just set a new password below
-    aws([
-      'cognito-idp',
-      'admin-create-user',
-      '--user-pool-id',
-      poolId,
-      '--username',
-      u.email,
-      '--user-attributes',
-      'Name=email,Value=' + u.email,
-      'Name=email_verified,Value=true',
-      '--message-action',
-      'SUPPRESS',
-    ]);
+    // If the file was lost (e.g. a fresh clone) the user already exists: skip creating it, but still set the new
+    // password below so the file and Cognito agree.
+    if (!cognitoUserExists(u.email)) {
+      aws([
+        'cognito-idp',
+        'admin-create-user',
+        '--user-pool-id',
+        poolId,
+        '--username',
+        u.email,
+        '--user-attributes',
+        'Name=email,Value=' + u.email,
+        'Name=email_verified,Value=true',
+        '--message-action',
+        'SUPPRESS',
+      ]);
+    }
     aws([
       'cognito-idp',
       'admin-set-user-password',
