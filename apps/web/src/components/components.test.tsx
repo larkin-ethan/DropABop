@@ -8,7 +8,7 @@ import { RatingControl } from './RatingControl';
 import { ListenLinks, RatingBadge, SongRow } from './SongRow';
 import { EmptyState, ErrorState, LoadingState } from './States';
 import { Leaderboard, RatingDistribution, StatCard } from './Stats';
-import { AlbumArt, Avatar, ProgressBar } from './ui';
+import { AlbumArt, Avatar, ProgressBar, buttonClassName } from './ui';
 
 function ControlledRating({ onChange = () => {} }: { onChange?: (n: number) => void }) {
   const [value, setValue] = useState<number | null>(null);
@@ -266,5 +266,16 @@ describe('SongRow and ListenLinks', () => {
       'href',
       'https://music.youtube.com/search?q=M83%20Midnight%20City',
     );
+  });
+});
+
+describe('buttonClassName', () => {
+  it('uses its own padding when the caller sets one (two padding classes don’t override reliably)', () => {
+    const classes = (extra?: string) => buttonClassName('ghost', extra).split(/\s+/);
+    expect(classes()).toEqual(expect.arrayContaining(['px-5', 'py-2.5']));
+    expect(classes('px-3 text-sm')).toContain('px-3');
+    expect(classes('px-3 text-sm')).not.toContain('px-5');
+    expect(classes('py-3')).not.toContain('py-2.5');
+    expect(classes('py-3')).toContain('px-5');
   });
 });

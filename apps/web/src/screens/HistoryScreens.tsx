@@ -179,19 +179,20 @@ export function HistoryCalendarScreen() {
           >
             <Icon name="arrowLeft" className="size-4" />
           </Link>
-          <h2 className="text-lg font-bold">{monthTitle(month)}</h2>
-          <div className="flex items-center gap-1">
-            <Link to="/history" className={buttonClassName('ghost', 'px-3 text-sm')}>
-              Today
-            </Link>
-            <Link
-              to={`/history?month=${shiftMonth(month, 1)}`}
-              aria-label="Next month"
-              className={buttonClassName('ghost', 'px-3')}
-            >
-              <Icon name="arrowLeft" className="size-4 rotate-180" />
+          {/* "Today" sits under the month name: beside it, the bar didn't fit a 320 px phone for long month names. */}
+          <div className="min-w-0 flex-1 text-center">
+            <h2 className="text-base font-bold sm:text-lg">{monthTitle(month)}</h2>
+            <Link to="/history" className="text-xs font-semibold text-blue hover:underline">
+              Back to today
             </Link>
           </div>
+          <Link
+            to={`/history?month=${shiftMonth(month, 1)}`}
+            aria-label="Next month"
+            className={buttonClassName('ghost', 'px-3')}
+          >
+            <Icon name="arrowLeft" className="size-4 rotate-180" />
+          </Link>
         </div>
         <MonthData month={month}>{(data) => <Calendar month={month} data={data} />}</MonthData>
       </Card>

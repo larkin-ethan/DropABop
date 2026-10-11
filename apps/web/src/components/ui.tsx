@@ -31,8 +31,15 @@ const BUTTON_STYLES: Record<ButtonVariant, string> = {
 };
 
 /** Button look for things that aren't <button>s, e.g. a router <Link> that should look like a button. */
+/**
+ * `extra` can set its own padding (e.g. `px-3` for an icon button). Two padding classes on one element don't
+ * reliably override each other (Tailwind orders them by its own rules, not by the class list), so the default
+ * padding is left out when `extra` has its own.
+ */
 export function buttonClassName(variant: ButtonVariant = 'primary', extra = ''): string {
-  return `inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${BUTTON_STYLES[variant]} ${extra}`;
+  const px = /(^|\s)px-/.test(extra) ? '' : 'px-5';
+  const py = /(^|\s)py-/.test(extra) ? '' : 'py-2.5';
+  return `inline-flex items-center justify-center gap-2 rounded-full ${px} ${py} text-sm font-semibold transition disabled:opacity-50 ${BUTTON_STYLES[variant]} ${extra}`;
 }
 
 export function Button({
