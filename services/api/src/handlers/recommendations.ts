@@ -12,6 +12,7 @@ import {
 } from '@dropabop/shared';
 import { parseRoundId } from '../data/keys';
 import { listMySubmissionDates, listWeekRecommendations, putRecommendation } from '../data/recommendations';
+import { ensureSharedSongsIndexed } from '../data/shared-songs';
 import { withYouTubeVideo } from '../data/youtube-videos';
 import { listMyWeekVotes } from '../data/votes';
 import { toOpenWeekSongView } from '../domain/results';
@@ -95,7 +96,9 @@ export const submitRecommendationFn: HandlerFn = async (event, { data, now, newI
     youtubeId === null
       ? undefined
       : { videoId: youtubeId, source: request.youtubeSource ?? ('pasted' as const) };
-  await putRecommendation(data, recommendation, video, current);
+  // D35: a song shared in this party before can't be shared again (the transaction refuses it, races included).
+  await ensureSharedSongsIndexed(data, party.partyId);
+  await putRecommendation(data, recommendation, video, current, { blockRepeats: true });
   return created({
     song: toOpenWeekSongView(
       withYouTubeVideo(recommendation, youtubeId ?? undefined),

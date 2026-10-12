@@ -195,12 +195,16 @@ await call('GET rounds (history)', 'GET', `/parties/${partyId}/rounds`, t1.acces
 const search = await call(
   'GET /songs/search?q=midnight city',
   'GET',
-  '/songs/search?q=midnight%20city',
+  `/songs/search?q=midnight%20city&partyId=${partyId}`,
   t1.access,
   null,
   [200],
 );
-const song = search?.songs?.[0];
+// D35: the smoke party is reused, so pick a song it hasn't shared yet (each recording only once per party).
+const alreadyShared = search?.alreadyShared ?? {};
+const song = search?.songs?.find((s) => alreadyShared[s.songId]?.sameRecording !== true);
+const takenSong = search?.songs?.find((s) => alreadyShared[s.songId]?.sameRecording === true);
+print(`     already shared in the smoke party: ${Object.keys(alreadyShared).length}`);
 // The Apple Music id is inside the song's provider list, the same way the website reads it (ShareScreen).
 const appleSongId = song?.providers?.find((p) => p.provider === 'appleMusic')?.providerSongId;
 print(`     search: ${search?.songs?.length ?? 0} songs`);
@@ -213,6 +217,9 @@ await call(
   [400],
 );
 
+// D34: a song u2 saves from the smoke party (checked again after u2 leaves).
+let savedFrom = null;
+let savedTrackId = null;
 if (roundId) {
   // Non-sharing day: sharing is closed (409 WEEKEND). Sharing day: 201, or 409 if this user already shared today.
   const shared = await call(
@@ -223,6 +230,19 @@ if (roundId) {
     { provider: 'appleMusic', providerSongId: appleSongId ?? 'missing-from-search' },
     [201, 409],
   );
+  // D35: a song the party already has is refused (409 ALREADY_SHARED, or ALREADY_SUBMITTED_TODAY if u2 shared today).
+  const repeatSong = shared?.song?.song ?? takenSong;
+  const repeatId = repeatSong?.providers?.find((p) => p.provider === 'appleMusic')?.providerSongId;
+  if (repeatId && week?.today) {
+    await call(
+      'POST already-shared song (u2) -> 409',
+      'POST',
+      `/rounds/${encodeURIComponent(roundId)}/recommendations`,
+      t2.access,
+      { provider: 'appleMusic', providerSongId: repeatId },
+      [409],
+    );
+  }
   const listed = await call(
     'GET recommendations (u2)',
     'GET',
@@ -241,6 +261,39 @@ if (roundId) {
       { rating: 8 },
       [200, 204],
     );
+    await call(
+      'PUT vote 0 on u1 song (u2, D36)',
+      'PUT',
+      `/rounds/${encodeURIComponent(roundId)}/votes/${othersSong.recommendationId}`,
+      t2.access,
+      { rating: 0 },
+      [200, 204],
+    );
+    // D34: save a song to your private list; saving it again changes nothing.
+    const savedBody = { roundId, recommendationId: othersSong.recommendationId };
+    const saved = await call(
+      'POST /users/me/saved (u2)',
+      'POST',
+      '/users/me/saved',
+      t2.access,
+      savedBody,
+      [200, 201],
+    );
+    const savedAgain = await call(
+      'POST saved again (u2) -> alreadySaved',
+      'POST',
+      '/users/me/saved',
+      t2.access,
+      savedBody,
+      [200],
+    );
+    print(`     saved: trackId ${saved?.trackId ?? '?'}, alreadySaved again: ${savedAgain?.alreadySaved}`);
+    const list = await call('GET /users/me/saved (u2)', 'GET', '/users/me/saved', t2.access, null, [200]);
+    print(
+      `     saved list: ${list?.total ?? '?'} songs, includes it: ${list?.songs?.some((x) => x.trackId === saved?.trackId)}`,
+    );
+    savedFrom = savedBody;
+    savedTrackId = saved?.trackId ?? null;
     await call(
       'PUT vote on own song (u1) -> 403',
       'PUT',
@@ -407,6 +460,19 @@ await call(
   null,
   [200, 204],
 );
+if (savedFrom) {
+  await call('POST saved (u2 after leaving) -> 403', 'POST', '/users/me/saved', t2.access, savedFrom, [403]);
+}
+if (savedTrackId) {
+  await call(
+    'DELETE /users/me/saved/{trackId} (u2)',
+    'DELETE',
+    `/users/me/saved/${savedTrackId}`,
+    t2.access,
+    null,
+    [204],
+  );
+}
 await call(
   'GET search (u2 after leaving) -> 403',
   'GET',

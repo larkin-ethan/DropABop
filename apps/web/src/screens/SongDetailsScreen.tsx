@@ -17,6 +17,7 @@ import { DAY_NAMES, formatAverage, formatLockTime, formatShortDate, hueFor } fro
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useNow } from '../lib/useNow';
 import { PlayVideoButton } from '../player/PlayVideoButton';
+import { SaveButton } from '../components/SaveButton';
 
 /** Where a song's details live. Used by every song card. */
 export function songDetailsPath(roundId: string, recommendationId: string): string {
@@ -124,6 +125,7 @@ function SongDetails({ item, round }: { item: OpenWeekSongView; round: Round }) 
             submittedOn={item.submittedOn}
             preferred={preferred}
           />
+          <SaveButton roundId={round.roundId} recommendationId={item.recommendationId} song={song} />
         </div>
       </Card>
 

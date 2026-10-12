@@ -43,20 +43,25 @@ test('calendar: Tab to a day with songs, Enter opens its Day view', async ({ pag
   await expect(page).toHaveURL(new RegExp(`${href}$`));
 });
 
-test('rating: arrow keys move through 1–10 and select the rating', async ({ page }) => {
+test('rating: arrow keys move through 0–10 and select the rating (D36)', async ({ page }) => {
   await page.goto('/rate');
   const picker = page.getByRole('radiogroup', { name: /Rate Heat Waves/ });
-  const first = picker.getByRole('radio', { name: '1 out of 10' });
+  const first = picker.getByRole('radio', { name: '0 out of 10', exact: true });
   await tabTo(page, first); // only one radio per song is in the Tab order
   await expectVisibleFocus(page);
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
-  const four = picker.getByRole('radio', { name: '4 out of 10' });
-  await expect(four).toBeFocused();
-  await expect(four).toHaveAttribute('aria-checked', 'true');
+  const three = picker.getByRole('radio', { name: '3 out of 10' });
+  await expect(three).toBeFocused();
+  await expect(three).toHaveAttribute('aria-checked', 'true');
   await page.keyboard.press('End');
   await expect(picker.getByRole('radio', { name: '10 out of 10' })).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Home');
+  await expect(picker.getByRole('radio', { name: '0 out of 10', exact: true })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
 });
 
 test('player: open a video with Enter, Tab to “Close player”, close it with Enter', async ({ page }) => {
@@ -87,4 +92,31 @@ test('achievement banner: Tab reaches View and Dismiss; Enter dismisses it', asy
   await expectVisibleFocus(page);
   await page.keyboard.press('Enter');
   await expect(banner).toHaveCount(0);
+});
+
+test('saved songs: Tab to Save, Enter saves; the Saved songs page lists it', async ({ page }) => {
+  await page.goto('/rate');
+  const save = page.getByRole('button', { name: 'Save Heat Waves to your saved songs' });
+  await tabTo(page, save);
+  await expectVisibleFocus(page);
+  await page.keyboard.press('Enter');
+  const saved = page.getByRole('button', { name: 'Remove Heat Waves from your saved songs' });
+  await expect(saved).toHaveAttribute('aria-pressed', 'true');
+  await page.goto('/saved');
+  // The sample world resets on reload, so this checks the page itself: the empty state's link works by keyboard.
+  const link = page.getByRole('link', { name: /Go to this week’s songs/ });
+  await tabTo(page, link);
+  await expectVisibleFocus(page);
+});
+
+test('scoring key: Tab to “How to score”, Enter closes and opens it (D37)', async ({ page }) => {
+  await page.goto('/rate');
+  const toggle = page.getByRole('button', { name: 'How to score' });
+  await tabTo(page, toggle);
+  await expectVisibleFocus(page);
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true'); // open on the first visit
+  await page.keyboard.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await page.keyboard.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 });

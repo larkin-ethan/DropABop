@@ -498,27 +498,57 @@ stored by our server. Handle cancel, failure, expiry, revocation and disconnect 
 
 ---
 
-## Phase 14 — Saved songs (D34; Ethan, 2026-10-11)
+## Phase 14 — Saved songs and no repeat songs (D34, D35; Ethan, 2026-10-11)
 
 Starts after P13.16 (the Phase 13 release), unless Ethan says otherwise.
 
-- [ ] **P14.1 — Saved songs: data + API** (D34) — items `USER#<userId> / SAVED#<appleTrackId>` (the song snapshot,
-  where it came from: partyId, roundId, recommendationId, week end, sharer kept server-side only) and a `savedCount`
-  on the profile, changed in the same transaction with a condition (≤ 500, no double count). `POST /users/me/saved`
+- [x] **P14.1 — Saved songs: data + API** (D34) — items `USER#<userId> / SAVED#<appleTrackId>` (the song snapshot,
+  where it came from: partyId, roundId, recommendationId, week end, sharer kept server-side only) and a counter item
+  `USER#<userId> / SAVEDCOUNT`, changed in the same transaction with a condition (≤ 500, no double count). `POST /users/me/saved`
   `{ roundId, recommendationId }` (member of that party; the server builds the snapshot itself; `200` "already
   saved" for a duplicate; `409` at 500), `GET /users/me/saved?cursor=` (newest first, pages of 100; "shared by" only
   after the week ended and while still a member; "Play video" data only within the 30-day window via the party's
   `YTVIDEO#` item), `DELETE /users/me/saved/{trackId}`. New functions with least-privilege IAM (aws-change).
   *Done when:* unit + integration tests (membership, D10 before/after results, after leaving, duplicate, limit and
-  its race, no YouTube data copied), authorization sweep updated, API / DATABASE / SECURITY / PRIVACY (+ D19)
-  docs, spec-reviewer.
-- [ ] **P14.2 — Saved songs: website** — a Save (heart) toggle on song cards (Rate, Results, Song Details, History
+  its race, no YouTube data copied), authorization sweep updated, API / DATABASE / SECURITY (+ D19) docs,
+  spec-reviewer. (The privacy page and docs/PRIVACY.md change together with the website, P14.2.)
+- [x] **P14.2 — Saved songs: website** (History and Search rows link to Song Details, which has the toggle: their rows
+  carry no Apple Music id) — a Save (heart) toggle on song cards (Rate, Results, Song Details, History
   day/week, Search, Home), a **Saved songs** page (`/saved`: artwork, title, artist, "From <party> · week of …",
   listen links, Play video when allowed, Remove with Undo, empty state, at-limit message), reached from Profile and
   the desktop sidebar; sample-mode support. *Done when:* screen tests, `e2e/screens.spec.ts` + keyboard checks for
-  the toggle, privacy page text updated, docs.
-- [ ] **P14.3 — Release** [HUMAN for prod] — dev deploy + `scripts/smoke-dev.mjs` (save, list, duplicate, remove,
-  non-member refused), then Ethan deploys prod.
+  the toggle, the privacy page and docs/PRIVACY.md list saved songs (and `PRIVACY_POLICY_VERSION` is bumped, since
+  the 2026-10-09 policy is already live on prod), docs.
+- [x] **P14.3 — No repeat songs in a party** (D35) — server: the share transaction also writes a marker
+  `PARTY#<partyId> / SHAREDSONG#<appleTrackId>` with `attribute_not_exists` (blocks the same recording, races
+  included; `409 ALREADY_SHARED` with the date), and checks the party's songs for older shares without a marker
+  (one capped key query like search, D33) plus "a version of this" by normalized title + artist (a warning the
+  client confirms, never a block). A one-time backfill script writes markers for existing songs (dev, then prod).
+  Website: search and pasted-link results show "Already shared · <date>" (not choosable) or the version warning;
+  the share dialog shows the warning and the server's 409 message. *Done when:* unit tests (normalizing versions,
+  feat., accents), integration tests (same track blocked, other party allowed, race, backfilled history, version
+  warning, date only and never the sharer), screen tests, API / DATABASE docs, spec-reviewer. The backfill must
+  tolerate a track already shared more than once (imported history, D38): a marker that already exists isn't an
+  error. *Built as:* the backfill runs by itself the first time a party searches or shares (a script can't list
+  every party without a Scan); the private past-weeks tool reruns it after an import.
+- [ ] **P14.4 — Release** [HUMAN for prod] — dev deploy, `scripts/smoke-dev.mjs` (save, list, duplicate, remove,
+  non-member refused; sharing an already-shared song refused), then Ethan deploys prod (older songs are marked
+  automatically, D35).
+
+## Phase 15 — 0–10 ratings, scoring key, past weeks (D36–D38; Ethan, 2026-10-11)
+
+Before P14.3/P14.4: past weeks go in first, so P14.3's backfill marks their songs too.
+
+- [x] **P15.1 — Ratings 0–10** (D36) — `MIN_RATING = 0`; messages from the constants; 11-bucket distributions (fix the
+  web chart's row labels); 11-button picker (fits 320 px); "First 1" → "First 0"; copy and docs say 0–10. *Done
+  when:* unit/integration/screen/e2e tests updated (0 accepted, −1/11 rejected), docs, spec-reviewer.
+- [x] **P15.2 — Scoring key** (D37) — `scoringKey` party setting (11 lines, default neutral), host editing in Party
+  settings, "How to score" panel on Rate, meaning under the picker, How it works shows your party's key. *Done
+  when:* schema/integration/screen/e2e tests, API/DATABASE docs.
+- [x] **P15.3 — Past weeks tool** (D38) — private (kept out of the repo, on Ethan's Mac). Public parts only:
+  `imported` weeks, a conditional "set scoring key if empty" write.
+- [ ] **P15.4 — Release** [HUMAN for prod] — dev deploy + smoke (a 0 rating, a key change); Ethan merges and deploys
+  prod; then the private past-weeks step (Ethan).
 
 ## Later (do not build until a real need appears — spec §42)
 

@@ -286,6 +286,13 @@ Resources:
         'GET /parties/{partyId}/search':
           ThrottlingBurstLimit: 10
           ThrottlingRateLimit: 5
+        # Saved songs (D34): a save or remove is a small two-item transaction; this is far more than anyone taps.
+        'POST /users/me/saved':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
+        'DELETE /users/me/saved/{trackId}':
+          ThrottlingBurstLimit: 10
+          ThrottlingRateLimit: 5
         # Invite codes: slow down anyone trying to guess codes (31^4 ≈ 920,000 possible).
         'GET /invites/{code}':
           ThrottlingBurstLimit: 5
@@ -991,6 +998,73 @@ Resources:
             Method: GET
             Path: /parties/{partyId}/search
 
+  # Saved songs (P14.1, D34): save one. Membership + song reads, then one transaction (song item + counter).
+  SaveSongFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.saveSongHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /users/me/saved
+
+  # Your saved songs: your own items, your party links, names, and recent songs' videos (single-item reads).
+  ListSavedSongsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.listSavedSongsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /users/me/saved
+
+  # Remove a saved song: one transaction (delete the song item, count down).
+  UnsaveSongFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Handler: index.unsaveSongHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: DELETE
+            Path: /users/me/saved/{trackId}
+
   # Brings the current week up to date first (ADR-0003).
   LeaderboardFunction:
     Type: AWS::Serverless::Function
@@ -1015,13 +1089,23 @@ Resources:
             Method: GET
             Path: /parties/{partyId}/leaderboard
 
-  # iTunes only; no database access.
+  # iTunes, plus (D35) for members: which results the party already has, read from its markers (first use in a
+  # party writes the markers for its older songs, data/shared-songs.ts).
   SearchSongsFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: makefile
     Properties:
       Handler: index.searchSongsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
       Events:
         Api:
           Type: HttpApi
@@ -1030,13 +1114,23 @@ Resources:
             Method: GET
             Path: /songs/search
 
-  # iTunes only; no database access.
+  # iTunes, plus (D35) for members: which results the party already has, read from its markers (first use in a
+  # party writes the markers for its older songs, data/shared-songs.ts).
   ResolveSongFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: makefile
     Properties:
       Handler: index.resolveSongHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
       Events:
         Api:
           Type: HttpApi

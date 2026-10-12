@@ -25,10 +25,12 @@ function ControlledRating({ onChange = () => {} }: { onChange?: (n: number) => v
 }
 
 describe('RatingControl', () => {
-  it('offers ratings 1–10 as a labelled radio group', () => {
+  it('offers ratings 0–10 as a labelled radio group (D36)', () => {
     render(<ControlledRating />);
     expect(screen.getByRole('radiogroup', { name: 'Rate Midnight City' })).toBeInTheDocument();
-    expect(screen.getAllByRole('radio')).toHaveLength(10);
+    const radios = screen.getAllByRole('radio');
+    expect(radios).toHaveLength(11);
+    expect(radios[0]).toHaveAccessibleName('0 out of 10');
   });
 
   it('selects a rating on click', async () => {
@@ -43,9 +45,11 @@ describe('RatingControl', () => {
     const onChange = vi.fn();
     render(<ControlledRating onChange={onChange} />);
     await userEvent.tab();
-    expect(screen.getByRole('radio', { name: '1 out of 10' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: '0 out of 10' })).toHaveFocus();
     await userEvent.keyboard('{ArrowRight}{ArrowRight}');
-    expect(onChange).toHaveBeenLastCalledWith(3);
+    expect(onChange).toHaveBeenLastCalledWith(2);
+    await userEvent.keyboard('{Home}');
+    expect(onChange).toHaveBeenLastCalledWith(0);
     await userEvent.keyboard('{End}');
     expect(onChange).toHaveBeenLastCalledWith(10);
     expect(screen.getByRole('radio', { name: '10 out of 10' })).toHaveFocus();
@@ -156,13 +160,13 @@ describe('Leaderboard', () => {
 });
 
 describe('RatingDistribution', () => {
-  it('gives screen readers a text table, 10 down to 1, and hides the bars from them (spec §37)', () => {
-    render(<RatingDistribution counts={[0, 0, 0, 0, 0, 0, 1, 0, 2, 3]} />);
+  it('gives screen readers a text table, 10 down to 0, and hides the bars from them (spec §37, D36)', () => {
+    render(<RatingDistribution counts={[2, 0, 0, 0, 0, 0, 0, 1, 0, 2, 3]} />);
     const table = screen.getByRole('table', { name: 'Rating distribution' });
     const rows = within(table).getAllByRole('row').slice(1); // after the header row
-    expect(rows).toHaveLength(10);
-    expect(rows[0]).toHaveTextContent('103');
-    expect(rows[9]).toHaveTextContent('10');
+    expect(rows).toHaveLength(11);
+    expect(rows[0]).toHaveTextContent('103'); // rating 10, 3 times
+    expect(rows[10]).toHaveTextContent('02'); // rating 0, 2 times
     expect(screen.queryAllByRole('listitem')).toHaveLength(0); // the bars are aria-hidden
   });
 });

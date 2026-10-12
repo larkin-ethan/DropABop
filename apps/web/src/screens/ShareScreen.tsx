@@ -10,6 +10,7 @@ import {
   shareDaysOf,
   spotifyLinkSchema,
   youtubeLinkSchema,
+  type AlreadyShared,
   type CurrentWeekResponse,
   type Song,
   type SubmitRecommendationRequest,
@@ -35,12 +36,31 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { TextField } from '../components/TextField';
 import { AlbumArt, Button, Card, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
-import { DAY_NAMES, formatDayList, formatLockTime, hueFor, nextWeekSharingText } from '../lib/format';
+import {
+  DAY_NAMES,
+  formatDayList,
+  formatLockTime,
+  formatShortDate,
+  hueFor,
+  nextWeekSharingText,
+} from '../lib/format';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
 import { PlayVideoButton } from '../player/PlayVideoButton';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
+
+/** A song picked to share, with what the party already has of it (D35; null = never shared there). */
+interface Chosen {
+  song: Song;
+  alreadyShared: AlreadyShared | null;
+}
+
+/** "Oct 5", or "Oct 5, 2025" for another year (D35: the date only, never who). */
+function sharedDate(isoDate: string): string {
+  const sameYear = isoDate.slice(0, 4) === String(new Date().getFullYear());
+  return sameYear ? formatShortDate(isoDate) : `${formatShortDate(isoDate)}, ${isoDate.slice(0, 4)}`;
+}
 
 export function ShareScreen() {
   const { partyId, status, retry } = useCurrentParty();
@@ -174,10 +194,10 @@ interface PastedLink {
 function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string; reveal: boolean }) {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<'search' | 'paste'>('search');
-  const [chosen, setChosen] = useState<Song | null>(null);
+  const [chosen, setChosen] = useState<Chosen | null>(null);
   const [pasted, setPasted] = useState<PastedLink | null>(null);
   const debounced = useDebounced(query);
-  const search = useSongSearch(debounced);
+  const search = useSongSearch(debounced, partyId);
   const today = week.today;
 
   return (
@@ -241,6 +261,7 @@ function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string
           </div>
         ) : (
           <PasteLink
+            partyId={partyId}
             onFound={setChosen}
             onOtherServiceLink={(link) => {
               setPasted(link);
@@ -251,7 +272,10 @@ function SongPicker({ week, partyId, reveal }: { week: OpenWeek; partyId: string
       </Card>
 
       <ConfirmShare
-        song={chosen}
+        song={chosen?.song ?? null}
+        versionSharedOn={
+          chosen?.alreadyShared?.sameRecording === false ? chosen.alreadyShared.sharedOn : null
+        }
         roundId={week.round.roundId}
         partyId={partyId}
         reveal={reveal}
@@ -269,7 +293,7 @@ function SearchResults({
 }: {
   query: string;
   search: ReturnType<typeof useSongSearch>;
-  onChoose: (song: Song) => void;
+  onChoose: (chosen: Chosen) => void;
 }) {
   if (query.trim().length < 2) {
     return <p className="mt-6 text-center text-sm text-muted">Type at least 2 letters to search.</p>;
@@ -282,6 +306,7 @@ function SearchResults({
       </div>
     );
   const songs = search.data?.songs ?? [];
+  const alreadyShared = search.data?.alreadyShared ?? {};
   if (songs.length === 0) {
     return (
       <EmptyState
@@ -292,33 +317,51 @@ function SearchResults({
   }
   return (
     <ul className="mt-3 flex flex-col" aria-label="Search results">
-      {songs.map((song) => (
-        <li
-          key={song.songId}
-          className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-surface-raised sm:gap-4"
-        >
-          <AlbumArt url={song.albumArtUrl} hue={hueFor(song.songId)} />
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 font-semibold break-words">{song.title}</p>
-            <p className="truncate text-sm text-muted">
-              {song.artist}
-              {song.album ? ` · ${song.album}` : ''}
-            </p>
-            {/* Apple's catalog terms: show where the song and artwork come from (ADR-0007). */}
-            <div className="mt-1">
-              <ListenLinks song={song} preferred="appleMusic" limit={1} />
-            </div>
-          </div>
-          <Button
-            variant="secondary"
-            className="shrink-0 px-4"
-            onClick={() => onChoose(song)}
-            aria-label={`Choose ${song.title}`}
+      {songs.map((song) => {
+        const shared = alreadyShared[song.songId] ?? null;
+        const taken = shared?.sameRecording === true;
+        const noteId = `shared-${song.songId}`;
+        return (
+          <li
+            key={song.songId}
+            className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-surface-raised sm:gap-4"
           >
-            Choose
-          </Button>
-        </li>
-      ))}
+            <AlbumArt url={song.albumArtUrl} hue={hueFor(song.songId)} />
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-2 font-semibold break-words">{song.title}</p>
+              <p className="truncate text-sm text-muted">
+                {song.artist}
+                {song.album ? ` · ${song.album}` : ''}
+              </p>
+              {/* D35: the date only, never who shared it. */}
+              {shared && (
+                <p
+                  id={noteId}
+                  className={`mt-0.5 text-xs font-semibold ${taken ? 'text-muted' : 'text-gold'}`}
+                >
+                  {taken
+                    ? `Already shared · ${sharedDate(shared.sharedOn)}`
+                    : `A version of this was shared on ${sharedDate(shared.sharedOn)}`}
+                </p>
+              )}
+              {/* Apple's catalog terms: show where the song and artwork come from (ADR-0007). */}
+              <div className="mt-1">
+                <ListenLinks song={song} preferred="appleMusic" limit={1} />
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              className="shrink-0 px-4"
+              onClick={() => onChoose({ song, alreadyShared: shared })}
+              disabled={taken}
+              aria-label={`Choose ${song.title}`}
+              aria-describedby={shared ? noteId : undefined}
+            >
+              {taken ? 'Shared' : 'Choose'}
+            </Button>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -329,15 +372,17 @@ function SearchResults({
  * the app keeps the link and asks the person to find the same song in search; the link is attached when they share.
  */
 function PasteLink({
+  partyId,
   onFound,
   onOtherServiceLink,
 }: {
-  onFound: (song: Song) => void;
+  partyId: string;
+  onFound: (chosen: Chosen) => void;
   onOtherServiceLink: (link: PastedLink) => void;
 }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const resolve = useResolveSong();
+  const resolve = useResolveSong(partyId);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -345,7 +390,19 @@ function PasteLink({
     if (link === '') return;
     setError(null);
     if (parseAppleMusicSongUrl(link) !== null) {
-      resolve.mutate(link, { onSuccess: (data) => onFound(data.song) });
+      resolve.mutate(link, {
+        onSuccess: (data) => {
+          const shared = data.alreadyShared ?? null;
+          // D35: the same recording can't be shared again (the server refuses it too).
+          if (shared?.sameRecording === true) {
+            setError(
+              `That song was already shared in this party on ${sharedDate(shared.sharedOn)}. Pick a different one.`,
+            );
+          } else {
+            onFound({ song: data.song, alreadyShared: shared });
+          }
+        },
+      });
     } else if (parseSpotifyTrackUrl(link) !== null) {
       onOtherServiceLink({ service: 'Spotify', links: { spotify: link } });
     } else if (parseYouTubeUrl(link) !== null) {
@@ -378,6 +435,7 @@ function PasteLink({
 
 function ConfirmShare({
   song,
+  versionSharedOn,
   roundId,
   partyId,
   reveal,
@@ -385,6 +443,8 @@ function ConfirmShare({
   onCancel,
 }: {
   song: Song | null;
+  /** D35: when another version of this song was shared in the party (a warning; sharing is still allowed). */
+  versionSharedOn: string | null;
   roundId: string;
   partyId: string;
   /** D10: whether the party shows who shared each song during the week. */
@@ -454,6 +514,15 @@ function ConfirmShare({
               {song.album && <p className="truncate text-sm text-muted">{song.album}</p>}
             </div>
           </div>
+          {versionSharedOn !== null && (
+            <p
+              role="note"
+              className="rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold"
+            >
+              A version of this song was shared in this party on {sharedDate(versionSharedOn)}. You can still
+              share this one.
+            </p>
+          )}
           {!ownYouTubeLink && (
             <YouTubeChoice
               song={song}

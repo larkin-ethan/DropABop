@@ -51,7 +51,7 @@ export interface SongResult {
   /** Average rounded to 1 decimal place (D12), or null if nobody rated it. */
   averageRating: number | null;
   ratingCount: number;
-  /** Count of each rating: index 0 = number of 1s … index 9 = number of 10s. Anonymous. */
+  /** Count of each rating: index 0 = number of 0s … index 10 = number of 10s (D36). Anonymous. */
   distribution: number[];
   myRating: number | null;
   /** Who gave which rating. Only present when the party setting `showWhoRatedWhat` is on (D11). */
@@ -410,8 +410,66 @@ export interface PartySearchResponse {
   truncated: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Saved songs (P14.1, D34): one private list per person, across their parties.
+// ---------------------------------------------------------------------------
+
+export interface SavedSong {
+  /** The Apple Music track id: one entry per song (D34). */
+  trackId: string;
+  savedAt: IsoDateTime;
+  /**
+   * The saved copy of the song: Apple Music and a pasted Spotify link, never YouTube data (ADR-0011/0012). A YouTube
+   * provider is added only while the original song can still play in the app (30 days, and you're still a member).
+   */
+  song: Song;
+  from: {
+    partyId: string;
+    /** The party's current name while you're a member; the name it had when you saved the song otherwise. */
+    partyName: string;
+    roundId: string;
+    recommendationId: string;
+    submittedOn: IsoDate;
+    /** Still a member of that party: links to the song's party pages work. */
+    isMember: boolean;
+    /** You shared it yourself. */
+    isMine: boolean;
+    /**
+     * Who shared it: only after that week ended and while you're both members (D10). Left out otherwise, never null.
+     */
+    sharedBy?: MemberName;
+  };
+}
+
+export interface SavedSongsResponse {
+  /** Newest saved first. */
+  songs: SavedSong[];
+  /** How many songs are saved in total, and the most allowed (D34). */
+  total: number;
+  limit: number;
+  nextCursor: string | null;
+}
+
+export interface SaveSongResponse {
+  trackId: string;
+  /** True if this song (the same Apple Music track) was already in your list: nothing changed. */
+  alreadySaved: boolean;
+}
+
+/**
+ * D35: this song, or a version of it, was already shared in the party. Only the date (party timezone), never who
+ * shared it, so it can't give away a sharer in an open week (D10).
+ */
+export interface AlreadyShared {
+  /** True: the same recording (can't be shared again). False: another version with the same title and artist. */
+  sameRecording: boolean;
+  sharedOn: IsoDate;
+}
+
 export interface SongSearchResponse {
   songs: Song[];
+  /** D35, only when `partyId` was given: songs the party already has, by `songId`. Missing = never shared. */
+  alreadyShared?: Record<string, AlreadyShared>;
 }
 
 /** One YouTube search result, exactly as YouTube returned it (ADR-0012: results aren't changed or reordered). */
@@ -433,6 +491,8 @@ export interface YouTubeSuggestionsResponse {
 
 export interface ResolveSongResponse {
   song: Song;
+  /** D35, only when `partyId` was given: null = never shared in that party. */
+  alreadyShared?: AlreadyShared | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -472,7 +532,7 @@ export interface HistoryDayStats {
   lowestRated: string[];
   /** How many of that day's songs you rated. */
   myRatingCount: number;
-  /** Count of each rating 1–10 on that day's songs. */
+  /** Count of each rating 0–10 on that day's songs. */
   distribution: number[];
   /** Artists with at least 2 songs that day. */
   favoriteArtists: string[];

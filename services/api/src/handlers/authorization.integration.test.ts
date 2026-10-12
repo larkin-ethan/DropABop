@@ -14,6 +14,7 @@ import { joinPartyFn, previewInviteFn, regenerateInviteFn, removeMemberFn } from
 import { createPartyHandlerFn, getPartyHandlerFn, listPartiesHandlerFn } from './parties';
 import { listRecommendationsFn, submitRecommendationFn } from './recommendations';
 import { getResultsFn } from './results';
+import { listSavedSongsFn, saveSongFn, unsaveSongFn } from './saved';
 import { updateSettingsFn } from './settings';
 import { groupStatsFn, leaderboardFn, personalStatsFn } from './stats';
 import { resolveSongFn, searchSongsFn } from './songs';
@@ -220,6 +221,21 @@ const routes: RouteCase[] = [
     fn: leaderboardFn,
     request: () => ({ pathParameters: { partyId: party.partyId } }),
     expect: member(200),
+  },
+  {
+    // D34: only songs from your own parties can be saved (the host may save their own pick).
+    name: 'POST /users/me/saved',
+    fn: saveSongFn,
+    request: () => ({ body: { roundId: round.roundId, recommendationId: hostSongId } }),
+    expect: member(201),
+  },
+  // Your own list: reading and removing need no party, so songs stay after you leave one.
+  { name: 'GET /users/me/saved', fn: listSavedSongsFn, request: () => ({}), expect: anyone(200) },
+  {
+    name: 'DELETE /users/me/saved/{trackId}',
+    fn: unsaveSongFn,
+    request: () => ({ pathParameters: { trackId: '1001' } }),
+    expect: anyone(204),
   },
   {
     name: 'POST /parties',

@@ -2,7 +2,7 @@
 
 A private social music app for small groups (up to about 20 friends). On each sharing day (Monday–Friday unless the host
 picks other days), each member of a party **shares one song**. All week, everyone listens and **rates the week's songs
-1–10** (songs stay anonymous, and ratings stay hidden). When the week's lock time arrives (Sunday 11:59 pm unless the
+0–10** (songs stay anonymous, and ratings stay hidden). When the week's lock time arrives (Sunday 11:59 pm unless the
 host changes it), ratings lock and the group sees the **weekly results**: the ranking, each
 day's **Bop of the Day**, and stats on everyone's taste.
 
@@ -31,7 +31,7 @@ It runs on AWS serverless services at (or very near) **$0/month** at this scale.
   person.
 - **Each sharing day:** share one song (search Apple Music's catalog, or paste a link from Apple Music, Spotify, or
   YouTube Music). You can't change it afterwards.
-- **All week:** listen through "Apple Music / Spotify / YouTube Music" links and rate others' songs 1–10. You can
+- **All week:** listen through "Apple Music / Spotify / YouTube Music" links and rate others' songs 0–10, guided by your party's scoring key. You can
   change a rating until ratings lock (Sunday 11:59 pm in the party's timezone by default). You never rate your own song.
 - **After the lock:** results unlock: every song ranked, each day's Bop of the Day, rating spreads, and your rating next
   to the group's. Who shared each song is revealed then (or during the week, if the host turns that on).
@@ -116,7 +116,7 @@ Open http://localhost:5173.
 ## How the AWS deployment works
 
 One SAM template (`infra/template.yaml`) defines everything: the DynamoDB table, Cognito user pool, the HTTP API with
-its token check and rate limits, 33 Lambda functions (one per route, each allowed only the database actions it
+its token check and rate limits, 36 Lambda functions (one per route, each allowed only the database actions it
 needs), logs kept 14 days (30 in prod), failure alarms that email you, a $5 budget alert, and the website (private S3
 bucket behind CloudFront with security headers). There are two copies, **`dropabop-dev`** and **`dropabop-prod`**,
 each with its own data and accounts. Nothing runs (or bills) while idle: weeks open and close lazily when someone

@@ -3,7 +3,7 @@
 Two parts: the **privacy policy and terms of use** people see in the app (built in P13.2a as one page reachable
 without signing in), and **notes for developers** on keeping it true. Spec v2 §36; YouTube's privacy-policy rules (ADR-0011).
 
-Policy version: **2026-10-09**. When the policy text changes in a way users should know about, bump the version;
+Policy version: **2026-10-11** (saved songs added, D34; the 2026-10-09 version went live on 2026-10-11). When the policy text changes in a way users should know about, bump the version;
 the app then asks everyone to agree again (P13.2a).
 
 ---
@@ -24,6 +24,8 @@ picks. It's run by one person for a small group; it isn't a company and doesn't 
   agreed to this policy.
 - **What you do in a party** — the parties you belong to, the songs you share (with any links you paste), your
   ratings and your comments. Your party uses these for results and stats.
+- **Your saved songs** — songs you choose to save from your parties, kept in a private list with a copy of each
+  song's details (never YouTube videos). Only you can see it, and nobody is told you saved their song.
 - **Basic request logs** — time, which feature was used, whether it worked, and a random user id (not your email).
   Kept for 30 days. Never your password or sign-in tokens.
 

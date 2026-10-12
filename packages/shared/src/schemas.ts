@@ -21,6 +21,7 @@ import {
   NOTIFICATION_TYPES,
   PARTY_NAME_MAX_LENGTH,
   PROVIDER_SONG_ID_MAX_LENGTH,
+  SCORING_KEY_LINE_MAX,
   SEARCH_QUERY_MAX_LENGTH,
   TIME_OF_DAY_PATTERN,
   WEEKDAYS,
@@ -59,10 +60,11 @@ export const partyNameSchema = z
     error: 'Party names can’t contain hidden or text-direction characters.',
   });
 
+const RATING_MESSAGE = `Ratings are whole numbers from ${MIN_RATING} to ${MAX_RATING}.`;
 export const ratingSchema = z
-  .int({ error: 'Ratings are whole numbers from 1 to 10.' })
-  .min(MIN_RATING, { error: 'Ratings are whole numbers from 1 to 10.' })
-  .max(MAX_RATING, { error: 'Ratings are whole numbers from 1 to 10.' });
+  .int({ error: RATING_MESSAGE })
+  .min(MIN_RATING, { error: RATING_MESSAGE })
+  .max(MAX_RATING, { error: RATING_MESSAGE });
 
 /** Accepts what people actually type ("song-7k4p ", "SONG-7K4P") and normalizes before checking. */
 export const inviteCodeSchema = z.string().trim().toUpperCase().regex(INVITE_CODE_PATTERN, {
@@ -177,6 +179,21 @@ export const timeOfDaySchema = z
   .string()
   .regex(TIME_OF_DAY_PATTERN, { error: 'Please enter a time like 23:59.' });
 
+/** D37: one line of the scoring key. One line of plain text, like a comment. */
+const scoringKeyLineSchema = z
+  .string()
+  .trim()
+  .min(1, { error: 'Each score needs a short description.' })
+  .max(SCORING_KEY_LINE_MAX, { error: `Each description can be up to ${SCORING_KEY_LINE_MAX} characters.` })
+  .refine((text) => !DECEPTIVE_CHARACTERS.test(text), {
+    error: 'Descriptions can’t contain hidden or text-direction characters.',
+  });
+
+/** D37: what each score 0–10 means, index = score. */
+export const scoringKeySchema = z.array(scoringKeyLineSchema).length(MAX_RATING - MIN_RATING + 1, {
+  error: `Describe every score from ${MIN_RATING} to ${MAX_RATING}.`,
+});
+
 /** PATCH /parties/{partyId}/settings (host only). At least one field must be present. */
 export const updatePartySettingsRequestSchema = z
   .strictObject({
@@ -189,6 +206,7 @@ export const updatePartySettingsRequestSchema = z
     shareDays: shareDaysSchema,
     ratingCloseDay: weekdaySchema,
     ratingCloseTime: timeOfDaySchema,
+    scoringKey: scoringKeySchema,
   })
   .partial()
   .refine((body) => Object.keys(body).length > 0, { error: 'Nothing to update.' });
@@ -253,12 +271,19 @@ export const castVoteRequestSchema = z.strictObject({
 });
 
 /** GET /songs/search?q=… (query string, validated the same way) */
+/** D35: the party you're sharing in, so results can say which songs it already has. Optional (search works without). */
+const sharingPartyIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' })
+  .optional();
+
 export const songSearchQuerySchema = z.strictObject({
   q: z
     .string()
     .trim()
     .min(2, { error: 'Type at least 2 characters to search.' })
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
+  partyId: sharingPartyIdSchema,
 });
 
 /** GET /parties/{partyId}/achievements?memberId= (P13.9). Without memberId: your own. */
@@ -296,6 +321,23 @@ export const personalStatsQuerySchema = z.strictObject({
   partyId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' }),
 });
 
+/** POST /users/me/saved (D34): which shared song to save. The server builds the saved copy itself. */
+export const saveSongRequestSchema = z.strictObject({
+  roundId: z.string().regex(/^[A-Za-z0-9-]{1,64}\.\d{4}-\d{2}-\d{2}$/, { error: 'Please choose a song.' }),
+  recommendationId: z.string().regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a song.' }),
+});
+
+/** GET /users/me/saved?cursor= (D34): where the next page starts (from the previous response's nextCursor). */
+export const savedSongsQuerySchema = z.strictObject({
+  cursor: z
+    .string()
+    .regex(/^\d{1,4}$/, { error: 'That page link isn’t valid.' })
+    .optional(),
+});
+
+/** DELETE /users/me/saved/{trackId}: the Apple Music track id of a saved song. */
+export const savedTrackIdSchema = z.string().regex(/^\d{1,20}$/, { error: 'We couldn’t find that song.' });
+
 /** GET /parties/{partyId}/search?q=&type=&cursor= (D33): searches only your current party. */
 export const partySearchQuerySchema = z.strictObject({
   q: z
@@ -323,6 +365,7 @@ export const resolveSongRequestSchema = z.strictObject({
   url: z.string().refine((url) => parseAppleMusicSongUrl(url) !== null, {
     error: 'Paste an Apple Music song link (music.apple.com/…), or search instead.',
   }),
+  partyId: sharingPartyIdSchema,
 });
 
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;
@@ -335,6 +378,7 @@ export type AddCommentRequest = z.infer<typeof addCommentRequestSchema>;
 export type SongSearchQuery = z.infer<typeof songSearchQuerySchema>;
 export type HistoryQuery = z.infer<typeof historyQuerySchema>;
 export type PartySearchQuery = z.infer<typeof partySearchQuerySchema>;
+export type SaveSongRequest = z.infer<typeof saveSongRequestSchema>;
 export type YouTubeSuggestionQuery = z.infer<typeof youtubeSuggestionQuerySchema>;
 export type ResolveSongRequest = z.infer<typeof resolveSongRequestSchema>;
 export type RoundHistoryQuery = z.infer<typeof roundHistoryQuerySchema>;

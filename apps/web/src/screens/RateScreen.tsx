@@ -3,7 +3,7 @@
 // changed until the week's ratings lock (D8). You can't rate your own songs (D6).
 
 import type { Comment, CurrentWeekResponse, MusicProviderId, OpenWeekSongView } from '@dropabop/shared';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { safeDecode } from '../lib/pending-invite';
 import { useCastVote, useCurrentWeek, useMe, useParty, useWeekComments, useWeekSongs } from '../api/hooks';
@@ -17,11 +17,13 @@ import { AlbumArt, Card, ProgressBar, buttonClassName } from '../components/ui';
 import { errorMessage } from '../lib/errors';
 import { nameLookup, type NameLookup } from '../lib/members';
 import { DAY_NAMES, formatLockTime, formatTimeLeft, hueFor } from '../lib/format';
-import { WEEKDAYS } from '@dropabop/shared';
+import { WEEKDAYS, scoringKeyOf } from '@dropabop/shared';
 import { useNow } from '../lib/useNow';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
 import { PlayVideoButton } from '../player/PlayVideoButton';
+import { HowToScore, ScoreMeaning } from '../components/ScoringKey';
+import { SaveButton } from '../components/SaveButton';
 import { songDetailsPath } from './SongDetailsScreen';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
@@ -108,6 +110,7 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
   const comments = useWeekComments(week.round.roundId, { poll: true });
   const party = useParty(partyId);
   const names = nameLookup(party.data?.members ?? [], me.data?.user.userId);
+  const scoringKey = scoringKeyOf(party.data?.party.settings); // D37
   const commentsFor = (recommendationId: string): Comment[] =>
     (comments.data?.comments ?? []).filter((c) => c.recommendationId === recommendationId);
 
@@ -130,8 +133,8 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
         title="Rate this week’s songs"
         description={
           sharers.reveal
-            ? 'Rate everyone else’s songs from 1 to 10. Your ratings are private until the week’s results.'
-            : 'Rate everyone else’s songs from 1 to 10. Ratings, and who shared what, stay private until the week’s results.'
+            ? 'Rate everyone else’s songs from 0 to 10. Your ratings are private until the week’s results.'
+            : 'Rate everyone else’s songs from 0 to 10. Ratings, and who shared what, stay private until the week’s results.'
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
@@ -148,6 +151,8 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
           )}
         </p>
       </div>
+
+      <HowToScore scoringKey={scoringKey} />
 
       <Card className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -229,6 +234,7 @@ function RateWeek({ week, partyId }: { week: OpenWeek; partyId: string }) {
                           preferred={me.data?.user.preferredProvider ?? null}
                           disabled={locked}
                           sharedBy={sharers.sharedBy(s)}
+                          scoringKey={scoringKey}
                           onRated={() =>
                             setKeptIds((ids) =>
                               ids.includes(s.recommendationId) ? ids : [...ids, s.recommendationId],
@@ -259,8 +265,10 @@ function RateCard({
   disabled,
   onRated,
   sharedBy,
+  scoringKey,
 }: {
   sharedBy: string | null;
+  scoringKey: readonly string[];
   item: OpenWeekSongView;
   roundId: string;
   partyId: string;
@@ -278,6 +286,7 @@ function RateCard({
   const onRate = (rating: number) => vote.mutate({ recommendationId: item.recommendationId, rating });
   // Local copy so the control moves instantly; the saved rating comes back from the server.
   const [value, setValue] = useState<number | null>(item.myRating);
+  const meaningId = useId(); // the chosen score's meaning, read with the picker (D37)
   useEffect(() => setValue(item.myRating), [item.myRating]);
 
   // Save once the person pauses: arrow keys move one step per press, and saving every step could let an older
@@ -322,6 +331,7 @@ function RateCard({
               submittedOn={item.submittedOn}
               preferred={preferred}
             />
+            <SaveButton roundId={roundId} recommendationId={item.recommendationId} song={item.song} />
           </div>
         </div>
         {item.isMine && <MyPickBadge />}
@@ -329,16 +339,20 @@ function RateCard({
       {item.isMine ? (
         <p className="text-sm text-muted">This is your song, so you can’t rate it.</p>
       ) : (
-        <RatingControl
-          label={`Rate ${item.song.title} by ${item.song.artist}`}
-          value={value}
-          disabled={disabled}
-          onChange={(rating) => {
-            setValue(rating);
-            scheduleSave(rating);
-            onRated();
-          }}
-        />
+        <>
+          <RatingControl
+            label={`Rate ${item.song.title} by ${item.song.artist}`}
+            value={value}
+            disabled={disabled}
+            describedBy={meaningId}
+            onChange={(rating) => {
+              setValue(rating);
+              scheduleSave(rating);
+              onRated();
+            }}
+          />
+          <ScoreMeaning id={meaningId} value={value} scoringKey={scoringKey} />
+        </>
       )}
       {!item.isMine && <SaveStatus pending={vote.isPending} saved={vote.isSuccess} error={vote.error} />}
       <SongComments

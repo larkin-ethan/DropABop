@@ -35,7 +35,7 @@ Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend us
 | 401 | `UNAUTHENTICATED` |
 | 403 | `FORBIDDEN`, `NOT_A_MEMBER`, `NOT_HOST`, `OWN_SONG`, `RESULTS_NOT_READY` |
 | 404 | `NOT_FOUND` |
-| 409 | `PARTY_FULL`, `ALREADY_MEMBER`, `PARTY_PAUSED`, `WEEKEND`, `ALREADY_SUBMITTED_TODAY`, `WEEK_CLOSED`, `CONFLICT` |
+| 409 | `PARTY_FULL`, `ALREADY_MEMBER`, `PARTY_PAUSED`, `WEEKEND`, `ALREADY_SUBMITTED_TODAY`, `ALREADY_SHARED`, `WEEK_CLOSED`, `CONFLICT` |
 | 429 | `RATE_LIMITED` (also API Gateway's own throttle, which answers `{"message":"Too Many Requests"}`; the website shows "please wait a few seconds") |
 | 500 | `INTERNAL`: generic message; details are only in server logs |
 | 502 | `PROVIDER_UNAVAILABLE` |
@@ -43,7 +43,7 @@ Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend us
 ### Rate limits (P9.1)
 
 API Gateway limits each route for **all callers together** (requests per second / short burst; 429 above them).
-Default 25/s, burst 50. Tighter: song search 3/s (burst 10), party search 5/s (10), resolve link 2/s (5), invite preview and join 2/s (5),
+Default 25/s, burst 50. Tighter: song search 3/s (burst 10), party search 5/s (10), saving and removing saved songs 5/s (10) each, resolve link 2/s (5), invite preview and join 2/s (5),
 create party and new invite link 1/s (3), settings / profile / remove member 2/s (5), share a song 5/s (10), rate
 10/s (20). Per-person limits come from the rules themselves: 5 parties per person, one song per day, invite code
 required. Sign-in is protected by Cognito: after 5 wrong passwords an account is locked for 1 s, doubling each time
@@ -158,7 +158,8 @@ Host only. Code: `services/api/src/handlers/settings.ts`. Body (`updatePartySett
 field): `name`, `maxMembers` (2–50, not below the current member count), `timezone` (applies from next week),
 `paused`, `revealRecommenderDuringVoting`, `showWhoRatedWhat`, `shareDays` (1–7 of `MON`…`SUN`, stored in week
 order), `ratingCloseDay` (`MON`…`SUN`), `ratingCloseTime` (`HH:MM`, 24-hour; ratings lock at the end of that
-minute). The lock can't be earlier than 23:59 on the last sharing day (checked against the stored settings, so partial updates
+minute), `scoringKey` (D37: exactly 11 lines, index = score 0–10, each 1–120 characters, trimmed, no hidden or
+text-direction characters; display text only, so it applies at once; missing on a party = the default key). The lock can't be earlier than 23:59 on the last sharing day (checked against the stored settings, so partial updates
 are safe: `400 VALIDATION_FAILED`). Timezone, schedule and the two privacy switches apply from next week (each week records them when it starts). Parties created before
 the schedule was editable read as Monday–Friday, Sunday 23:59. The invite code and host can't be changed here.
 `200`: `{ "party", "members", "isHost": true }`. Errors: `403 NOT_HOST` / `NOT_A_MEMBER`, `400 VALIDATION_FAILED`.
@@ -233,7 +234,13 @@ deletes 29 days after sharing; song lists include it (as a `youtube` provider) o
 Nothing else is accepted (no title, artwork, or date). The server decides today's date in the week's timezone and
 looks the song up itself.
 
-`201`: `{ "song": SongView }` (see below). Errors: `409 ALREADY_SUBMITTED_TODAY`, `409 WEEKEND`,
+No repeat songs (D35): the same recording (Apple Music track) can't be shared twice in a party, whoever shared it
+and whenever (other parties are separate). The share transaction writes a `SHAREDSONG#<trackId>` marker that can
+only be created once, so two people choosing it at the same moment can't both get through. A different version
+(same title and artist) is allowed.
+
+`201`: `{ "song": SongView }` (see below). Errors: `409 ALREADY_SHARED` ("That song was already shared in this
+party on Oct 5. Pick a different one.": the date only, never who), `409 ALREADY_SUBMITTED_TODAY`, `409 WEEKEND`,
 `409 WEEK_CLOSED` (week ended / not this week), `409 PARTY_PAUSED`, `403 NOT_A_MEMBER`,
 `400 VALIDATION_FAILED` (song not found, bad link, or bad input), `404 NOT_FOUND` (unknown week),
 `502 PROVIDER_UNAVAILABLE` (song lookup busy or down).
@@ -261,7 +268,7 @@ Code: `services/api/src/handlers/votes.ts`.
 
 #### `PUT /rounds/{roundId}/votes/{recommendationId}`
 
-Body: `{ "rating": 8 }` (whole number 1–10). Creates or replaces your rating while the week is open; locked when the
+Body: `{ "rating": 8 }` (whole number 0–10, D36). Creates or replaces your rating while the week is open; locked when the
 week's ratings lock (D2, D8; a change whose write lands after the lock is refused with `409 WEEK_CLOSED`). You can't rate your own songs (D6).
 `200`: `{ "vote": { "recommendationId", "rating", "updatedAt" } }`.
 Errors: `409 WEEK_CLOSED`, `403 OWN_SONG`, `403 NOT_A_MEMBER`, `404 NOT_FOUND` (song not in this week),
@@ -317,7 +324,7 @@ are ignored.
 }
 ```
 
-- Ranks: equal displayed averages share a rank (1, 1, 3); unrated songs last (D12). `distribution[0]` = number of 1s.
+- Ranks: equal displayed averages share a rank (1, 1, 3); unrated songs last (D12). `distribution[i]` = number of ratings of `i` (0–10, so 11 counts; D36).
 - `winnerIds` = that day's Bop of the Day (several if tied; empty if none rated).
 - `ratings: [{ userId, rating }]` is added to each song only when the party's `showWhoRatedWhat` is on (D11).
 - `members` gives names for current members; a `recommendedBy` not in the list has left the party.
@@ -337,7 +344,7 @@ Results only change when a week closes, so clients should cache these.
 #### `GET /users/me/stats?partyId=…`
 
 Your stats in one party: `averageRatingGiven`, `averageScoreReceived`, `songsRecommended` (number),
-`highestRatedRecommendation`, `lowestRatedRecommendation`, `generosity`, `ratingDistribution` (10 counts),
+`highestRatedRecommendation`, `lowestRatedRecommendation`, `generosity`, `ratingDistribution` (11 counts, index = rating 0–10; D36),
 `favoriteArtists` (top 3), `musicalTwin`, `ratingsGiven` (number), `favoriteGenres` (top 3, like favourite artists),
 `recentSongs` (your latest 5 songs from closed weeks: `recommendationId`, `roundId`, `submittedOn`, `title`, `artist`,
 `albumArtUrl`, exact `average` or null, `ratingCount`), `lastWeekRank` (`{ roundId, weekStart, position, of }` for the
@@ -348,7 +355,7 @@ most recent closed week, or null if none of your songs were rated in it; P13.11)
 
 `songsShared`, `ratingsGiven`, `highestRatedSong`, `crowdFavorite`, `mostDivisive`, `mostControversial`,
 `everyoneAgreed`, `darkHorse`, `mostGenerousVoter`, `toughestCritic`, and (P13.11) `memberCount`, `groupAverage`,
-`ratingDistribution` (10 counts), `topArtists` (`{ artist, songCount }`, top 3 with ties), `mostConsistent`,
+`ratingDistribution` (11 counts, index = rating 0–10; D36), `topArtists` (`{ artist, songCount }`, top 3 with ties), `mostConsistent`,
 `weeklyActivity` and `monthlyActivity` (newest first, up to 12 each: `{ period, weeks, songs, ratings, average }`,
 `period` = the week's Monday or the lock month `YYYY-MM`). Members only.
 
@@ -386,6 +393,37 @@ Members only: a non-member gets `403 NOT_A_MEMBER` before the query is even chec
     weekStart, status, songCount }` (status from the server clock).
   - `truncated`: true when the party has more than 5,000 songs; the newest 5,000 were searched.
 - Errors: `400 VALIDATION_FAILED` (short/long `q`, unknown `type`, bad `cursor`), `403 NOT_A_MEMBER`. Rate limit: 5/s, bursts of 10.
+
+### Saved songs
+
+Your own private list (P14.1, D34). Code: `services/api/src/handlers/saved.ts`, rules in `domain/saved.ts`. Nobody
+else can read it, and nothing about saving is shown to anyone (no counts, no notifications).
+
+#### `POST /users/me/saved`
+
+Body `{ "roundId": "<partyId>.<weekStart>", "recommendationId": "…" }`: a song shared in one of your parties (any
+week, your own included; you must be a member of that party). The server builds the saved copy itself: title,
+artist, album, artwork URL, Apple Music link and a pasted Spotify link, **never YouTube data** (ADR-0011/0012). One
+entry per song (Apple Music track id). `201 { "trackId", "alreadySaved": false }`; `200 { "trackId",
+"alreadySaved": true }` if that song is already saved (nothing changes). Errors: `400 VALIDATION_FAILED`,
+`403 NOT_A_MEMBER`, `404 NOT_FOUND` (no such song), `409 SAVED_LIMIT` (500 songs saved).
+
+#### `GET /users/me/saved?cursor=`
+
+Newest saved first, 100 per page. `200 { "songs": SavedSong[], "total", "limit": 500, "nextCursor" }`. Each
+`SavedSong`: `trackId`, `savedAt`, `song` (a `Song`; a `youtube` provider is added only while the original song's
+video can still play in the app: shared in the last 30 days and you're still a member), and `from: { partyId,
+partyName, roundId, recommendationId, submittedOn, isMember, isMine, sharedBy? }`. `sharedBy` (a `MemberName`) is
+included **only after that week ended and while you and the sharer are both still members** (D10); otherwise it's
+left out. After you leave a party, its songs stay, with the party name they had when you saved them. Errors:
+`400 VALIDATION_FAILED` (bad cursor). Pages are positions in the list, so removing songs while paging can skip
+one (fine for one person's 500 songs). `total` counts the saved songs; the 500 limit is enforced by a separate
+counter changed in the same transaction (they only differ if data were edited by hand).
+
+#### `DELETE /users/me/saved/{trackId}`
+
+Removes a song from your list. `204` (also when it wasn't saved, so a double tap is harmless). Errors:
+`404 NOT_FOUND` (not a track id).
 
 ### History
 
@@ -430,7 +468,7 @@ Members only. Without `memberId`: your own; with it: another member's (members c
 `404 NOT_FOUND` if they aren't in the party). `200`: `{ "memberId", "achievements": Achievement[], "unlockedCount",
 "newlyUnlocked": string[], "seenAt" }`. Each achievement: `id`, `group`, `title`, `description`, `emoji`,
 `unlocked`, `unlockedOn` (the lock time of the first closed week that earned it, or `null`), `unlockedDay` (that
-lock as a day in the party's timezone) and `progress: { current, target, label }`. For another member, First 1,
+lock as a day in the party's timezone) and `progress: { current, target, label }`. For another member, First 0,
 First 10 and Full House have `unlockedOn`/`unlockedDay` set to `null` even when `unlocked` (D11). `newlyUnlocked` (your own only) lists ids unlocked after `seenAt`; it's empty the first time (`seenAt:
 null`). Errors: `400 VALIDATION_FAILED`, `403 NOT_A_MEMBER`, `404 NOT_FOUND`.
 
@@ -445,17 +483,25 @@ Code: `services/api/src/handlers/songs.ts`, catalog `services/api/src/providers/
 ADR-0007). Signed-in users only. Results are cached for 10 minutes per Lambda container to stay well under iTunes'
 ~20 calls/minute.
 
-#### `GET /songs/search?q=midnight+city`
+#### `GET /songs/search?q=midnight+city&partyId=…`
 
 `q`: 2–100 characters. `200`: `{ "songs": Song[] }` (up to 10). Each song's `providers[0]` is Apple Music with
 its `music.apple.com` link; `albumArtUrl` is a 300×300 image URL (show the "Listen on Apple Music" badge next to
 it). Errors: `400 VALIDATION_FAILED`, `502 PROVIDER_UNAVAILABLE` ("Song search is busy right now…").
 
+`partyId` (optional, D35): the party you're sharing in. You must be a member (`403 NOT_A_MEMBER`, or `404
+NOT_FOUND` for an unknown party; checked before iTunes is asked). The answer then also has `alreadyShared`: by `songId`, the songs that party already has,
+`{ "sameRecording": true, "sharedOn": "2026-10-05" }` (this recording: can't be shared) or `sameRecording: false`
+(another version with the same title and artist: a warning only). Songs never shared are left out. Dates only,
+never who shared (D10). The first such request in a party writes the markers for its older songs (once).
+
 #### `POST /songs/resolve`
 
 Paste an Apple Music song link instead of searching (D21). Body: `{ "url": "https://music.apple.com/us/album/…?i=…" }`
-(or `…/song/<name>/<id>`). `200`: `{ "song": Song }`. Errors: `400 VALIDATION_FAILED` (not an Apple Music song
-link, or Apple doesn't have the song), `502 PROVIDER_UNAVAILABLE`.
+(or `…/song/<name>/<id>`), optionally with `"partyId"` (D35, as in search). `200`: `{ "song": Song }`, plus
+`"alreadyShared": AlreadyShared | null` when `partyId` was given. Errors: `400 VALIDATION_FAILED` (not an Apple Music
+song link, or Apple doesn't have the song), `403 NOT_A_MEMBER`, `404 NOT_FOUND` (unknown party),
+`502 PROVIDER_UNAVAILABLE`.
 
 #### `GET /songs/youtube?providerSongId=828259377`
 

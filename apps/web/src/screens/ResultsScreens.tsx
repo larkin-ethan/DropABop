@@ -25,6 +25,7 @@ import {
 import { nameLookup, type NameLookup } from '../lib/members';
 import { useCurrentParty } from '../party/CurrentParty';
 import { PlayVideoButton } from '../player/PlayVideoButton';
+import { SaveButton } from '../components/SaveButton';
 import { AchievementBanner } from './AchievementsScreen';
 import { songDetailsPath } from './SongDetailsScreen';
 
@@ -393,6 +394,11 @@ function ResultCard({
             song={result.song}
             submittedOn={result.submittedOn}
             preferred={preferred}
+          />
+          <SaveButton
+            roundId={commentsOn.roundId}
+            recommendationId={result.recommendationId}
+            song={result.song}
           />
         </div>
         <div className="flex items-center gap-3 text-sm">

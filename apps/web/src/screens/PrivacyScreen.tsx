@@ -51,6 +51,11 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           results and stats.
         </li>
         <li>
+          <strong className="text-ink">Your saved songs</strong>: songs you choose to save from your parties,
+          kept in a private list with a copy of each song’s details (never YouTube videos). Only you can see
+          it, and nobody is told you saved their song.
+        </li>
+        <li>
           <strong className="text-ink">Basic request logs</strong>: time, which feature was used, whether it
           worked, and a random user id (not your email). Kept for 30 days. Never your password or sign-in
           tokens.

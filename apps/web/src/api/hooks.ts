@@ -13,6 +13,9 @@ import type {
   InvitePreviewResponse,
   LeaderboardPeriod,
   PartySearchResponse,
+  SaveSongRequest,
+  SaveSongResponse,
+  SavedSongsResponse,
   PartySearchType,
   LeaderboardResponse,
   MeResponse,
@@ -54,7 +57,8 @@ export const keys = {
   groupStats: (partyId: string) => ['groupStats', partyId] as const,
   leaderboard: (partyId: string, period?: LeaderboardPeriod) =>
     period === undefined ? (['leaderboard', partyId] as const) : (['leaderboard', partyId, period] as const),
-  search: (q: string) => ['search', q] as const,
+  search: (q: string, partyId: string | null) => ['search', q, partyId] as const,
+  savedSongs: () => ['savedSongs'] as const,
   partySearch: (partyId: string, q: string, type: PartySearchType) =>
     ['partySearch', partyId, q, type] as const,
 };
@@ -183,13 +187,19 @@ export function useLeaderboard(partyId: string | null, period: LeaderboardPeriod
   });
 }
 
-/** Song search (iTunes, ADR-0007). Only runs for 2+ characters; results are kept for a few minutes. */
-export function useSongSearch(q: string) {
+/**
+ * Song search (iTunes, ADR-0007). Only runs for 2+ characters; results are kept for a few minutes. With a party,
+ * results say which songs it already has (D35).
+ */
+export function useSongSearch(q: string, partyId: string | null = null) {
   const api = useApi();
   const query = q.trim();
   return useQuery({
-    queryKey: keys.search(query),
-    queryFn: () => api.get<SongSearchResponse>(`/songs/search?q=${enc(query)}`),
+    queryKey: keys.search(query, partyId),
+    queryFn: () =>
+      api.get<SongSearchResponse>(
+        `/songs/search?q=${enc(query)}${partyId === null ? '' : `&partyId=${enc(partyId)}`}`,
+      ),
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
     retry: false,
@@ -214,6 +224,59 @@ export function usePartySearch(partyId: string | null, q: string, type: PartySea
     enabled: partyId !== null && query.length >= 2,
     staleTime: 60_000,
     retry: false,
+  });
+}
+
+/**
+ * Your saved songs (D34): the whole list (at most 500, so at most 5 pages), newest first. One query feeds both the
+ * Saved songs page and every card's Save button, so they always agree.
+ */
+export function useSavedSongs() {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.savedSongs(),
+    queryFn: async (): Promise<SavedSongsResponse> => {
+      let page = await api.get<SavedSongsResponse>('/users/me/saved');
+      const songs = [...page.songs];
+      while (page.nextCursor !== null) {
+        page = await api.get<SavedSongsResponse>(`/users/me/saved?cursor=${enc(page.nextCursor)}`);
+        songs.push(...page.songs);
+      }
+      return { ...page, songs, nextCursor: null };
+    },
+    staleTime: 60_000,
+  });
+}
+
+/** Save a shared song (D34). The list refreshes afterwards so its details (party, sharer) come from the server. */
+export function useSaveSong() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: SaveSongRequest) => api.post<SaveSongResponse>('/users/me/saved', request),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.savedSongs() }),
+  });
+}
+
+/** Remove a saved song; it disappears from the list straight away. */
+export function useUnsaveSong() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (trackId: string) => api.delete<void>(`/users/me/saved/${enc(trackId)}`),
+    onMutate: async (trackId) => {
+      await queryClient.cancelQueries({ queryKey: keys.savedSongs() });
+      queryClient.setQueryData<SavedSongsResponse>(keys.savedSongs(), (old) =>
+        old === undefined
+          ? old
+          : {
+              ...old,
+              songs: old.songs.filter((s) => s.trackId !== trackId),
+              total: Math.max(0, old.total - 1),
+            },
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.savedSongs() }),
   });
 }
 
@@ -373,14 +436,18 @@ export function useShareSong(roundId: string, partyId: string) {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: keys.currentWeek(partyId) });
       void queryClient.invalidateQueries({ queryKey: keys.weekSongs(roundId) });
+      // D35: whatever happened, search results' "already shared" may have changed (yours, or someone else's).
+      void queryClient.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }
 
-export function useResolveSong() {
+/** Looks up a pasted Apple Music link. With a party, says whether it already has the song (D35). */
+export function useResolveSong(partyId: string | null = null) {
   const api = useApi();
   return useMutation({
-    mutationFn: (url: string) => api.post<ResolveSongResponse>('/songs/resolve', { url }),
+    mutationFn: (url: string) =>
+      api.post<ResolveSongResponse>('/songs/resolve', partyId === null ? { url } : { url, partyId }),
   });
 }
 

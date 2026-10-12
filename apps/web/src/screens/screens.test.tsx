@@ -1,7 +1,7 @@
 // Screen tests (roadmap Phase 8): each screen against the in-memory preview API, checking the behaviour the roadmap
 // and PRODUCT_DECISIONS ask for, plus loading/empty/error states.
 
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PRIVACY_POLICY_VERSION } from '@dropabop/shared';
 import { describe, expect, it, vi } from 'vitest';
@@ -317,6 +317,67 @@ describe('Share today’s song (P8.4)', () => {
         true,
       ),
     );
+  });
+});
+
+describe('No repeat songs in a party (D35)', () => {
+  const notSharedYet = {
+    setup: (s: { songs: { recommendationId: string }[] }) =>
+      void (s.songs = s.songs.filter((x) => x.recommendationId !== 'r9')),
+  };
+
+  it('a song the party already has can’t be chosen, and says when (never who)', async () => {
+    renderApp('/share', notSharedYet);
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'dreams');
+    expect(await screen.findByText('Already shared · Sep 28')).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Choose Dreams' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription('Already shared · Sep 28');
+  });
+
+  it('another version only warns, in the results and before sharing', async () => {
+    const { state } = renderApp('/share', notSharedYet);
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'brightside');
+    expect(await screen.findByText('A version of this was shared on Sep 28')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Choose Mr. Brightside (Live)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    expect(
+      within(dialog).getByText(/A version of this song was shared in this party on Sep 28/),
+    ).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    await waitFor(() =>
+      expect(state.songs.some((x) => x.isMine && x.song.title === 'Mr. Brightside (Live)')).toBe(true),
+    );
+  });
+
+  it('a pasted link to a song the party already has explains instead of opening the share step', async () => {
+    renderApp('/share', {
+      setup: (s) => {
+        s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
+        const blueSky = s.catalog.find((x) => x.title === 'Mr. Blue Sky');
+        if (blueSky) s.pastResults[0]!.song = blueSky;
+      },
+    });
+    await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
+    await userEvent.type(screen.getByLabelText('Song link'), 'https://music.apple.com/us/song/x/1002');
+    await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
+    expect(
+      await screen.findByText('That song was already shared in this party on Sep 28. Pick a different one.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Share this song?' })).not.toBeInTheDocument();
+  });
+
+  it('shows the server’s answer if someone shared it in the meantime', async () => {
+    const { state } = renderApp('/share', notSharedYet);
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'blue sky');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Mr. Blue Sky' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    // Someone else shares it while this dialog is open.
+    const blueSky = state.catalog.find((x) => x.title === 'Mr. Blue Sky');
+    if (blueSky) state.pastResults[0]!.song = blueSky;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/already shared in this party/);
+    expect(state.songs.some((x) => x.isMine && x.song.title === 'Mr. Blue Sky')).toBe(false);
   });
 });
 
@@ -1466,6 +1527,7 @@ describe('Navigation (P13.13, D32)', () => {
       'Leaderboard',
       'Achievements',
       'Search',
+      'Saved songs',
       'Party',
       'Members',
       'Settings',
@@ -1509,5 +1571,159 @@ describe('Navigation (P13.13, D32)', () => {
     await waitFor(() =>
       expect(screen.getAllByTestId('path').some((p) => p.textContent === '/share')).toBe(true),
     );
+  });
+});
+
+describe('Saved songs (P14.2, D34)', () => {
+  it('Save on a Rate card adds the song; the list shows the party, not who shared it while the week is open', async () => {
+    const { state } = renderApp('/rate');
+    const save = await screen.findByRole('button', { name: 'Save Heat Waves to your saved songs' });
+    expect(save).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(save);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Remove Heat Waves from your saved songs' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+    expect(state.saved).toHaveLength(1);
+    expect(JSON.stringify(state.saved)).not.toContain('youtubeMusic');
+
+    cleanup(); // one app on the page at a time
+    renderApp('/saved', { setup: (s) => (s.saved = state.saved) });
+    const row = (await screen.findByText('Heat Waves')).closest('li')!;
+    expect(within(row).getByText(/From Ethan’s Music Party/)).toBeInTheDocument();
+    expect(within(row).queryByText(/shared by/)).not.toBeInTheDocument();
+  });
+
+  it('after a week ends, a saved song says who shared it', async () => {
+    const { state } = renderApp('/results/p1.2026-09-28');
+    await userEvent.click(await screen.findByRole('button', { name: 'Save Good 4 U to your saved songs' }));
+    await waitFor(() => expect(state.saved).toHaveLength(1));
+    expect(state.saved[0]?.from.sharedBy?.displayName).toBe('Sarah Kim');
+  });
+
+  it('removing offers Undo, which saves it again', async () => {
+    const { state } = renderApp('/rate');
+    await userEvent.click(await screen.findByRole('button', { name: 'Save Heat Waves to your saved songs' }));
+    await waitFor(() => expect(state.saved).toHaveLength(1));
+    const saved = state.saved;
+    cleanup(); // one app on the page at a time
+    const { state: listState } = renderApp('/saved', { setup: (s) => (s.saved = saved) });
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Remove Heat Waves from your saved songs' }),
+    );
+    expect(await screen.findByText(/^Removed/)).toBeInTheDocument();
+    await waitFor(() => expect(listState.saved).toHaveLength(0));
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(listState.saved).toHaveLength(1));
+  });
+
+  it('shows an empty state, and says when the list is full', async () => {
+    renderApp('/saved');
+    expect(await screen.findByText('No saved songs yet')).toBeInTheDocument();
+    cleanup();
+
+    renderApp('/rate', {
+      setup: (s) => {
+        const one = {
+          trackId: 'x',
+          savedAt: '2026-10-01T00:00:00.000Z',
+          song: s.songs[0]!.song,
+          from: {
+            partyId: 'p1',
+            partyName: 'Ethan’s Music Party',
+            roundId: 'p1.2026-10-05',
+            recommendationId: 'r1',
+            submittedOn: '2026-10-05',
+            isMember: true,
+            isMine: true,
+          },
+        };
+        s.saved = Array.from({ length: 500 }, (_, i) => ({ ...one, trackId: `t${i}` }));
+      },
+    });
+    const save = (await screen.findAllByRole('button', { name: 'Save Heat Waves to your saved songs' })).at(
+      -1,
+    )!;
+    await userEvent.click(save);
+    expect(await screen.findByText('Your saved songs list is full (500).')).toBeInTheDocument();
+  });
+});
+
+describe('Scoring key (P15.2, D37)', () => {
+  const custom = [
+    'Unlistenable',
+    'Painful',
+    'Awful',
+    'Bad',
+    'Below average',
+    'Middle of the road',
+    'Above average',
+    'Good',
+    'Great',
+    'Excellent',
+    'Absolute anthem',
+  ];
+  const withKey = (s: { parties: { settings: { scoringKey?: string[] } }[] }) => {
+    s.parties[0]!.settings.scoringKey = custom;
+  };
+
+  it('Rate shows “How to score” open the first time, then remembers it closed', async () => {
+    window.localStorage.clear();
+    renderApp('/rate', { setup: withKey });
+    const toggle = await screen.findByRole('button', { name: 'How to score' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Absolute anthem')).toBeInTheDocument();
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    cleanup();
+    renderApp('/rate', { setup: withKey });
+    expect(await screen.findByRole('button', { name: 'How to score' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    window.localStorage.clear();
+  });
+
+  it('shows the chosen score’s meaning under the picker, and reads it with the picker', async () => {
+    renderApp('/rate', { setup: withKey });
+    const picker = await screen.findByRole('radiogroup', { name: /Rate Heat Waves/ });
+    await userEvent.click(within(picker).getByRole('radio', { name: '8 out of 10' }));
+    const id = picker.getAttribute('aria-describedby');
+    expect(id).toBeTruthy();
+    await waitFor(() => expect(document.getElementById(id!)).toHaveTextContent('8: Great'));
+  });
+
+  it('the host edits the key in Party settings, and can reset it to the default', async () => {
+    const { state } = renderApp('/settings/party');
+    const ten = await screen.findByLabelText('What does a 10 mean?');
+    await userEvent.clear(ten);
+    await userEvent.type(ten, 'Absolute anthem');
+    await userEvent.click(screen.getByRole('button', { name: 'Save scoring key' }));
+    await waitFor(() => expect(state.parties[0]?.settings.scoringKey?.[10]).toBe('Absolute anthem'));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to default' }));
+    expect(screen.getByLabelText('What does a 10 mean?')).toHaveValue('Instant favorite');
+  });
+
+  it('members see the key but can’t edit it', async () => {
+    renderApp('/settings/party', {
+      setup: (s) => {
+        withKey(s);
+        s.parties[0]!.hostUserId = 'u2';
+        s.members[0]!.role = 'member';
+        s.members[1]!.role = 'host';
+      },
+    });
+    expect(await screen.findByText('Absolute anthem')).toBeInTheDocument();
+    expect(screen.queryByLabelText('What does a 10 mean?')).not.toBeInTheDocument();
+  });
+
+  it('How it works shows your party’s key when signed in, and the default when signed out', async () => {
+    renderApp('/how-it-works', { setup: withKey });
+    expect(await screen.findByText('Absolute anthem')).toBeInTheDocument();
+    cleanup();
+    renderApp('/how-it-works', { auth: fakeAuth() });
+    expect(await screen.findByText('Instant favorite')).toBeInTheDocument();
   });
 });

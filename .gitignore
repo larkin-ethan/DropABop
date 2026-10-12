@@ -28,3 +28,9 @@ test-results/
 
 # P8.12 screenshots (regenerate with npm run e2e)
 e2e/screenshots/
+
+# Private local files (personal data, private tools): never commit (public repo)
+*.xlsx
+.private/
+services/api/src/tools/private/
+services/api/scripts/private/

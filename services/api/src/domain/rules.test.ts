@@ -193,7 +193,7 @@ describe('canCastVote (spec §15, D6–D8)', () => {
     });
   });
 
-  it.each([0, 11, 7.5, '8', null, undefined, Number.NaN])('rejects rating %s', (rating) => {
+  it.each([-1, 11, 7.5, '8', null, undefined, Number.NaN])('rejects rating %s', (rating) => {
     expect(canCastVote(voteCtx({ rating }))).toMatchObject({ ok: false, code: 'VALIDATION_FAILED' });
   });
 
@@ -208,11 +208,12 @@ describe('canCastVote (spec §15, D6–D8)', () => {
 });
 
 describe('isValidRating', () => {
-  it('accepts whole numbers 1–10 only', () => {
-    for (let rating = 1; rating <= 10; rating++) {
+  it('accepts whole numbers 0–10 only (D36)', () => {
+    for (let rating = 0; rating <= 10; rating++) {
       expect(isValidRating(rating)).toBe(true);
     }
-    expect(isValidRating(0)).toBe(false);
+    expect(isValidRating(-1)).toBe(false);
+    expect(isValidRating(11)).toBe(false);
     expect(isValidRating(10.1)).toBe(false);
     expect(isValidRating(Infinity)).toBe(false);
   });

@@ -20,7 +20,9 @@ and three low ones are fixed or listed under Known limits below.
 - **In our database:** your display name, avatar colour, optional profile picture (a small 128×128 copy made in
   your browser), preferred music app, the "Play videos" and notification switches, when you agreed to the privacy
   policy (time + version, set by the server), your parties (with when you last opened your notifications and
-  achievements there), the songs you share, your ratings and your comments. A YouTube video id kept with a song is
+  achievements there), the songs you share, your ratings and your comments, and your private **saved songs** list
+  (D34: only you can read it; it keeps a copy of each song without YouTube data, and who shared a song is shown only
+  after that week ends). A YouTube video id kept with a song is
   deleted automatically 29 days after sharing (ADR-0012). Stats, history, achievements and notifications are
   worked out when you ask, never stored. **Not** your email.
 - **In logs (kept 14 days in dev, 30 in prod):** request id, route, status, timing, and your user id (a random

@@ -61,7 +61,7 @@ beforeAll(async () => {
   await createRoundIfMissing(deps.data, open);
   const openSong = aRecommendation(open, host, '2026-10-05');
   await putRecommendation(deps.data, openSong);
-  await putVote(deps.data, { ...aVote(openSong, friend, 1), updatedAt: '2026-10-06T00:00:00.000Z' });
+  await putVote(deps.data, { ...aVote(openSong, friend, 0), updatedAt: '2026-10-06T00:00:00.000Z' });
 
   deps.setNow('2026-10-07T17:00:00.000Z');
 });
@@ -99,7 +99,7 @@ describe('GET /parties/{partyId}/achievements (P13.9)', () => {
     const first10 = body.achievements.find((a) => a.id === 'first-10');
     expect(first10).toMatchObject({ unlocked: true, unlockedOn: null, unlockedDay: null });
     expect(unlocked(body, 'first-drop')).toBe(closedEndsAt); // not rating-revealing: dated as usual
-    expect(body.achievements.find((a) => a.id === 'first-1')?.unlocked).toBe(false); // their 1 is in the open week (D9)
+    expect(body.achievements.find((a) => a.id === 'first-0')?.unlocked).toBe(false); // their 0 is in the open week (D9)
     expect(body.newlyUnlocked).toEqual([]);
     expect(body.seenAt).toBeNull();
   });

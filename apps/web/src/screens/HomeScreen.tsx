@@ -465,6 +465,7 @@ function SongsByDay({
                   song={s.song}
                   preferred={preferred}
                   href={songDetailsPath(roundId, s.recommendationId)}
+                  save={{ roundId, recommendationId: s.recommendationId }}
                   detail={sharedBy(s) ?? undefined}
                   right={
                     s.isMine ? (

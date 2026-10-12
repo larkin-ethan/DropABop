@@ -143,8 +143,9 @@ describe('calculateWeekResults (spec §16, D11, D12)', () => {
 
   it('calculates averages, counts, and the anonymous distribution', () => {
     expect(byId['tue-a']).toMatchObject({ averageRating: 9.5, ratingCount: 2 });
-    expect(byId['tue-a']?.distribution).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 1, 1]);
-    expect(byId['mon-a']?.distribution).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 1, 0]);
+    // Index = rating, 0–10 (D36).
+    expect(byId['tue-a']?.distribution).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]);
+    expect(byId['mon-a']?.distribution).toEqual([0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0]);
   });
 
   it('shows “no ratings” as a null average with zero count', () => {

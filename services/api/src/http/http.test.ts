@@ -85,7 +85,7 @@ describe('parseBody', () => {
 
   it('turns schema failures into the schema’s friendly message', () => {
     expect(() => parseBody(apiEvent({ body: { rating: 11 } }), castVoteRequestSchema)).toThrow(
-      'Ratings are whole numbers from 1 to 10.',
+      'Ratings are whole numbers from 0 to 10.',
     );
   });
 

@@ -5,6 +5,30 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { Logo, buttonClassName } from '../components/ui';
+import { ScoringKeyList } from '../components/ScoringKey';
+import { useParty } from '../api/hooks';
+import { useCurrentParty } from '../party/CurrentParty';
+import { scoringKeyOf } from '@dropabop/shared';
+
+/**
+ * What each score means (D37): your current party's key when you're signed in to one, otherwise the default. The
+ * page is public, so signed-out readers (and people without a party yet) see the default.
+ */
+function HelpScoringKey() {
+  const { status } = useAuth();
+  const { partyId, current } = useCurrentParty();
+  const party = useParty(status === 'signedIn' ? partyId : null);
+  const own = party.data !== undefined;
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4">
+      <p className="mb-3 font-semibold text-ink">
+        {own && current ? `What each score means in ${current.partyName}` : 'What each score means'}
+      </p>
+      <ScoringKeyList scoringKey={scoringKeyOf(party.data?.party.settings)} />
+      <p className="mt-3 text-xs">Each party’s host can change this wording in Party settings.</p>
+    </div>
+  );
+}
 
 const SECTIONS: { title: string; body: ReactNode }[] = [
   {
@@ -44,10 +68,11 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           in your profile and its link comes first.
         </p>
         <p>
-          Rate everyone else’s songs from 1 to 10, any time until ratings lock (Sunday 11:59 pm unless the
+          Rate everyone else’s songs from 0 to 10, any time until ratings lock (Sunday 11:59 pm unless the
           host changes it). You can change a rating until then. You don’t rate your own songs, and you don’t
           have to rate every song.
         </p>
+        <HelpScoringKey />
         <p>
           While the week is running, songs are anonymous and nobody can see anyone’s ratings, so nobody is
           swayed by who shared what or how others voted. (A host can choose to show who shared each song

@@ -164,7 +164,7 @@ describe('buildHistoryMonth (D31)', () => {
       expect(monday.bopOfTheDay).toEqual([mine.recommendationId]);
       expect(monday.lowestRated).toEqual([b.recommendationId]);
       expect(monday.myRatingCount).toBe(2);
-      expect(monday.distribution).toEqual([1, 1, 0, 3, 0, 0, 1, 0, 2, 1]);
+      expect(monday.distribution).toEqual([0, 1, 1, 0, 3, 0, 0, 1, 0, 2, 1]); // index = rating (D36)
       expect(monday.favoriteArtists).toEqual(['Same Band']);
       expect(tuesday.favoriteArtists).toEqual([]);
     });

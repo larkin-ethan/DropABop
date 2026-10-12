@@ -40,6 +40,7 @@ const SIDEBAR: NavItem[][] = [
     { to: '/leaderboard', label: 'Leaderboard', icon: 'list' },
     { to: '/achievements', label: 'Achievements', icon: 'trophy' },
     { to: '/search', label: 'Search', icon: 'search' },
+    { to: '/saved', label: 'Saved songs', icon: 'heart' },
   ],
   [
     {
@@ -69,7 +70,7 @@ const MOBILE_BAR: NavItem[] = [
   { to: '/drop', label: 'Drop', icon: 'music', isActive: DROP_PAGES },
   { to: '/history', label: 'History', icon: 'history' },
   { to: '/stats', label: 'Stats', icon: 'chart', isActive: under('/stats', '/leaderboard') },
-  { to: '/profile', label: 'Profile', icon: 'user', isActive: under('/profile', '/achievements') },
+  { to: '/profile', label: 'Profile', icon: 'user', isActive: under('/profile', '/achievements', '/saved') },
 ];
 
 function useIsActive() {

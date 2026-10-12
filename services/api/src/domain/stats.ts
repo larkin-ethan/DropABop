@@ -275,7 +275,7 @@ export function generosity(data: StatsData, userId: string): Stat<number> {
   };
 }
 
-/** How many of each rating (1–10) the user has given. Index 0 = number of 1s. */
+/** How many of each rating (0–10) the user has given. Index 0 = number of 0s. */
 export function ratingDistributionGiven(data: StatsData, userId: string): Stat<number[]> {
   const ratings = ratingsGivenBy(data, userId);
   const distribution = new Array<number>(MAX_RATING - MIN_RATING + 1).fill(0);
@@ -820,7 +820,7 @@ export function groupAverage(data: StatsData): Stat<number> {
   return { status: 'ok', value: data.partyAverageGiven as number, sampleSize: data.votes.length };
 }
 
-/** How many of each rating (1–10) the whole party gave. */
+/** How many of each rating (0–10) the whole party gave. Index 0 = number of 0s. */
 export function groupRatingDistribution(data: StatsData): Stat<number[]> {
   if (data.votes.length === 0) return notEnough(0, 1);
   const distribution = new Array<number>(MAX_RATING - MIN_RATING + 1).fill(0);

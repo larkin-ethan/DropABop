@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { apiEvent, bodyOf } from '../../test/events';
 import { newId } from '../../test/fixtures';
 import { testDeps } from '../../test/handler-deps';
+import { getParty, setScoringKeyIfUnset } from '../data/parties';
 import { runHandler } from '../http/handler';
 import { joinPartyFn } from './membership';
 import { createPartyHandlerFn } from './parties';
@@ -132,5 +133,56 @@ describe('PATCH /parties/{partyId}/settings', () => {
     expect((await update(hostId, party, { hostUserId: newId() })).statusCode).toBe(400);
     expect((await update(hostId, party, { inviteCode: 'SONG-AAAA' })).statusCode).toBe(400);
     expect((await update(hostId, party, {})).statusCode).toBe(400);
+  });
+});
+
+describe('scoring key (D37)', () => {
+  const key = Array.from({ length: 11 }, (_, score) => `Score ${score} means this`);
+
+  it('starts unset (the default applies), and only the host can change it; it shows at once', async () => {
+    const hostId = newId();
+    const party = await newParty(hostId);
+    expect(party.settings.scoringKey).toBeUndefined();
+    const member = newId();
+    await runHandler(
+      joinPartyFn,
+      apiEvent({
+        userId: member,
+        pathParameters: { partyId: party.partyId },
+        body: { inviteCode: party.inviteCode },
+      }),
+      deps,
+    );
+    expect((await update(member, party, { scoringKey: key })).statusCode).toBe(403);
+    const result = await update(hostId, party, { scoringKey: key.map((line) => `  ${line}  `) });
+    expect(result.statusCode).toBe(200);
+    expect((bodyOf(result) as { party: Party }).party.settings.scoringKey).toEqual(key); // trimmed
+  });
+
+  it('needs exactly 11 short, plain lines', async () => {
+    const hostId = newId();
+    const party = await newParty(hostId);
+    for (const bad of [
+      key.slice(0, 10),
+      [...key, 'extra'],
+      key.map((line, i) => (i === 3 ? '' : line)),
+      key.map((line, i) => (i === 3 ? 'x'.repeat(121) : line)),
+      key.map((line, i) => (i === 3 ? 'a‮b' : line)),
+    ]) {
+      expect((await update(hostId, party, { scoringKey: bad })).statusCode).toBe(400);
+    }
+  });
+});
+
+describe('setScoringKeyIfUnset (D38)', () => {
+  it('sets the key only while the host hasn’t written one', async () => {
+    const hostId = newId();
+    const party = await newParty(hostId);
+    const first = Array.from({ length: 11 }, (_, s) => `First ${s}`);
+    const second = Array.from({ length: 11 }, (_, s) => `Second ${s}`);
+    expect(await setScoringKeyIfUnset(deps.data, party.partyId, first)).toBe(true);
+    expect(await setScoringKeyIfUnset(deps.data, party.partyId, second)).toBe(false);
+    expect((await getParty(deps.data, party.partyId))?.settings.scoringKey).toEqual(first);
+    expect(await setScoringKeyIfUnset(deps.data, newId(), first)).toBe(false); // no such party: nothing created
   });
 });
