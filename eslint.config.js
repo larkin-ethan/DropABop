@@ -7,7 +7,14 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/coverage/**', '**/.aws-sam/**'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/dist-demo/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/.aws-sam/**',
+    ],
   },
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

@@ -3,6 +3,7 @@
 package-lock.json
 node_modules
 dist
+dist-demo
 build
 coverage
 .aws-sam

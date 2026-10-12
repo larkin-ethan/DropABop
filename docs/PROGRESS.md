@@ -59,6 +59,15 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-12 — **P16.1 — Demo build** (D39) — a public demo that runs the sample world in the visitor's browser: no
+  sign-in, nothing saved, no AWS addresses in the build (its page policy allows no outside connections but YouTube's
+  player). `npm run build:demo`, `scripts/deploy-demo.sh` (checks for real addresses and for the sample data),
+  `deploy-web.sh` now refuses a real build that contains sample data. Sample "you" is "Sam Taylor" and the party
+  "Friday Night Tunes" (were Ethan's names; also the create-party placeholder). Verified: `npm run verify`; a real
+  build (placeholder settings) has no sample data or demo banner; the demo build served locally: home with banner,
+  search shows "Already shared", only same-origin requests, no console errors. Left: P16.2 (Ethan creates the
+  Cloudflare project and publishes).
+
 - 2026-10-12 — **P14.4 (dev part)** — dev deployed from 4ee878b (Ethan approved; P14.1–P14.3 + Phase 15).
   `scripts/smoke-dev.mjs` now also covers saved songs (save, save again = alreadySaved, list, refused after leaving,
   remove) and a repeat share (409 ALREADY_SHARED). Verified: `node scripts/smoke-dev.mjs` 61/61 on dev. Left: Ethan

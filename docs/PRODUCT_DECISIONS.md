@@ -281,6 +281,12 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
 - **D38 — Past weeks from before the app (Ethan, 2026-10-11).** A group's earlier weeks can be added once by a private
   tool (kept out of this repo). Such weeks are marked `imported`, have their real dates, and behave like finished
   weeks (results, history, stats, achievements). Only weeks that ended before the group's first week in the app.
+- **D39 — Public demo (Ethan, 2026-10-12).** Anyone can try the app without signing in at a separate demo site
+  (`dropabop-demo.pages.dev`), linked from Ethan's portfolio. It's the sample world (made-up people, songs and a small
+  made-up catalog) running entirely in the visitor's browser tab: nothing is saved, refreshing starts over, and the
+  demo build has no API or sign-in addresses at all, so it can't reach the real app or its data (its security policy
+  allows no outside connections except YouTube's player). The real app's build never contains the sample data
+  (`scripts/deploy-web.sh` refuses to publish it if it does). The sample "you" and party have made-up names.
 
 ## Statistics definitions (§17, §18)
 

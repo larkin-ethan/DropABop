@@ -4,6 +4,23 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 
 /**
+ * Where the page may send requests. The demo build (D39) talks to nothing but itself: it has no API or sign-in, so
+ * its policy is the strictest. Other builds name the exact API and Cognito addresses.
+ */
+function connectSources(mode: string): string {
+  if (mode === 'demo') return "connect-src 'self'";
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const api = env.VITE_API_URL;
+  const region = env.VITE_AWS_REGION;
+  if (!api || !region) {
+    throw new Error(
+      'VITE_API_URL and VITE_AWS_REGION are needed to build the website (see scripts/deploy-web.sh).',
+    );
+  }
+  return `connect-src 'self' ${new URL(api).origin} https://cognito-idp.${region}.amazonaws.com`;
+}
+
+/**
  * Production builds only: adds a Content Security Policy to index.html that names the exact API and Cognito
  * addresses this build talks to. CloudFront's CSP header (infra/template.yaml) can only allow "any API Gateway in the
  * region"; browsers enforce every policy they're given, so this one narrows it to ours (P9.3 security review).
@@ -13,16 +30,7 @@ function exactConnectSrc(mode: string): Plugin {
     name: 'dropabop-exact-connect-src',
     apply: 'build',
     transformIndexHtml(html) {
-      const env = loadEnv(mode, process.cwd(), 'VITE_');
-      const api = env.VITE_API_URL;
-      const region = env.VITE_AWS_REGION;
-      if (!api || !region) {
-        throw new Error(
-          'VITE_API_URL and VITE_AWS_REGION are needed to build the website (see scripts/deploy-web.sh).',
-        );
-      }
-      const origin = new URL(api).origin;
-      const policy = `connect-src 'self' ${origin} https://cognito-idp.${region}.amazonaws.com`;
+      const policy = connectSources(mode);
       return html.replace(
         '<head>',
         `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`,
@@ -42,9 +50,6 @@ function securityHeadersFile(mode: string): Plugin {
     name: 'dropabop-security-headers-file',
     apply: 'build',
     generateBundle() {
-      const env = loadEnv(mode, process.cwd(), 'VITE_');
-      const api = new URL(env.VITE_API_URL ?? '').origin;
-      const region = env.VITE_AWS_REGION ?? '';
       const policy = [
         "default-src 'self'",
         // YouTube's embedded player: its loader, the player script it fetches, and its frame. Only those paths, not
@@ -53,7 +58,7 @@ function securityHeadersFile(mode: string): Plugin {
         'frame-src https://www.youtube.com',
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://*.mzstatic.com",
-        `connect-src 'self' ${api} https://cognito-idp.${region}.amazonaws.com`,
+        connectSources(mode),
         "font-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",

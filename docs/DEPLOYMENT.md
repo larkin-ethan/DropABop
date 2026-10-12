@@ -333,6 +333,25 @@ Quota: YouTube allows 100 searches a day for the whole project (resets at midnig
 use 15 a day. When they run out, sharing still works, just without a suggestion. Usage: Google Cloud console →
 *APIs & Services → YouTube Data API v3 → Quotas*.
 
+## 4g. Public demo site (D39)
+
+The demo is a separate Cloudflare Pages site with no AWS behind it. One-time setup, in the DropABop folder (Cloudflare's
+command-line tool is already signed in from §4d):
+
+```bash
+npx wrangler@4 pages project create dropabop-demo --production-branch main
+```
+
+Then publish it (and again whenever you want the demo to show newer screens):
+
+```bash
+bash scripts/deploy-demo.sh
+```
+
+It builds the app in demo mode, checks the build has no real AWS addresses and does have the sample data, and uploads
+it. The address is `https://dropabop-demo.pages.dev` (if Cloudflare gives a different one, use
+`DEMO_PROJECT=<name> bash scripts/deploy-demo.sh`). Nothing here touches dev or prod.
+
 ## 5. Shutting things down
 
 Deleting is a **human-only** action in this project (the AI assistant is blocked from it). The table and user pool are kept

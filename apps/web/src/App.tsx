@@ -36,11 +36,17 @@ import { DropLayout, DropRedirect } from './screens/DropScreens';
 import { ShareScreen } from './screens/ShareScreen';
 import { SongDetailsScreen } from './screens/SongDetailsScreen';
 import { GroupStatsScreen, LeaderboardScreen, PersonalStatsScreen } from './screens/StatsScreens';
+import { IS_DEMO_BUILD } from './sample-build';
 
 function PreviewBanner() {
   return (
-    <div className="mb-5 rounded-xl border border-gold/40 bg-gold/10 px-4 py-2.5 text-sm text-gold">
-      Preview with sample data. Not connected to the real app yet.
+    <div
+      role="note"
+      className="mb-5 rounded-xl border border-gold/40 bg-gold/10 px-4 py-2.5 text-sm text-gold"
+    >
+      {IS_DEMO_BUILD
+        ? 'Demo with made-up people and songs. Try anything: nothing is saved, and refreshing the page starts over.'
+        : 'Preview with sample data. Not connected to the real app yet.'}
     </div>
   );
 }

@@ -132,7 +132,7 @@ describe('Home (P8.3)', () => {
         s.round.revealRecommenderDuringVoting = true; // the week started with it on
       },
     });
-    expect(await screen.findByLabelText('Ethan Larkin has shared today')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Sam Taylor has shared today')).toBeInTheDocument();
   });
 
   it('keeps songs anonymous by default (D10)', async () => {
@@ -774,7 +774,7 @@ describe('Party settings and profile (P8.10, P8.11)', () => {
 describe('Joining and creating parties (P8.2)', () => {
   it('shows the invite and its party when signed in', async () => {
     renderApp('/join/song-7k4p');
-    expect(await screen.findByRole('heading', { name: 'Ethan’s Music Party' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Friday Night Tunes' })).toBeInTheDocument();
     expect(screen.getByText('You’re already in this party.')).toBeInTheDocument();
   });
 
@@ -878,7 +878,7 @@ describe('How it works guide and invite message (2026-10-04)', () => {
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Copy invite message' }));
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
-    expect(copied).toContain('Join my Drop a Bop party “Ethan’s Music Party”!');
+    expect(copied).toContain('Join my Drop a Bop party “Friday Night Tunes”!');
     expect(copied).toContain('On Monday, Wednesday and Friday we each share a song');
     expect(copied).toContain('Ratings lock Saturday at 9:00 pm');
     expect(copied).toContain('/join/SONG-7K4P (or use code SONG-7K4P)');
@@ -1592,7 +1592,7 @@ describe('Saved songs (P14.2, D34)', () => {
     cleanup(); // one app on the page at a time
     renderApp('/saved', { setup: (s) => (s.saved = state.saved) });
     const row = (await screen.findByText('Heat Waves')).closest('li')!;
-    expect(within(row).getByText(/From Ethan’s Music Party/)).toBeInTheDocument();
+    expect(within(row).getByText(/From Friday Night Tunes/)).toBeInTheDocument();
     expect(within(row).queryByText(/shared by/)).not.toBeInTheDocument();
   });
 
@@ -1632,7 +1632,7 @@ describe('Saved songs (P14.2, D34)', () => {
           song: s.songs[0]!.song,
           from: {
             partyId: 'p1',
-            partyName: 'Ethan’s Music Party',
+            partyName: 'Friday Night Tunes',
             roundId: 'p1.2026-10-05',
             recommendationId: 'r1',
             submittedOn: '2026-10-05',

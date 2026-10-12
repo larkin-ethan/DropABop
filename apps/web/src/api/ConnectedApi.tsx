@@ -7,6 +7,7 @@ import { useMemo, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getConfig } from '../config';
 import { closeWeek, createDemoState, createPreviewApi } from '../preview/preview-api';
+import { IS_SAMPLE_BUILD } from '../sample-build';
 import { ApiProvider } from './ApiContext';
 import { createApiClient, type ApiClient } from './client';
 
@@ -15,9 +16,9 @@ export function ConnectedApi({ preview, children }: { preview: boolean; children
   const queryClient = useQueryClient();
   const client = useMemo(
     () =>
-      // Only in the dev server's explicit sample mode; in production builds this is false, so the bundler drops the
-      // preview API and its sample data.
-      preview && import.meta.env.DEV && import.meta.env.MODE === 'sample'
+      // Only in the dev server's sample mode and the demo build (D39); in the real app's builds this is false, so the
+      // bundler drops the preview API and its sample data.
+      preview && IS_SAMPLE_BUILD
         ? createSampleApi()
         : createApiClient({
             baseUrl: getConfig().apiUrl,
@@ -34,7 +35,7 @@ export function ConnectedApi({ preview, children }: { preview: boolean; children
 
 /**
  * The sample world for the dev server's sample mode, plus a hook the end-to-end tests use to end the week
- * (`window.__dropabopSample.closeWeek()`). Never part of a production build.
+ * (`window.__dropabopSample.closeWeek()`). Only in the sample and demo builds, never the real app's (D39).
  */
 let sample: ApiClient | undefined;
 

@@ -54,6 +54,12 @@ VITE_API_URL="$API_URL" \
   VITE_AWS_REGION="$REGION" \
   npm run build -w @dropabop/web
 
+# D39: the real app must never contain the sample API or its made-up data (only the demo site does).
+if grep -rqs "Sarah Kim" apps/web/dist; then
+  echo "Stopped: the build contains sample data. Only scripts/deploy-demo.sh may publish that."
+  exit 1
+fi
+
 if ! is_set "$BUCKET"; then
   # Temporary host (ADR-0010): Cloudflare Pages, through Cloudflare's own CLI (Wrangler). The project name is the
   # pages.dev subdomain, e.g. https://dropabop.pages.dev → dropabop. One-time setup: DEPLOYMENT.md §4d.

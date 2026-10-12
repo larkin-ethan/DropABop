@@ -22,7 +22,7 @@ function song(id: string, title: string, artist: string, album: string): Song {
 }
 
 export const sampleMembers: MemberView[] = [
-  { userId: 'me', displayName: 'Ethan Larkin', avatarColor: '#3B82F6' },
+  { userId: 'me', displayName: 'Sam Taylor', avatarColor: '#3B82F6' },
   { userId: 'u2', displayName: 'Sarah Kim', avatarColor: '#14B8A6' },
   { userId: 'u3', displayName: 'Mike Torres', avatarColor: '#8B5CF6' },
   { userId: 'u4', displayName: 'John Park', avatarColor: '#F59E0B' },

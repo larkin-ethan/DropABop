@@ -550,6 +550,16 @@ Before P14.3/P14.4: past weeks go in first, so P14.3's backfill marks their song
 - [ ] **P15.4 — Release** [HUMAN for prod] — dev deploy + smoke (a 0 rating, a key change); Ethan merges and deploys
   prod; then the private past-weeks step (Ethan).
 
+## Phase 16 — Public demo (D39; Ethan, 2026-10-12)
+
+- [x] **P16.1 — Demo build** — `vite build --mode demo` (`npm run build:demo`): sample API, no sign-in, demo banner,
+  `connect-src 'self'` only; made-up names for the sample "you" and party; a search hint for the small catalog;
+  `scripts/deploy-demo.sh` (refuses a build with real AWS addresses); `deploy-web.sh` refuses a real build with sample
+  data. *Done when:* verify, e2e, the real build checked free of sample data, the demo build tried in a browser
+  (no outside requests).
+- [ ] **P16.2 — Publish the demo** [HUMAN] — Ethan creates the Cloudflare project (DEPLOYMENT.md §4g) and runs
+  `bash scripts/deploy-demo.sh`; then the demo link goes on his portfolio's project card.
+
 ## Later (do not build until a real need appears — spec §42)
 
 Real-time updates · push/email notifications · YouTube Data API search · email invites · avatar upload · more providers · caching · queue-based stats.

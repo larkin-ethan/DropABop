@@ -221,7 +221,7 @@ function nextMondayAfter(endsAt: string): string {
 export function createPreviewState(now: Date = new Date()): PreviewState {
   const party: Party = {
     partyId: 'p1',
-    name: 'Ethan’s Music Party',
+    name: 'Friday Night Tunes',
     hostUserId: ME,
     inviteCode: 'SONG-7K4P',
     memberCount: sampleMembers.length,
@@ -263,7 +263,7 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
   return {
     user: {
       userId: ME,
-      displayName: 'Ethan Larkin',
+      displayName: 'Sam Taylor',
       avatarColor: '#3B82F6',
       preferredProvider: null,
       privacyAcceptedAt: '2026-10-09T12:00:00.000Z',

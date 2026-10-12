@@ -8,14 +8,16 @@ import { AuthProvider } from './auth/AuthContext';
 import { createAmplifyAuthService } from './auth/amplify-auth-service';
 import { previewAuthService, type AuthService } from './auth/auth-service';
 import { getConfig } from './config';
+import { IS_SAMPLE_BUILD } from './sample-build';
 import './index.css';
 
 /**
- * The sample-data preview runs only when explicitly asked for (`--mode sample` on the dev server). Otherwise the app
- * needs its AWS settings and fails loudly without them, so a misconfigured build can never quietly serve fake data.
+ * Sample data only when explicitly asked for: `--mode sample` on the dev server, or the public demo build (D39).
+ * Otherwise the app needs its AWS settings and fails loudly without them, so a misconfigured build can never quietly
+ * serve fake data.
  */
 function chooseAuthService(): { service: AuthService; preview: boolean } {
-  if (import.meta.env.DEV && import.meta.env.MODE === 'sample') {
+  if (IS_SAMPLE_BUILD) {
     return { service: previewAuthService, preview: true };
   }
   return { service: createAmplifyAuthService(getConfig()), preview: false };

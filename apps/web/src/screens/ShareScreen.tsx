@@ -46,6 +46,7 @@ import {
 } from '../lib/format';
 import { useCurrentParty } from '../party/CurrentParty';
 import { useSharerNames } from '../party/useSharerNames';
+import { IS_DEMO_BUILD } from '../sample-build';
 import { PlayVideoButton } from '../player/PlayVideoButton';
 
 type OpenWeek = Extract<CurrentWeekResponse, { reason: null }>;
@@ -311,7 +312,11 @@ function SearchResults({
     return (
       <EmptyState
         title="No songs found"
-        message="Try different words, or paste a song link from Apple Music, Spotify or YouTube Music instead."
+        message={
+          IS_DEMO_BUILD
+            ? 'The demo has a small made-up catalog. Try “sun”, “blue sky”, “abba” or “dreams”.'
+            : 'Try different words, or paste a song link from Apple Music, Spotify or YouTube Music instead.'
+        }
       />
     );
   }

@@ -362,7 +362,7 @@ export function CreatePartyScreen() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <TextField
             label="Party name"
-            placeholder="Ethan’s Music Party"
+            placeholder="Friday Night Tunes"
             maxLength={60}
             value={name}
             onChange={(e) => setName(e.target.value)}
