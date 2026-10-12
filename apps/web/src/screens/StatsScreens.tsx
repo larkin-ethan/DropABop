@@ -214,7 +214,7 @@ export function PersonalStatsScreen() {
                     <StatHeading
                       heading
                       label="Ratings you give"
-                      definition="How many of each rating, 1 to 10, you’ve given."
+                      definition="How many of each rating, 0 to 10, you’ve given."
                     />
                   </div>
                   <StatBody stat={s.ratingDistribution} unit="ratings">
@@ -384,7 +384,7 @@ export function GroupStatsScreen() {
                 />
                 <SuperlativeCard
                   label="Most controversial"
-                  definition="Love it or hate it: the most even split between low (1–3) and high (8–10) ratings. 1.0 = perfectly split."
+                  definition="Love it or hate it: the most even split between low (0–3) and high (8–10) ratings. 1.0 = perfectly split."
                   stat={s.mostControversial}
                   unit="ratings"
                   render={(w) => songLine(w, names, (v) => v.toFixed(2))}
@@ -455,7 +455,7 @@ export function GroupStatsScreen() {
                     <StatHeading
                       heading
                       label="Ratings the group gives"
-                      definition="How many of each rating, 1 to 10, everyone has given."
+                      definition="How many of each rating, 0 to 10, everyone has given."
                     />
                   </div>
                   <StatBody stat={s.ratingDistribution} unit="rating">

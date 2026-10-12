@@ -31,6 +31,7 @@ import { LatestResultsScreen, ResultsScreen } from './screens/ResultsScreens';
 import { PartySettingsScreen } from './screens/SettingsScreens';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SearchScreen } from './screens/SearchScreen';
+import { SavedSongsScreen } from './screens/SavedSongsScreen';
 import { DropLayout, DropRedirect } from './screens/DropScreens';
 import { ShareScreen } from './screens/ShareScreen';
 import { SongDetailsScreen } from './screens/SongDetailsScreen';
@@ -129,6 +130,7 @@ export function App({ preview = false }: { preview?: boolean }) {
               <Route path="/leaderboard" element={<LeaderboardScreen />} />
               <Route path="/achievements" element={<AchievementsScreen />} />
               <Route path="/search" element={<SearchScreen />} />
+              <Route path="/saved" element={<SavedSongsScreen />} />
               <Route path="/settings" element={<SettingsHubScreen />} />
               <Route path="/settings/party" element={<PartySettingsScreen />} />
               <Route path="/settings/account" element={<AccountSettingsScreen />} />

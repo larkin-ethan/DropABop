@@ -155,7 +155,7 @@ describe('PUT /rounds/{roundId}/votes/{recommendationId}', () => {
   it('rejects invalid ratings and extra fields', async () => {
     const { round, memberId, songId } = await setup();
     for (const body of [
-      { rating: 0 },
+      { rating: -1 },
       { rating: 11 },
       { rating: 7.5 },
       { rating: '8' },
@@ -163,6 +163,8 @@ describe('PUT /rounds/{roundId}/votes/{recommendationId}', () => {
     ]) {
       expect((await rate(memberId, round.roundId, songId, body)).statusCode).toBe(400);
     }
+    // 0 is a real rating (D36: the lowest score).
+    expect((await rate(memberId, round.roundId, songId, { rating: 0 })).statusCode).toBe(200);
   });
 
   it('rejects unknown songs, non-members, and songs from another party', async () => {

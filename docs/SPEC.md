@@ -17,7 +17,7 @@ Build a private social music application called **Drop a Bop** (originally "Song
 
 The core experience is simple:
 
-> One person recommends one song. Everyone else listens and rates it from 1–10. At the end of the round, everyone sees how the song performed and how their musical taste compares with the group.
+> One person recommends one song. Everyone else listens and rates it from 1–10 (0–10 since D36). At the end of the round, everyone sees how the song performed and how their musical taste compares with the group.
 
 The application is initially designed for small private groups of approximately 10–20 users.
 
@@ -151,7 +151,7 @@ Each participant submits exactly one recommendation per round. Server-side: user
 
 ## 15. Voting Rules
 
-Each eligible participant rates each song once, 1–10. Server enforces `rating >= 1 && rating <= 10` and prevents duplicate voting. The user may change their rating while voting is open if the product design allows. Once the round closes, votes are immutable.
+Each eligible participant rates each song once, 1–10. Server enforces `rating >= 1 && rating <= 10` (since D36, 2026-10-11: `rating >= 0`, the scale is 0–10) and prevents duplicate voting. The user may change their rating while voting is open if the product design allows. Once the round closes, votes are immutable.
 
 ## 16. Results
 

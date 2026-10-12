@@ -13,7 +13,7 @@ import type {
   RoundStatus,
   Vote,
 } from '@dropabop/shared';
-import { shareDaysOf } from '@dropabop/shared';
+import { MIN_RATING, shareDaysOf } from '@dropabop/shared';
 import { calculateWeekResults } from './results';
 import { buildStatsData, crowdFavorite, dayIn, mostDivisive, type StatsData } from './stats';
 
@@ -112,7 +112,8 @@ interface Progress {
   myRatings: number;
   myRatingSum: number;
   gave10: boolean;
-  gave1: boolean;
+  /** Gave the lowest possible rating (0, D36). */
+  gaveMin: boolean;
   /** Every valid rating in the party so far, for "compared with the group". */
   partyRatings: number;
   partyRatingSum: number;
@@ -129,7 +130,7 @@ function emptyProgress(): Progress {
     myRatings: 0,
     myRatingSum: 0,
     gave10: false,
-    gave1: false,
+    gaveMin: false,
     partyRatings: 0,
     partyRatingSum: 0,
     gaps: new Map(),
@@ -156,7 +157,7 @@ function addWeek(p: Progress, week: StatsData, facts: WeekFacts, userId: string)
     p.myRatings += 1;
     p.myRatingSum += vote.rating;
     if (vote.rating === 10) p.gave10 = true;
-    if (vote.rating === 1) p.gave1 = true;
+    if (vote.rating === MIN_RATING) p.gaveMin = true;
   }
   // Songs are rated within their own week, so each week's shared songs can be added on their own.
   for (const vote of week.votes) {
@@ -340,12 +341,12 @@ export const ACHIEVEMENTS: Definition[] = [
     check: (p) => yesNo(p.gave10),
   },
   {
-    id: 'first-1',
+    id: 'first-0',
     group: 'rating',
-    emoji: '1️⃣',
-    title: 'First 1',
-    description: 'Give a song a 1.',
-    check: (p) => yesNo(p.gave1),
+    emoji: '0️⃣',
+    title: 'First 0',
+    description: 'Give a song a 0.',
+    check: (p) => yesNo(p.gaveMin),
   },
   {
     id: 'generous-voter',
@@ -574,10 +575,10 @@ export function newlyUnlocked(achievements: Achievement[], seenAt: string | null
 }
 
 /**
- * Achievements whose unlock date would show how someone rated a particular week's songs (D11): "gave a 1" in a week
- * where only one song got a 1 names the rater. For another member these show as unlocked, without a date.
+ * Achievements whose unlock date would show how someone rated a particular week's songs (D11): "gave a 0" in a week
+ * where only one song got a 0 names the rater. For another member these show as unlocked, without a date.
  */
-export const RATING_REVEALING = new Set(['first-1', 'first-10', 'full-house']);
+export const RATING_REVEALING = new Set(['first-0', 'first-10', 'full-house']);
 
 /** The view of another member's achievements: dates hidden where they'd reveal ratings. */
 export function forOtherMember(achievements: Achievement[]): Achievement[] {

@@ -11,7 +11,8 @@ FUNCTIONS = HealthFunction GetMeFunction UpdateMeFunction CreatePartyFunction Li
 	LeaderboardFunction SearchSongsFunction ResolveSongFunction ListCommentsFunction AddCommentFunction \
 	DeleteCommentFunction SuggestYouTubeFunction \
 	GetHistoryFunction SearchPartyFunction GetAchievementsFunction MarkAchievementsSeenFunction \
-	GetNotificationsFunction MarkNotificationsSeenFunction
+	GetNotificationsFunction MarkNotificationsSeenFunction \
+	SaveSongFunction ListSavedSongsFunction UnsaveSongFunction
 
 $(addprefix build-,$(FUNCTIONS)):
 	node scripts/bundle.mjs "$(ARTIFACTS_DIR)"

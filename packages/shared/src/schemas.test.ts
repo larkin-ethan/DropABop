@@ -27,15 +27,15 @@ function firstError(result: {
   return result.error?.issues[0]?.message;
 }
 
-describe('ratingSchema (spec §15, D7)', () => {
-  it.each([1, 5, 10])('accepts %i', (rating) => {
+describe('ratingSchema (spec §15, D36: 0–10)', () => {
+  it.each([0, 1, 5, 10])('accepts %i', (rating) => {
     expect(ratingSchema.safeParse(rating).success).toBe(true);
   });
 
-  it.each([0, 11, -1, 5.5, Number.NaN, '7', null])('rejects %s', (rating) => {
+  it.each([11, -1, 5.5, Number.NaN, '7', null])('rejects %s', (rating) => {
     const result = ratingSchema.safeParse(rating);
     expect(result.success).toBe(false);
-    expect(firstError(result)).toBe('Ratings are whole numbers from 1 to 10.');
+    expect(firstError(result)).toBe('Ratings are whole numbers from 0 to 10.');
   });
 });
 

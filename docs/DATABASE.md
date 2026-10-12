@@ -24,9 +24,11 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 |---|---|---|---|
 | User profile | `USER#<userId>` | `PROFILE` | displayName, avatarColor, avatarImage, preferredProvider, playInApp (missing = true), notificationPrefs, privacyAcceptedAt, privacyVersion (P13.2a; set only by the server), createdAt |
 | "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt, achievementsSeenAt (P13.9) and notificationsSeenAt (P13.10): when you last looked at your achievements / notifications in this party (server time; yours only) |
-| Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime; missing on old parties = defaults), createdAt |
+| Saved song (D34) | `USER#<userId>` | `SAVED#<appleTrackId>` | trackId, savedAt, song (a copy without YouTube links), partyId, partyName (at save time), roundId, recommendationId, submittedOn, weekEndsAt, sharedBy (server-side only: never returned before that week ends, D10) |
+| Saved count (D34) | `USER#<userId>` | `SAVEDCOUNT` | count: how many songs are saved; changed in the same transaction as the song so the 500 limit holds under races |
+| Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime, scoringKey (D37, 11 lines); missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
-| Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, revealRecommenderDuringVoting, showWhoRatedWhat (fixed when the week starts), status |
+| Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, revealRecommenderDuringVoting, showWhoRatedWhat (fixed when the week starts), status, imported (D38: only on past weeks from before the group used the app) |
 | Song shared (recommendation) | `PARTY#<partyId>` | `REC#<week>#<recommendationId>` | userId, submittedOn, weekday, song (embedded; `genre` from iTunes since P13.7, missing on older songs), createdAt |
 | "Already shared today" marker | `PARTY#<partyId>` | `SUBMITTED#<week>#<userId>#<date>` | recommendationId |
 | Rating (vote) | `PARTY#<partyId>` | `VOTE#<week>#<userId>#<recommendationId>` | rating, updatedAt |
@@ -82,6 +84,9 @@ Notes:
 | 25 | History calendar for a month (P13.8) | Same as 15 (every week, because the ★ compares with your best ever), then the month's weeks are picked in code (ADR-0006) |
 | 26 | Achievements for one member (P13.9) | Same as 15 (every closed week is replayed in order to find each unlock date), plus `GetItem` of your own party link for `achievementsSeenAt` |
 | 27 | Party search (P13.12, D33) | `Query PK=PARTY#p, SK begins_with REC#`, **descending** (newest weeks first), stopping at 5,000 songs; plus patterns 4 and 9. Filtered in code: DynamoDB has no text search, and a party adds about 5,000 songs a year at most (D33's documented exception to "no fetching everything to filter") |
+| 28 | Save a song (D34) | Pattern 5 + `GetItem` of the song and its week, then one transaction: `Put SAVED#track` with `attribute_not_exists(PK)` + `Update SAVEDCOUNT ADD count 1` if `count < 500` |
+| 29 | Your saved songs (D34) | `Query PK=USER#u, SK begins_with SAVED#` (at most 500 small items; sorted by save time in code) + pattern 2; names via pattern 4 for parties you're in; a recent song's video via `GetItem PARTY#p / YTVIDEO#week#rec` |
+| 30 | Remove a saved song (D34) | One transaction: `Delete SAVED#track` if it exists + `Update SAVEDCOUNT ADD count -1` |
 
 Every query is limited to one partition. Lists that can grow (history, stats inputs) are paginated with
 `LastEvaluatedKey`.

@@ -257,6 +257,7 @@ const SETTINGS_FIELDS: (keyof PartySettings)[] = [
   'shareDays',
   'ratingCloseDay',
   'ratingCloseTime',
+  'scoringKey', // D37: display text only, so a change applies at once (not copied onto weeks)
 ];
 
 export interface PartyChanges {
@@ -342,4 +343,31 @@ export async function updateParty(ctx: DataContext, partyId: string, changes: Pa
     }
   }
   return updated;
+}
+
+/**
+ * D38: sets the party's scoring key only if the host hasn't written one. Conditional on the stored item (not an
+ * earlier read), so a host who saves a key meanwhile is never overwritten.
+ * Returns false if the party already had a key.
+ */
+export async function setScoringKeyIfUnset(
+  ctx: DataContext,
+  partyId: string,
+  scoringKey: string[],
+): Promise<boolean> {
+  try {
+    await ctx.db.send(
+      new UpdateCommand({
+        TableName: ctx.tableName,
+        Key: keys.partyMeta(partyId),
+        UpdateExpression: 'SET settings.scoringKey = :key',
+        ConditionExpression: 'attribute_exists(PK) AND attribute_not_exists(settings.scoringKey)',
+        ExpressionAttributeValues: { ':key': scoringKey },
+      }),
+    );
+    return true;
+  } catch (error) {
+    if (isConditionalCheckFailed(error)) return false;
+    throw error;
+  }
 }

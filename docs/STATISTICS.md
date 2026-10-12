@@ -26,7 +26,7 @@ needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.
 | Songs recommended | How many songs you've shared | Count | — |
 | Highest / lowest rated recommendation | Your best and worst received picks | Your song(s) with the highest / lowest average | 1 rated song |
 | Generosity | Do you rate higher or lower than the group? | Your average given − the party's average given. +1.2 = you rate 1.2 points above the group | 10 ratings |
-| Rating distribution | Which ratings you hand out | Count of each rating 1–10 you gave | 1 rating |
+| Rating distribution | Which ratings you hand out | Count of each rating 0–10 you gave | 1 rating |
 | Favorite artists | Artists you rate highest | Your average rating per artist, top 3 | 2 songs by that artist |
 | Musical twin | Whose taste matches yours (note: a gap of 0 reveals that you and your twin rated those songs identically, even if the party hides who rated what; it uses closed weeks only) | The member whose ratings differ least from yours on songs you both rated (average gap in points; 0 = identical) | 5 shared songs |
 
@@ -37,7 +37,7 @@ needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.
 | Highest-rated song | Best average ever | Song with the highest average | 3 ratings |
 | Crowd favorite | Loved *and* widely heard | Highest average among songs rated by at least 75% of that week's active raters (not counting whoever shared it) | 3 ratings |
 | Most divisive | Ratings all over the place | Song with the largest spread | 4 ratings |
-| Most controversial | Love it or hate it | Song with the most even split between low (1–3) and high (8–10) ratings. Score = 2 × min(share low, share high); 1.0 = perfectly split. Needs both lows and highs | 4 ratings |
+| Most controversial | Love it or hate it | Song with the most even split between low (0–3) and high (8–10) ratings. Score = 2 × min(share low, share high); 1.0 = perfectly split. Needs both lows and highs | 4 ratings |
 | Everyone agreed | Ratings almost identical | Song with the smallest spread | 4 ratings |
 | Dark horse | The surprise hit | Song that beat its recommender's average from earlier songs by the most | 3 ratings, and the recommender has 3 earlier rated songs |
 | Most generous voter / Toughest critic | Who rates highest / lowest | Highest / lowest generosity | 10 ratings |
@@ -48,7 +48,7 @@ needs before it appears. Source of truth: the stats table in `PRODUCT_DECISIONS.
 |---|---|---|---|
 | Members | Who's in the party now | Count of current members | — |
 | Group average | How the party rates | Mean of every rating | 1 rating |
-| Ratings the group gives | Which ratings get handed out | Count of each rating 1–10, everyone | 1 rating |
+| Ratings the group gives | Which ratings get handed out | Count of each rating 0–10, everyone | 1 rating |
 | Top artists | Who gets shared most | Artists by songs shared (spelling-insensitive), top 3; everyone tied with 3rd is shown | 1 song |
 | Most consistent | Reliably good picks | Lowest spread of a person's song averages | 3 rated songs |
 | Weekly activity | How busy each week was | Songs, ratings and average rating per closed week, latest 12 | — |
@@ -143,7 +143,7 @@ How they're worked out:
   +1.0 and unlocks Generous Voter; a 0.34 gap shows as 0.3 and counts for Balanced Judge.
 - **Progress** shows how close you are ("7 of 10 weeks", "+0.4 compared with the group (needs +1.0)").
 - **The unlock day** is the day ratings locked, in the party's timezone (shown on the calendar as 🏆).
-- **Other members' badges:** you can see which they've unlocked, but First 1, First 10 and Full House show no date,
+- **Other members' badges:** you can see which they've unlocked, but First 0, First 10 and Full House show no date,
   because the week would reveal how they rated particular songs (D11).
 - **If history changes** (for example a member's songs or ratings are removed), achievements are worked out again
   from what's left, so an unlock date can move or a badge can disappear. Rare; nothing is announced for it.

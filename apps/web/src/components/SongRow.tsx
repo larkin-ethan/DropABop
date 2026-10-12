@@ -2,8 +2,10 @@
 // screen puts on the right (a rating, "Your pick", a rank…).
 
 import type { MusicProviderId, Song } from '@dropabop/shared';
+import { MAX_RATING } from '@dropabop/shared';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
+import { SaveButton } from './SaveButton';
 import { hueFor } from '../lib/format';
 import { musicLinks } from '../lib/music-links';
 import { Icon } from './Icon';
@@ -51,6 +53,7 @@ export function SongRow({
   right,
   showLinks = true,
   href,
+  save,
 }: {
   /** Seeds the placeholder artwork colour. */
   id: string;
@@ -62,6 +65,8 @@ export function SongRow({
   showLinks?: boolean;
   /** The song's details page (P13.5); the title becomes a link to it. */
   href?: string;
+  /** Shows the Save toggle (D34) for a shared song. */
+  save?: { roundId: string; recommendationId: string };
 }) {
   return (
     <li className="flex items-start gap-3 rounded-xl border border-transparent p-2 transition hover:border-line hover:bg-surface-raised sm:items-center sm:gap-4">
@@ -75,6 +80,11 @@ export function SongRow({
         {showLinks && (
           <div className="mt-1.5">
             <ListenLinks song={song} preferred={preferred} />
+          </div>
+        )}
+        {save !== undefined && (
+          <div className="mt-1.5">
+            <SaveButton roundId={save.roundId} recommendationId={save.recommendationId} song={song} />
           </div>
         )}
       </div>
@@ -96,10 +106,10 @@ export function RatingBadge({ rating, label = 'Your rating' }: { rating: number;
   return (
     <span
       className="inline-flex min-w-12 items-center justify-center gap-1 rounded-full bg-primary/15 px-3 py-1 text-sm font-bold text-primary"
-      aria-label={`${label}: ${rating} out of 10`}
+      aria-label={`${label}: ${rating} out of ${MAX_RATING}`}
     >
       {rating}
-      <span className="text-xs font-medium text-primary/70">/10</span>
+      <span className="text-xs font-medium text-primary/70">/{MAX_RATING}</span>
     </span>
   );
 }

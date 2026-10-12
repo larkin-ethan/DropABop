@@ -5,11 +5,16 @@
 import {
   AVATAR_COLORS,
   DEFAULT_DISPLAY_NAME,
+  DEFAULT_SCORING_KEY,
   MAX_PARTY_SIZE,
+  MAX_RATING,
+  MIN_RATING,
   MUSIC_PROVIDERS,
+  SCORING_KEY_LINE_MAX,
   WEEKDAYS,
   checkSchedule,
   displayNameSchema,
+  scoringKeyOf,
   sortWeekdays,
   type MusicProviderId,
   type Party,
@@ -31,6 +36,7 @@ import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { PageHeader, QueryBoundary } from '../components/Page';
 import { TextField } from '../components/TextField';
+import { ScoringKeyList } from '../components/ScoringKey';
 import { Avatar, Button, Card } from '../components/ui';
 import { AvatarImageError, toAvatarDataUrl } from '../lib/avatar-image';
 import { errorMessage } from '../lib/errors';
@@ -155,9 +161,81 @@ function PartySettings({
       ) : (
         <SettingsSummary party={party} memberCount={members.length} />
       )}
+      <ScoringKeyCard key={`key-${party.partyId}`} party={party} isHost={isHost} />
       <InviteCard party={party} isHost={isHost} />
       <MembersCard party={party} members={members} isHost={isHost} />
     </div>
+  );
+}
+
+/**
+ * D37: what each score means in this party. The host writes it (one short line per score, 10 down to 0);
+ * everyone else sees it. It's display text only, so a change shows on Rate straight away.
+ */
+function ScoringKeyCard({ party, isHost }: { party: Party; isHost: boolean }) {
+  const current = scoringKeyOf(party.settings);
+  const update = useUpdateSettings(party.partyId);
+  const [lines, setLines] = useState<string[]>([...current]);
+  const [saved, setSaved] = useState(false);
+  const scores = Array.from({ length: MAX_RATING - MIN_RATING + 1 }, (_, i) => MAX_RATING - i);
+
+  if (!isHost) {
+    return (
+      <Card>
+        <h2 className="mb-3 text-lg font-bold">Scoring key</h2>
+        <ScoringKeyList scoringKey={current} />
+      </Card>
+    );
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSaved(false);
+    update.mutate({ scoringKey: lines.map((line) => line.trim()) }, { onSuccess: () => setSaved(true) });
+  }
+
+  return (
+    <Card>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
+        <div>
+          <h2 className="text-lg font-bold">Scoring key</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            What each score means, shown on Rate and under the rating picker. Up to {SCORING_KEY_LINE_MAX}{' '}
+            characters each.
+          </p>
+        </div>
+        {scores.map((score) => (
+          <TextField
+            key={score}
+            label={`What does a ${score} mean?`}
+            maxLength={SCORING_KEY_LINE_MAX}
+            value={lines[score - MIN_RATING] ?? ''}
+            onChange={(e) => {
+              const next = [...lines];
+              next[score - MIN_RATING] = e.target.value;
+              setLines(next);
+              setSaved(false);
+            }}
+          />
+        ))}
+        {update.error !== null && <Alert>{errorMessage(update.error)}</Alert>}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Saved show={saved} />
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setLines([...DEFAULT_SCORING_KEY]);
+              setSaved(false);
+            }}
+          >
+            Reset to default
+          </Button>
+          <Button type="submit" disabled={update.isPending}>
+            {update.isPending ? 'Saving…' : 'Save scoring key'}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -410,7 +488,7 @@ export function inviteMessage(party: Party, link: string): string {
   const { shareDays, ratingCloseDay, ratingCloseTime } = party.settings;
   return [
     `Join my Drop a Bop party “${party.name}”! 🎵`,
-    `On ${formatDayList(shareDays)} we each share a song we love, then rate each other’s picks from 1 to 10. ` +
+    `On ${formatDayList(shareDays)} we each share a song we love, then rate each other’s picks from 0 to 10. ` +
       `Ratings lock ${DAY_NAMES[ratingCloseDay]} at ${formatTimeOfDay(ratingCloseTime)}, and then we see the results.`,
     `Join here: ${link} (or use code ${party.inviteCode})`,
     `How it works: ${window.location.origin}/how-it-works`,

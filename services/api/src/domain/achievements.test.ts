@@ -158,14 +158,15 @@ describe('discovery', () => {
 });
 
 describe('rating', () => {
-  it('First 10 and First 1', () => {
+  it('First 10 and First 0 (the lowest score, D36): a 1 doesn’t count', () => {
     const w = new World();
     const r = w.week();
     w.rate(w.song(r, 'u1'), ME, 10);
     expect(w.get('first-10').unlockedOn).toBe(r.endsAt);
-    expect(w.get('first-1').unlockedOn).toBeNull();
     w.rate(w.song(r, 'u2'), ME, 1);
-    expect(w.get('first-1').unlockedOn).toBe(r.endsAt);
+    expect(w.get('first-0').unlockedOn).toBeNull();
+    w.rate(w.song(r, 'u3'), ME, 0);
+    expect(w.get('first-0').unlockedOn).toBe(r.endsAt);
   });
 
   it('Generous Voter and Tough Critic need 10 ratings, then a 1-point gap from the group', () => {
@@ -407,7 +408,7 @@ describe('failure paths and edge cases (P13.9 review)', () => {
   it('another member’s rating-revealing badges have no date (D11)', () => {
     const w = new World();
     const r = w.week();
-    w.rate(w.song(r, 'u1'), ME, 1);
+    w.rate(w.song(r, 'u1'), ME, 0);
     w.song(r, ME);
     const all = computeAchievements({
       memberId: ME,
@@ -416,7 +417,7 @@ describe('failure paths and edge cases (P13.9 review)', () => {
       votes: w.votes,
     });
     const shown = forOtherMember(all);
-    expect(shown.find((a) => a.id === 'first-1')).toMatchObject({
+    expect(shown.find((a) => a.id === 'first-0')).toMatchObject({
       unlocked: true,
       unlockedOn: null,
       unlockedDay: null,

@@ -20,6 +20,7 @@ export { addCommentHandler, deleteCommentHandler, listCommentsHandler } from './
 export { getResultsHandler } from './handlers/results';
 export { getHistoryHandler } from './handlers/history';
 export { searchPartyHandler } from './handlers/search';
+export { listSavedSongsHandler, saveSongHandler, unsaveSongHandler } from './handlers/saved';
 export { getNotificationsHandler, markNotificationsSeenHandler } from './handlers/notifications';
 export { getAchievementsHandler, markAchievementsSeenHandler } from './handlers/achievements';
 export { personalStatsHandler, groupStatsHandler, leaderboardHandler } from './handlers/stats';

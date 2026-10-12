@@ -4,6 +4,7 @@
 import type { Stat } from '@dropabop/shared';
 import { useId, useState } from 'react';
 import { Avatar } from './ui';
+import { MIN_RATING } from '@dropabop/shared';
 
 /**
  * A stat's name with a "?" that shows how it's calculated (spec §18: definitions must be transparent). A tap or
@@ -177,12 +178,13 @@ export function ProvisionalList({
 }
 
 /**
- * Horizontal bars for how many of each rating a song (or person) got. `counts[0]` = number of 1s.
+ * Horizontal bars for how many of each rating a song (or person) got. `counts[0]` = number of MIN_RATING (0s, D36).
  * The bars are only a picture; screen readers get the same numbers as a small table instead (spec §37).
  */
 export function RatingDistribution({ counts }: { counts: number[] }) {
   const max = Math.max(1, ...counts);
-  const rows = [...counts].reverse().map((count, i) => ({ rating: counts.length - i, count }));
+  // Highest rating first. Labels come from the scale, not the array length, so they stay right if the scale changes.
+  const rows = counts.map((count, index) => ({ rating: MIN_RATING + index, count })).reverse();
   return (
     <div>
       <table className="sr-only">

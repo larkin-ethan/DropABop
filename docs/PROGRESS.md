@@ -59,6 +59,67 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-11 — **P15.3 done: private tool for past weeks** (D38) — Ethan asked to keep it out of the public repo: it
+  lives in git-ignored folders on his Mac (`services/api/src/tools/private/`, `services/api/scripts/private/`, and
+  `.private/` for its local data). Public, generic parts: weeks can carry `imported: true`; `setScoringKeyIfUnset`
+  (a conditional write that never overwrites a host's key); `SCORING_KEY_LINE_MAX` 120. Reviewed (spec-reviewer) and
+  tested locally (unit + an end-to-end rehearsal on DynamoDB Local). The unpushed commits were rewritten so the tool
+  never reaches GitHub.
+
+- 2026-10-11 — **P15.2 done: scoring key** (D37) — party setting `scoringKey` (11 lines, index = score, 1–80 chars,
+  no hidden characters; missing = `DEFAULT_SCORING_KEY`, read via `scoringKeyOf`; display text only, not copied onto
+  weeks). Rate: "How to score" panel (open on the first visit, then remembered closed in localStorage, safe when
+  storage is blocked) and the chosen score's meaning under each picker (linked with `aria-describedby`). Party
+  settings: host editor (10 → 0, Save, Reset to default); members see it read-only. How it works shows your party's
+  key when signed in, else the default. **P15.1 review fixes** (spec-reviewer: CHANGES REQUIRED): Prettier on the e2e
+  file (my `exact` edit came after formatting), API.md "11 counts", SPEC/ADR-0004/design README notes, picker
+  `gap-1.5` on phones (buttons ~41 px wide at 320 px instead of ~36), RatingBadge uses `MAX_RATING`. Noted: members
+  who had "First 1" lose that badge (it's now "First 0"; achievements are recalculated, nothing stored). Verified:
+  `npm run verify` (678 + 1 skipped), integration 249, e2e: the full run had 8 timeouts in browser setup while macOS
+  iCloud/Spotlight held the load average at ~30 (8.7 min vs 1.7); all failed tests then passed alone (`--last-failed
+  --workers=1`). Not deployed.
+
+- 2026-10-11 — **P15.1 done: ratings 0–10** (D36) — `MIN_RATING = 0`; rating messages built from the constants;
+  distributions are 11 buckets (index = rating); the web chart now labels rows from `MIN_RATING` (it would have shown
+  11…1); the picker has 11 buttons (6 per row on phones, 11 from `sm`), starts at 0; "First 1" → "First 0" (the
+  lowest score); copy, sample data and docs say 0–10 (D7 updated, STATISTICS, API, README, CLAUDE.md, SPEC note).
+  Controversial keeps low ≤ 3 (now 0–3), popular/Group Favorite ≥ 8, Perfect Score 10.0. Smoke script also rates 0.
+  Verified: `npm run verify` (671 + 1 skipped), integration 247 (0 accepted, −1/11 rejected), `npm run e2e` 46
+  passed (one run had load timeouts; a real bug found: Playwright name match "0 out of 10" also matched "10 out of
+  10", now `exact`). Docker Desktop had stopped; restarted for DynamoDB Local. Not deployed.
+
+- 2026-10-11 — **P14.2 done: saved songs, website** (D34) — Save (heart) toggle on Rate, Results, Song Details and
+  Home cards (History and Search rows open Song Details, which has it); `/saved` page (newest first, "N of 500",
+  full-list notice, From <party> · date, "shared by" only when the API includes it, listen links, Play video,
+  Remove with Undo while still a member; empty state); reached from the desktop sidebar and Profile. Sample mode
+  supports saving. Privacy page + docs/PRIVACY.md list saved songs; `PRIVACY_POLICY_VERSION` → 2026-10-11 (the
+  2026-10-09 policy is live, so members agree once more). `*.xlsx` and private local files are git-ignored
+  (public repo). Verified: `npm run verify` (671 + 1 skipped), `npm run e2e`
+  46 passed (an earlier run's 10 timeouts were machine load: 20 min vs 1.7 min; the failing test passed alone).
+  Not deployed.
+
+- 2026-10-11 — **P14.1 done: saved songs, data + API** (D34) — `POST /users/me/saved` (member of the song's party;
+  the server builds a copy without any YouTube data; one entry per Apple Music track; 201 / 200 already saved /
+  409 `SAVED_LIMIT`), `GET /users/me/saved` (newest first, pages of 100; sharer only after the week ended while you
+  and they are members; a video only from the party's own expiring item while you're a member; kept after leaving
+  with the old party name), `DELETE /users/me/saved/{trackId}` (204, also when not saved). Items `SAVED#<trackId>`
+  + a `SAVEDCOUNT` counter in one transaction (duplicates and the 500 cap hold under races). Three least-privilege
+  functions (36 in total), route limits 5/s burst 10, authorization sweep, API / DATABASE / SECURITY / ARCHITECTURE /
+  README docs. **Correction:** D34 and D35 were missing from PRODUCT_DECISIONS.md (my planning script built them but
+  saved only the roadmap); added now, unchanged. spec-reviewer: CHANGES REQUIRED (function counts in the docs) +
+  should-fixes, all applied (route limits, stronger "after leaving" test, sharer-left unit test, a removal never
+  blocked by a hand-edited counter, paging/total notes). Verified: `npm run verify` (667 + 1 skipped), integration
+  247, `sam validate --lint`. Not deployed. Leftover: P13.16 waits on Ethan's prod check.
+
+- 2026-10-11 — **Prod deploy of Phase 13 + planning D35** — Ethan merged PR #6 (CI green after the 320 px History
+  fix), stored `/dropabop/prod/youtube-api-key`, and ran `bash scripts/deploy.sh prod` from `main` (c5801f9):
+  changeset added 7 functions (incl. SuggestYouTubeFunction, new to prod), modified the rest, removed/replaced
+  nothing; `UPDATE_COMPLETE`; website published to Cloudflare Pages. Checked: every new route answers 401 without a
+  token (unknown path 404); the site serves the new bundle; its CSP allows YouTube's player script. **Waiting for
+  Ethan to confirm prod in the app** before ticking P13.16. Planned **D35 (no repeat songs in a party)** with Ethan:
+  same recording blocked, other versions warned, ever within the party, marked in search, date only (never who);
+  added as P14.3, release moved to P14.4.
+
 - 2026-10-11 — **P13.16 (dev part done)** — Ethan ran `bash scripts/deploy.sh dev` (commit 5b6b1c6): changeset added
   the 6 Phase 13 functions (history, achievements ×2, notifications ×2, search) with their roles, modified the rest,
   deleted nothing; `UPDATE_COMPLETE`. Dev hosts no website (HostWebsite off), so nothing was published. Smoke:

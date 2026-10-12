@@ -116,7 +116,7 @@ export function ComponentGallery() {
               avatarColor: m.avatarColor,
             }))}
           />
-          <RatingDistribution counts={[0, 0, 1, 0, 1, 2, 3, 5, 4, 2]} />
+          <RatingDistribution counts={[0, 0, 0, 1, 0, 1, 2, 3, 5, 4, 2]} />
         </div>
       </Section>
 

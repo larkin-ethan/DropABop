@@ -16,6 +16,10 @@ import type {
   PartyMember,
   PartyResponse,
   PartySearchResponse,
+  SaveSongRequest,
+  SaveSongResponse,
+  SavedSong,
+  SavedSongsResponse,
   PartySearchType,
   PersonalStatsResponse,
   SearchArtistHit,
@@ -40,7 +44,10 @@ import type {
 } from '@dropabop/shared';
 import {
   DEFAULT_SHARE_DAYS,
+  MAX_RATING,
+  MIN_RATING,
   PRIVACY_POLICY_VERSION,
+  SAVED_SONGS_LIMIT,
   addCommentRequestSchema,
   checkSchedule,
   parseAppleMusicSongUrl,
@@ -70,6 +77,8 @@ export interface PreviewState {
   otherParty: Party;
   /** Set by closeWeek(): the current week has ended (ratings locked, results out). */
   weekClosed: boolean;
+  /** Your saved songs (D34), newest first. */
+  saved: SavedSong[];
   catalog: Song[];
   /** D25: comments on songs (this week and last week). */
   comments: Comment[];
@@ -88,6 +97,65 @@ function catalogSong(id: string, title: string, artist: string, album: string): 
       { provider: 'appleMusic', providerSongId: id, externalUrl: `https://music.apple.com/us/song/${id}` },
     ],
   };
+}
+
+/**
+ * Saving a song in the sample (D34): like the API, one entry per Apple Music track, no YouTube data in the saved
+ * copy, and who shared it only once that week has ended.
+ */
+function sampleSave(state: PreviewState, request: SaveSongRequest): SaveSongResponse {
+  const isPast = request.roundId === state.pastRound.roundId;
+  const open = state.songs.find((s) => s.recommendationId === request.recommendationId);
+  const past = state.pastResults.find((r) => r.recommendationId === request.recommendationId);
+  const found = isPast ? past : open;
+  if (found === undefined) notFound();
+  const trackId = found.song.providers.find((p) => p.provider === 'appleMusic')?.providerSongId;
+  if (trackId === undefined) notFound();
+  if (state.saved.some((s) => s.trackId === trackId)) return { trackId, alreadySaved: true };
+  if (state.saved.length >= SAVED_SONGS_LIMIT) {
+    throw new ApiError(
+      409,
+      'SAVED_LIMIT',
+      'Your saved songs list is full (500 songs). Remove one to save another.',
+    );
+  }
+  const current = state.parties[0];
+  if (current === undefined) notFound();
+  const weekEnded = isPast || state.weekClosed;
+  const sharerId = past?.recommendedBy ?? (open?.isMine ? ME : undefined);
+  const sharer = state.members.find((m) => m.userId === sharerId);
+  const keepVideo = !isPast; // the sample week is recent; last week's videos count as expired here
+  const saved: SavedSong = {
+    trackId,
+    savedAt: new Date().toISOString(),
+    song: {
+      ...found.song,
+      providers: found.song.providers.filter(
+        (p) => p.provider !== 'youtubeMusic' && (keepVideo || p.provider !== 'youtube'),
+      ),
+    },
+    from: {
+      partyId: current.partyId,
+      partyName: current.name,
+      roundId: request.roundId,
+      recommendationId: request.recommendationId,
+      submittedOn: found.submittedOn,
+      isMember: true,
+      isMine: sharerId === ME,
+      ...(weekEnded && sharer !== undefined
+        ? {
+            sharedBy: {
+              userId: sharer.userId,
+              displayName: sharer.displayName,
+              avatarColor: sharer.avatarColor,
+              avatarImage: sharer.avatarImage ?? null,
+            },
+          }
+        : {}),
+    },
+  };
+  state.saved = [saved, ...state.saved];
+  return { trackId, alreadySaved: false };
 }
 
 /**
@@ -150,8 +218,8 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
   const endsAt = nextMonday.toISOString();
   const pastSongs = sampleSongs.slice(0, 8).map((s, index): SongResult => {
     const ratings = [9, 8, 8, 7, 6, 5, 4, 3][index] ?? 5;
-    const distribution = Array.from({ length: 10 }, (_, i) =>
-      i === ratings - 1 ? 3 : i === ratings ? 1 : 0,
+    const distribution = Array.from({ length: BUCKETS }, (_, i) =>
+      i === ratings - MIN_RATING ? 3 : i === ratings - MIN_RATING + 1 ? 1 : 0,
     );
     return {
       recommendationId: `past-${s.recommendationId}`,
@@ -212,6 +280,7 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
     achievementsSeenAt: '2026-10-01T00:00:00.000Z',
     notificationsSeenAt: null,
     weekClosed: false,
+    saved: [],
     comments: [
       {
         commentId: 'c1',
@@ -273,7 +342,9 @@ function weekResults(state: PreviewState): ResultsResponse {
     recommendedBy,
     averageRating: average,
     ratingCount: average === null ? 0 : 1,
-    distribution: Array.from({ length: 10 }, (_, i) => (average !== null && i === average - 1 ? 1 : 0)),
+    distribution: Array.from({ length: BUCKETS }, (_, i) =>
+      average !== null && i === average - MIN_RATING ? 1 : 0,
+    ),
     myRating: song.myRating,
   }));
   const days = shareDaysOf(state.round).map((weekday) => {
@@ -408,6 +479,9 @@ function sampleSearch(state: PreviewState, params: URLSearchParams): PartySearch
   };
 }
 
+/** One bucket per possible rating, 0–10 (D36). */
+const BUCKETS = MAX_RATING - MIN_RATING + 1;
+
 const notEnough = (sampleSize: number, required: number) =>
   ({ status: 'not-enough-data', sampleSize, required }) as const;
 
@@ -480,6 +554,22 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       parts.length === pattern.length &&
       pattern.every((segment, i) => segment.startsWith(':') || segment === parts[i]);
 
+    if (is('GET', 'users', 'me', 'saved')) {
+      const response: SavedSongsResponse = {
+        songs: state.saved,
+        total: state.saved.length,
+        limit: SAVED_SONGS_LIMIT,
+        nextCursor: null,
+      };
+      return response;
+    }
+    if (is('POST', 'users', 'me', 'saved')) {
+      return sampleSave(state, body as SaveSongRequest);
+    }
+    if (is('DELETE', 'users', 'me', 'saved', ':track')) {
+      state.saved = state.saved.filter((s) => s.trackId !== parts[3]);
+      return undefined;
+    }
     if (is('GET', 'users', 'me')) {
       const response: MeResponse = {
         user: state.user,
@@ -524,7 +614,7 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         highestRatedRecommendation: notEnough(2, 3),
         lowestRatedRecommendation: notEnough(2, 3),
         generosity: { status: 'ok', value: 0.4, sampleSize: 12 },
-        ratingDistribution: { status: 'ok', value: [0, 0, 1, 1, 1, 2, 3, 2, 1, 1], sampleSize: 12 },
+        ratingDistribution: { status: 'ok', value: [0, 0, 0, 1, 1, 1, 2, 3, 2, 1, 1], sampleSize: 12 },
         favoriteArtists: notEnough(0, 2),
         musicalTwin: notEnough(3, 5),
         ratingsGiven: 12,
@@ -662,7 +752,7 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
         toughestCritic: { status: 'ok', value: [{ id: 'u4', value: -0.9, sampleSize: 10 }], sampleSize: 4 },
         memberCount: state.members.length,
         groupAverage: { status: 'ok', value: 7.3, sampleSize: 32 },
-        ratingDistribution: { status: 'ok', value: [0, 1, 1, 2, 3, 5, 7, 6, 4, 3], sampleSize: 32 },
+        ratingDistribution: { status: 'ok', value: [0, 0, 1, 1, 2, 3, 5, 7, 6, 4, 3], sampleSize: 32 },
         topArtists: {
           status: 'ok',
           value: [
@@ -987,7 +1077,7 @@ function average(values: number[]): number | null {
 }
 
 function ratingsFrom(distribution: number[]): number[] {
-  return distribution.flatMap((count, i) => new Array<number>(count).fill(i + 1));
+  return distribution.flatMap((count, i) => new Array<number>(count).fill(MIN_RATING + i));
 }
 
 function sampleHistory(state: PreviewState, month: string): HistoryResponse {
@@ -1017,8 +1107,8 @@ function sampleHistory(state: PreviewState, month: string): HistoryResponse {
     const results = state.pastResults.filter((r) => r.weekday === weekday);
     const songs = pastSongs.filter((s) => results.some((r) => r.recommendationId === s.recommendationId));
     const ratings = results.flatMap((r) => ratingsFrom(r.distribution));
-    const distribution = new Array<number>(10).fill(0);
-    for (const r of ratings) distribution[r - 1] = (distribution[r - 1] ?? 0) + 1;
+    const distribution = new Array<number>(BUCKETS).fill(0);
+    for (const r of ratings) distribution[r - MIN_RATING] = (distribution[r - MIN_RATING] ?? 0) + 1;
     const top = songs[0]?.average ?? null;
     return {
       date: dayDate(past.weekStart, weekday),
@@ -1043,8 +1133,9 @@ function sampleHistory(state: PreviewState, month: string): HistoryResponse {
       },
     };
   });
-  const pastDistribution = new Array<number>(10).fill(0);
-  for (const r of allPastRatings) pastDistribution[r - 1] = (pastDistribution[r - 1] ?? 0) + 1;
+  const pastDistribution = new Array<number>(BUCKETS).fill(0);
+  for (const r of allPastRatings)
+    pastDistribution[r - MIN_RATING] = (pastDistribution[r - MIN_RATING] ?? 0) + 1;
   const pastWeek: HistoryWeek = {
     roundId: past.roundId,
     weekStart: past.weekStart,

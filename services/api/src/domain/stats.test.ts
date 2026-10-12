@@ -307,12 +307,16 @@ describe('generosity, most generous voter, toughest critic (min 10 ratings)', ()
 });
 
 describe('ratingDistributionGiven', () => {
-  it('counts each rating 1–10', () => {
-    const data = dataset([...songsRatedBy('alice', 9, 2), ...songsRatedBy('alice', 1, 1, 'bob', 'x')]);
+  it('counts each rating 0–10 (D36: index 0 = number of 0s)', () => {
+    const data = dataset([
+      ...songsRatedBy('alice', 9, 2),
+      ...songsRatedBy('alice', 1, 1, 'bob', 'x'),
+      ...songsRatedBy('alice', 0, 1, 'bob', 'z'),
+    ]);
     expect(ratingDistributionGiven(data, 'alice')).toEqual({
       status: 'ok',
-      value: [1, 0, 0, 0, 0, 0, 0, 0, 2, 0],
-      sampleSize: 3,
+      value: [1, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0],
+      sampleSize: 4,
     });
     expect(ratingDistributionGiven(data, 'nobody')).toMatchObject({ status: 'not-enough-data' });
   });
@@ -764,7 +768,7 @@ describe('group extras', () => {
     expect(groupAverage(data)).toEqual({ status: 'ok', value: 7, sampleSize: 4 });
     expect(groupRatingDistribution(data)).toEqual({
       status: 'ok',
-      value: [0, 0, 0, 1, 0, 1, 0, 1, 0, 1], // one each of 4, 6, 8, 10
+      value: [0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1], // one each of 4, 6, 8, 10 (index = rating, D36)
       sampleSize: 4,
     });
     const empty = dataset([{ id: 'x', by: 'a' }]);

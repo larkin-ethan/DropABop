@@ -1,9 +1,10 @@
-// The 1–10 rating picker from the mockup (screen 12). Big touch targets, works with keyboard (arrow keys move,
+// The 0–10 rating picker (D36; mockup screen 12). Big touch targets, works with keyboard (arrow keys move,
 // like any radio group) and reads correctly in screen readers.
 
+import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
 import { useRef, type KeyboardEvent } from 'react';
 
-const RATINGS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const RATINGS = Array.from({ length: MAX_RATING - MIN_RATING + 1 }, (_, i) => MIN_RATING + i);
 
 export interface RatingControlProps {
   value: number | null;
@@ -11,9 +12,11 @@ export interface RatingControlProps {
   /** Read aloud by screen readers, e.g. "Rate Midnight City". */
   label: string;
   disabled?: boolean;
+  /** Id of text describing the chosen score (D37: its meaning in the party's scoring key). */
+  describedBy?: string;
 }
 
-export function RatingControl({ value, onChange, label, disabled = false }: RatingControlProps) {
+export function RatingControl({ value, onChange, label, disabled = false, describedBy }: RatingControlProps) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
   function move(event: KeyboardEvent, index: number) {
@@ -24,15 +27,20 @@ export function RatingControl({ value, onChange, label, disabled = false }: Rati
     if (event.key === 'End') next = RATINGS.length - 1;
     if (next === undefined) return;
     event.preventDefault();
-    onChange(RATINGS[next] ?? 1);
+    onChange(RATINGS[next] ?? MIN_RATING);
     buttons.current[next]?.focus();
   }
 
   return (
-    <div role="radiogroup" aria-label={label} className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+    <div
+      role="radiogroup"
+      aria-label={label}
+      aria-describedby={describedBy}
+      className="grid grid-cols-6 gap-1.5 sm:grid-cols-11 sm:gap-2"
+    >
       {RATINGS.map((rating, index) => {
         const selected = value === rating;
-        // Only one button is in the tab order: the selected one, or "1" when nothing is selected.
+        // Only one button is in the tab order: the selected one, or the lowest (0) when nothing is selected.
         const tabbable = selected || (value === null && index === 0);
         return (
           <button
@@ -43,7 +51,7 @@ export function RatingControl({ value, onChange, label, disabled = false }: Rati
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={`${rating} out of 10`}
+            aria-label={`${rating} out of ${MAX_RATING}`}
             tabIndex={tabbable ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(rating)}

@@ -1,7 +1,13 @@
 // The party's weekly schedule (decisions D1, D2): which days members share a song, and when ratings lock.
 // The host chooses both; these helpers keep the API, the settings form, and sample mode agreeing on the rules.
 
-import { DEFAULT_RATING_CLOSE_DAY, DEFAULT_RATING_CLOSE_TIME, DEFAULT_SHARE_DAYS, WEEKDAYS } from './limits';
+import {
+  DEFAULT_RATING_CLOSE_DAY,
+  DEFAULT_RATING_CLOSE_TIME,
+  DEFAULT_SCORING_KEY,
+  DEFAULT_SHARE_DAYS,
+  WEEKDAYS,
+} from './limits';
 import type { PartySettings, Round, Weekday } from './types';
 
 /** Days in week order (Monday first), without duplicates. */
@@ -22,6 +28,12 @@ export function withScheduleDefaults<T extends Partial<PartySettings>>(
     ratingCloseDay: settings.ratingCloseDay ?? DEFAULT_RATING_CLOSE_DAY,
     ratingCloseTime: settings.ratingCloseTime ?? DEFAULT_RATING_CLOSE_TIME,
   };
+}
+
+/** D37: what each score 0–10 means in this party (its own key, or the default). Index = score. */
+export function scoringKeyOf(settings: Pick<PartySettings, 'scoringKey'> | undefined): readonly string[] {
+  const key = settings?.scoringKey;
+  return key !== undefined && key.length === DEFAULT_SCORING_KEY.length ? key : DEFAULT_SCORING_KEY;
 }
 
 /** The sharing days a week runs on (weeks from before the schedule was editable used Monday–Friday). */

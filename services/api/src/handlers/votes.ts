@@ -13,7 +13,7 @@ import { createHandler, ok, type HandlerFn } from '../http/handler';
 import { getAuthenticatedUser, parseBody, pathId } from '../http/request';
 import { loadRoundForMember } from './weeks';
 
-/** Rate a song 1–10, or change your rating, any time until the week ends (spec §15, D6–D8). */
+/** Rate a song 0–10 (D36), or change your rating, any time until the week ends (spec §15, D6–D8). */
 export const castVoteFn: HandlerFn = async (event, { data, now }) => {
   const { userId } = getAuthenticatedUser(event);
   const { round, membership } = await loadRoundForMember(event, data, userId);

@@ -46,7 +46,7 @@ Descriptions of the original look, kept for reference:
   (8.7, 12, 9, 4).
 - **Imagery:** album art everywhere a song appears. Hero and auth screens use a purple-to-blue mountain-night
   illustration with the music-note logo in a gradient circle.
-- **Charts:** horizontal bar distributions (rating 1–10), simple donut/split bars (anonymous vs public), rank lists.
+- **Charts:** horizontal bar distributions (rating 0–10, D36), simple donut/split bars (anonymous vs public), rank lists.
 
 ## Logo (2026-10-04)
 
@@ -85,7 +85,7 @@ Navigation follows D32 (built in P13.13, `apps/web/src/components/AppShell.tsx`)
 | 9 | Home (during recommendation) | P8.3 | "Round 3 of 5 · Recommendation Phase" → **"Wednesday · Day 3 of 5"**. "Song Submissions" list = today's songs, anonymous (D10). Show **"3 of 5 shared today"** (a count). Per-person ✓ marks only when the party reveals recommenders, because names next to a song list would reveal whose song is whose. |
 | 10 | Recommend a Song (search) | P8.4 | Provider tabs (Spotify / Apple Music / YouTube / YouTube Music) only for providers ADR-0007 actually supports; v1 is likely one search tab plus paste-a-link. |
 | 11 (second panel) | Confirm recommendation | P8.4 | Title "Share today's song". Remove the song's star rating (it hasn't been rated yet). Add "You can't change it after sharing." |
-| 12 | Voting / Party View | P8.5 | "Round 3 of 5 · Voting Phase" → **"This week's songs"**, grouped by day with an Unrated filter. The 1–10 grid RatingControl stays as drawn. Hide recommender names (D10). |
+| 12 | Voting / Party View | P8.5 | "Round 3 of 5 · Voting Phase" → **"This week's songs"**, grouped by day with an Unrated filter. The rating grid RatingControl stays as drawn, now 0–10 (D36: 11 buttons, 6 + 5 on phones). Hide recommender names (D10). |
 | 14 | Vote Submitted | P8.5 | Becomes a lightweight "Rating saved ✓ · you can change it until ratings lock" confirmation (toast or inline). "View Results" → "Results unlock Sunday night". |
 | 15 | Waiting for Everyone | P8.3 / P8.5 | **Must not show other people's scores** (the mockup shows "8/10, 7/10"). That breaks D9. Show progress only: how many have shared today (names only if recommenders are revealed), and your own "12 of 31 rated". |
 | 16 | Results / End of Day ("Round Complete!", Today's Winner) | P8.6 | Becomes **Weekly Results** ("Week Complete!"): the crown card shows each day's **Bop of the Day** winner, then the full weekly ranking. |

@@ -58,6 +58,11 @@ export interface PartySettings {
    */
   ratingCloseDay: Weekday;
   ratingCloseTime: string;
+  /**
+   * D37: what each score means, index = score (0–10). Missing = the default key (`scoringKeyOf`). Display text only,
+   * so it isn't copied onto weeks: a change shows at once.
+   */
+  scoringKey?: string[];
 }
 
 export interface Party {
@@ -112,6 +117,8 @@ export interface Round {
    */
   revealRecommenderDuringVoting?: boolean;
   showWhoRatedWhat?: boolean;
+  /** D38: a past week added from before the group used the app (not played in the app). */
+  imported?: boolean;
   /**
    * Stored status. Never read this directly to decide what's allowed: the effective status comes
    * from the current time (getEffectiveWeekStatus, ADR-0003).

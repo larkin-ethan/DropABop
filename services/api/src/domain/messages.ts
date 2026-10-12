@@ -3,6 +3,7 @@
 // rule check up front or by a conditional database write that lost a race.
 
 import type { ErrorCode } from '@dropabop/shared';
+import { MAX_RATING, MIN_RATING } from '@dropabop/shared';
 
 export const MESSAGES = {
   NOT_A_MEMBER: 'You’re not a member of this party.',
@@ -20,7 +21,7 @@ export const MESSAGES = {
   COMMENT_NOT_FOUND: 'That comment isn’t there any more.',
   NOT_YOUR_COMMENT: 'You can only delete your own comments.',
   SONG_NOT_IN_WEEK: 'That song isn’t part of this week.',
-  INVALID_RATING: 'Ratings are whole numbers from 1 to 10.',
+  INVALID_RATING: `Ratings are whole numbers from ${MIN_RATING} to ${MAX_RATING}.`,
   PARTY_FULL: 'This party is full.',
   ALREADY_MEMBER: 'You’re already in this party.',
   TOO_MANY_PARTIES:
@@ -28,6 +29,7 @@ export const MESSAGES = {
   INVALID_INVITE: 'That invite code isn’t valid. Ask the host for the latest link.',
   TOO_MANY_INVITE_TRIES: 'Too many wrong invite codes. Please wait an hour, or ask the host for the link.',
   RESULTS_NOT_READY: 'Results unlock when this week’s ratings lock.',
+  SAVED_LIMIT: 'Your saved songs list is full (500 songs). Remove one to save another.',
   NO_RESULTS: 'Not enough songs were shared this week, so there are no results.',
   MEMBER_NOT_FOUND: 'That person isn’t in this party.',
   INVITE_JUST_CHANGED: 'The invite code was just changed. Refresh to see the new one.',

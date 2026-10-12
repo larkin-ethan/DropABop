@@ -25,7 +25,7 @@ This deliberately changes spec §13–§15:
 | "Once the round closes, votes become immutable" (§15) | Once the **week** closes, ratings are immutable |
 | Results at end of round (§16) | Weekly results, plus a per-day "Bop of the Day" winner |
 
-Everything else in §14–§15 still applies: server-side enforcement, membership checks, 1–10 integer ratings,
+Everything else in §14–§15 still applies: server-side enforcement, membership checks, 1–10 integer ratings (0–10 since D36, 2026-10-11),
 no duplicate ratings, friendly error messages, and votes can be changed only while open.
 
 ## Consequences

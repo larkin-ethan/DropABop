@@ -15,8 +15,8 @@ export const COMMENT_MAX_LENGTH = 280;
 /** D25: stops one person flooding a week with comments (20 people × 50 is still a small query). */
 export const MAX_COMMENTS_PER_PERSON_PER_WEEK = 50;
 
-/** Spec §15 / D7: ratings are whole numbers from 1 to 10. */
-export const MIN_RATING = 1;
+/** D36 (was D7's 1–10): ratings are whole numbers from 0 to 10. */
+export const MIN_RATING = 0;
 export const MAX_RATING = 10;
 
 export const DISPLAY_NAME_MAX_LENGTH = 40;
@@ -76,7 +76,7 @@ export const DEFAULT_DISPLAY_NAME = 'New member';
  * Version of the privacy policy and terms (docs/PRIVACY.md, ADR-0011). YouTube requires people to agree before using
  * its player; bumping this asks everyone to agree again.
  */
-export const PRIVACY_POLICY_VERSION = '2026-10-09';
+export const PRIVACY_POLICY_VERSION = '2026-10-11'; // saved songs added (D34)
 
 /**
  * In-app YouTube playback is offered only for songs shared in the last 30 days (ADR-0011: cautious reading of
@@ -101,6 +101,30 @@ export const NOTIFICATION_TYPES = [
 export const YOUTUBE_SEARCHES_PER_PERSON_PER_DAY = 15;
 /** ADR-0012: every stored YouTube video id is deleted this many days after the song is shared (30-day rule). */
 export const YOUTUBE_VIDEO_KEEP_DAYS = 29;
+
+/** D37: each line of a party's scoring key (what a score means) can be this long. */
+export const SCORING_KEY_LINE_MAX = 120;
+/**
+ * D37: what each score means until a host writes their own. Index = score (0–10, D36). Plain and neutral on purpose;
+ * a party's own wording goes in its settings.
+ */
+export const DEFAULT_SCORING_KEY: readonly string[] = [
+  'Can’t stand it',
+  'Really bad',
+  'Bad',
+  'Not for me',
+  'Meh',
+  'Neutral',
+  'Pleasant',
+  'Good',
+  'Really like it',
+  'Love it',
+  'Instant favorite',
+];
+
+/** D34: how many songs one person's "Saved songs" list can hold, and how many one page of it returns. */
+export const SAVED_SONGS_LIMIT = 500;
+export const SAVED_SONGS_PAGE_SIZE = 100;
 
 /** Avatar background colors from the design palette (docs/design), D18. Also the choices on the Profile screen. */
 export const AVATAR_COLORS = [

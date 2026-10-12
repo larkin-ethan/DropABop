@@ -46,7 +46,7 @@ this deliberate change to spec §13–§15.
 
 - **D6 — No self-rating.** You can't rate your own songs; they're excluded from your votes and from
   your generosity stats.
-- **D7 — Ratings are integers 1–10.** One rating per member per song.
+- **D7 — Ratings are integers 0–10** (was 1–10 until D36, 2026-10-11). One rating per member per song.
 - **D8 — Changing a rating** is allowed any time while the week is `OPEN`. Once the week closes, ratings are
   immutable. This is enforced server-side with the server clock (never the client's): ratings are rejected once
   the week has ended, and any rating saved after the end is ignored in results and stats.
@@ -97,7 +97,8 @@ this deliberate change to spec §13–§15.
 - **D19 — Personal data stored:** email (in Cognito only), display name, avatar color, optional profile picture (D18),
   preferred music app, plus what you do in a party (songs, ratings, comments, D25). Nothing else. *Added by D27/D29
   (Phase 13):* the "Play videos" setting, notification
-  switches and seen-times, and when you agreed to the privacy policy (timestamp + version).
+  switches and seen-times, and when you agreed to the privacy policy (timestamp + version). *Added by D34
+  (Phase 14):* your saved songs (a private list).
 
 ## Music (§10, §11, §12)
 
@@ -178,7 +179,7 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
   | | 10 / 50 / 100 Weeks | You took part in 10 / 50 / 100 weeks |
   | Discovery | 10 Artists / 25 Artists | Your shared songs cover 10 / 25 different artists (artist name, case-insensitive) |
   | | Genre Explorer / 10 Genres | Your shared songs cover 5 / 10 different genres (only songs with a genre count, P13.7) |
-  | Rating | First 10 / First 1 | You gave a 10 / a 1 |
+  | Rating | First 10 / First 0 | You gave a 10 / a 0 (was First 1 until D36) |
   | | Generous Voter / Tough Critic | Your generosity is ≥ +1.0 / ≤ −1.0, with at least 10 ratings |
   | | Balanced Judge | Your average given is within 0.3 of the party's, with at least 20 ratings |
   | Song success | Top Bop | Your song was #1 in a week's results (ties count) |
@@ -233,6 +234,51 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
   Share's iTunes search). While a week is open, its songs appear without who shared them (D10). The party's songs
   are read with one key query (`PARTY#id`, songs only), capped and paginated. That's a documented exception to
   "no fetching everything to filter": DynamoDB has no text search, and a party adds about 5,000 songs a year at most.
+
+- **D34 — Saved songs (one private playlist; Ethan, 2026-10-11).** A Save button on any song shared in your parties
+  (yours included) adds it to **one "Saved songs" list** per person, across all their parties. Option A of the
+  playlist discussion: inside Drop a Bop only, no music-service sign-in (Apple Music / YouTube export may come later
+  on top of it, each needing its own ADR).
+  - **Private:** only the owner ever sees their list. Nobody, including the sharer, learns who saved a song; there
+    are no counts, notifications, stats or achievements about saving.
+  - **Open weeks:** saving is allowed straight from Rate. Until that week's results, the saved song shows no
+    "shared by" (D10); after results it does, while you and the sharer are still members of that party. Never
+    ratings (D9).
+  - **Kept after leaving:** the list stores its own copy of the song (title, artist, album, artwork URL, the Apple
+    Music link and a pasted Spotify link), so it survives leaving or being removed from a party, or the song being
+    removed. Once you're not a member, it no longer shows who shared it or links to that party's pages.
+  - **YouTube (ADR-0011/0012):** no YouTube video id or YouTube link is copied into the list. "Play video" appears
+    only while the original song is within its 30-day window and you're still a member (read from the party's
+    expiring `YTVIDEO#` item); otherwise a YouTube Music search link, like every song without a video.
+  - **One entry per song** (matched by the Apple Music track id): saving it again says "Already saved".
+  - **Limit 500 songs.** Newest saved first. Removing a song offers Undo. Play one song at a time (no queue).
+  - **Personal data (D19):** your saved songs join the list of what's stored about you; they're covered by the
+    privacy policy (a version bump, since the 2026-10-09 policy is already live).
+- **D35 — No repeat songs in a party (Ethan, 2026-10-11).** Once a song has been shared in a party it can never be
+  shared there again (other parties are separate).
+  - **Same song = the same recording** (Apple Music track id): blocked. **A different version** with the same title
+    and artist (remaster, live, single vs album; compared ignoring case, accents, "feat." and bracketed/dashed
+    version notes like "(Remastered 2011)" or "- Live") **gets a warning** ("A version of this was shared on Oct 5")
+    but can still be shared.
+  - **Shown before choosing:** search results (and a pasted link's result) say "Already shared · Oct 5" and the
+    song can't be picked; the server blocks it too (and two people choosing it at the same moment can't both get
+    through). **Date only, never who**, so it can't reveal a sharer in an open week (D10).
+  - **What counts:** every song in the party's history, including weeks before you joined and songs from members who
+    left or were removed. Songs already shared twice before this rule are left as they are.
+  - The date is the day it was shared (party timezone). Being blocked costs nothing: you can share another song that
+    day.
+
+- **D36 — Ratings are 0–10 (Ethan, 2026-10-11; replaces D7's 1–10).** 0 joins the scale (the lowest score). Everything else stays in points: Perfect Score is still a 10.0 average, Group
+  Favorite ≥ 8.0, Most popular counts ratings ≥ 8, and "controversial" keeps its bands (low ≤ 3, now 0–3; high ≥ 8).
+  The "First 1" achievement becomes **"First 0"** (give a song a 0: the lowest score again). Old ratings stay valid.
+- **D37 — Scoring key per party (Ethan, 2026-10-11).** Each party has a key saying what each score 0–10 means,
+  shown on Rate (a "How to score" panel, open on the first visit, then remembered closed), under the rating picker
+  (the chosen number's meaning) and on How it works. The **host edits it** in Party settings (11 short lines, up to
+  120 characters each; "Reset to default"). New parties start with a neutral default; it's display text only, so a
+  change applies at once (not from next week).
+- **D38 — Past weeks from before the app (Ethan, 2026-10-11).** A group's earlier weeks can be added once by a private
+  tool (kept out of this repo). Such weeks are marked `imported`, have their real dates, and behave like finished
+  weeks (results, history, stats, achievements). Only weeks that ended before the group's first week in the app.
 
 ## Statistics definitions (§17, §18)
 

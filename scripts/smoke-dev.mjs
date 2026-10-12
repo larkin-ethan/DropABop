@@ -242,6 +242,14 @@ if (roundId) {
       [200, 204],
     );
     await call(
+      'PUT vote 0 on u1 song (u2, D36)',
+      'PUT',
+      `/rounds/${encodeURIComponent(roundId)}/votes/${othersSong.recommendationId}`,
+      t2.access,
+      { rating: 0 },
+      [200, 204],
+    );
+    await call(
       'PUT vote on own song (u1) -> 403',
       'PUT',
       `/rounds/${encodeURIComponent(roundId)}/votes/${othersSong.recommendationId}`,

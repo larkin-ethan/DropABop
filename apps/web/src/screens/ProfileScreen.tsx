@@ -136,6 +136,20 @@ function ProfileStats({ partyId }: { partyId: string }) {
               />
             </div>
 
+            <Link
+              to="/saved"
+              className="card-glow flex items-center gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-5 transition hover:bg-surface-raised"
+            >
+              <Icon name="heart" className="size-5 text-pink-300" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold">Saved songs</span>
+                <span className="block text-xs text-muted">
+                  Songs you saved from your parties (only you see them)
+                </span>
+              </span>
+              <Icon name="chevronDown" className="size-4 -rotate-90 text-muted" />
+            </Link>
+
             <Card>
               <h2 className="font-bold">Recent bops</h2>
               <p className="mt-0.5 text-xs text-muted">Your latest songs from finished weeks.</p>
