@@ -59,6 +59,20 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-12 — **P14.3 — No repeat songs in a party** (D35) — the share transaction also writes
+  `SHAREDSONG#<trackId>` (write-once: `409 ALREADY_SHARED` with the date, never who; races included) and keeps the
+  first date per title + artist in `SHAREDVERSION#` (a warning only). Older songs get their markers automatically
+  the first time a party searches or shares (`SHAREDINDEX` flag), instead of the planned backfill script: a script
+  can't list every party without a Scan, and this removes a human step from P14.4. Song search / pasted links take
+  an optional `partyId` (members only, checked before iTunes) and return `alreadyShared`; their Lambdas got
+  Get/Query/Put/Update on the table (no BatchGetItem: up to 20 parallel GetItems). Website: already-shared results
+  can't be chosen ("Already shared · Oct 5"), versions warn in the results and the share step, pasted links explain.
+  `smoke-dev.mjs` picks an unshared song and checks a repeat is refused. Marking keeps the earliest date, so past
+  weeks added later (D38) still show when a song was first shared. Spec-reviewer: PASS, its five should-fixes done
+  (YouTube-link 409 test, no iTunes call for non-members, byte-safe version key, 404 in docs, earliest date).
+  Verified: `npm run verify` (706 unit), `npm run test:integration` (268), `npm run e2e` (48), `sam validate
+  --lint`. Leftovers: dev deploy + smoke in P14.4.
+
 - 2026-10-11 — **P15.3 done: private tool for past weeks** (D38) — Ethan asked to keep it out of the public repo: it
   lives in git-ignored folders on his Mac (`services/api/src/tools/private/`, `services/api/scripts/private/`, and
   `.private/` for its local data). Public, generic parts: weeks can carry `imported: true`; `setScoringKeyIfUnset`

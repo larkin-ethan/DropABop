@@ -271,12 +271,19 @@ export const castVoteRequestSchema = z.strictObject({
 });
 
 /** GET /songs/search?q=… (query string, validated the same way) */
+/** D35: the party you're sharing in, so results can say which songs it already has. Optional (search works without). */
+const sharingPartyIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9-]{1,64}$/, { error: 'Please choose a party.' })
+  .optional();
+
 export const songSearchQuerySchema = z.strictObject({
   q: z
     .string()
     .trim()
     .min(2, { error: 'Type at least 2 characters to search.' })
     .max(SEARCH_QUERY_MAX_LENGTH, { error: `Searches can be up to ${SEARCH_QUERY_MAX_LENGTH} characters.` }),
+  partyId: sharingPartyIdSchema,
 });
 
 /** GET /parties/{partyId}/achievements?memberId= (P13.9). Without memberId: your own. */
@@ -358,6 +365,7 @@ export const resolveSongRequestSchema = z.strictObject({
   url: z.string().refine((url) => parseAppleMusicSongUrl(url) !== null, {
     error: 'Paste an Apple Music song link (music.apple.com/…), or search instead.',
   }),
+  partyId: sharingPartyIdSchema,
 });
 
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;

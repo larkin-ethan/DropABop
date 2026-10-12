@@ -101,6 +101,22 @@ export const keys = {
   },
   /** D34: how many songs that person has saved, so the 500 limit holds even when two saves race. */
   savedCount: (userId: string): ItemKey => ({ PK: userPk(userId), SK: 'SAVEDCOUNT' }),
+  /** D35: this Apple Music track was shared in the party (written once; blocks sharing it again). */
+  sharedSong: (partyId: string, trackId: string): ItemKey => {
+    if (!/^\d{1,20}$/.test(trackId)) {
+      throw new Error('Invalid trackId');
+    }
+    return { PK: partyPk(partyId), SK: `SHAREDSONG#${trackId}` };
+  },
+  /** D35: a version of this song (same title + artist, see domain/repeats.ts versionKey) was shared in the party. */
+  sharedVersion: (partyId: string, versionKey: string): ItemKey => {
+    if (!/^[^#]+$/.test(versionKey) || new TextEncoder().encode(versionKey).length > 900) {
+      throw new Error('Invalid versionKey');
+    }
+    return { PK: partyPk(partyId), SK: `SHAREDVERSION#${versionKey}` };
+  },
+  /** D35: the party's older songs have their markers (written once, the first time they're needed). */
+  sharedSongsIndexed: (partyId: string): ItemKey => ({ PK: partyPk(partyId), SK: 'SHAREDINDEX' }),
   invite: (code: string): ItemKey => {
     if (!INVITE_CODE.test(code)) {
       throw new Error('Invalid invite code');

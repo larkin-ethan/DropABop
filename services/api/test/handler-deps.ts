@@ -10,11 +10,17 @@ export interface TestDeps extends Deps {
   setNow: (iso: string) => void;
 }
 
-/** A fake music catalog: any numeric id resolves to a song, except ids starting with "999" (not found). */
+/**
+ * A fake music catalog: any numeric id resolves to a song, except ids starting with "999" (not found). Ids starting
+ * with "7" are a live version of the song without the 7 ("7100" = "Song 100 (Live)", for D35's version warning).
+ */
 export function fakeSong(provider: MusicProviderId, providerSongId: string): Song {
+  const title = providerSongId.startsWith('7')
+    ? `Song ${providerSongId.slice(1)} (Live)`
+    : `Song ${providerSongId}`;
   return {
     songId: `${provider}:${providerSongId}`,
-    title: `Song ${providerSongId}`,
+    title,
     artist: 'Test Artist',
     album: 'Test Album',
     albumArtUrl: 'https://images.example.com/art.jpg',

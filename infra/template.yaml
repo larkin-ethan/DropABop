@@ -1089,13 +1089,23 @@ Resources:
             Method: GET
             Path: /parties/{partyId}/leaderboard
 
-  # iTunes only; no database access.
+  # iTunes, plus (D35) for members: which results the party already has, read from its markers (first use in a
+  # party writes the markers for its older songs, data/shared-songs.ts).
   SearchSongsFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: makefile
     Properties:
       Handler: index.searchSongsHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
       Events:
         Api:
           Type: HttpApi
@@ -1104,13 +1114,23 @@ Resources:
             Method: GET
             Path: /songs/search
 
-  # iTunes only; no database access.
+  # iTunes, plus (D35) for members: which results the party already has, read from its markers (first use in a
+  # party writes the markers for its older songs, data/shared-songs.ts).
   ResolveSongFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: makefile
     Properties:
       Handler: index.resolveSongHandler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt Table.Arn
       Events:
         Api:
           Type: HttpApi

@@ -4,6 +4,7 @@
 // It is NOT a security boundary: the real API enforces every rule on the server.
 
 import type {
+  AlreadyShared,
   Comment,
   CommentResponse,
   CommentsResponse,
@@ -156,6 +157,31 @@ function sampleSave(state: PreviewState, request: SaveSongRequest): SaveSongResp
   };
   state.saved = [saved, ...state.saved];
   return { trackId, alreadySaved: false };
+}
+
+/**
+ * D35 in the sample: the same Apple Music id is "already shared", the same title (version notes in brackets
+ * ignored) and artist is "a version". The real rules are in services/api/src/domain/repeats.ts.
+ */
+function sampleAlreadyShared(state: PreviewState, songs: Song[]): Record<string, AlreadyShared> {
+  const shared = [
+    ...state.pastResults.map((r) => ({ song: r.song, sharedOn: r.submittedOn })),
+    ...state.songs.map((s) => ({ song: s.song, sharedOn: s.submittedOn })),
+  ].sort((a, b) => a.sharedOn.localeCompare(b.sharedOn));
+  const trackOf = (song: Song) => song.providers[0]?.providerSongId ?? '';
+  const versionOf = (song: Song) =>
+    `${song.title
+      .replace(/\([^)]*\)/g, '')
+      .trim()
+      .toLowerCase()}|${song.artist.toLowerCase()}`;
+  const answer: Record<string, AlreadyShared> = {};
+  for (const song of songs) {
+    const same = shared.find((s) => trackOf(s.song) === trackOf(song));
+    const version = shared.find((s) => versionOf(s.song) === versionOf(song));
+    if (same) answer[song.songId] = { sameRecording: true, sharedOn: same.sharedOn };
+    else if (version) answer[song.songId] = { sameRecording: false, sharedOn: version.sharedOn };
+  }
+  return answer;
 }
 
 /**
@@ -313,6 +339,9 @@ export function createPreviewState(now: Date = new Date()): PreviewState {
       catalogSong('1003', 'Dancing Queen', 'ABBA', 'Arrival'),
       catalogSong('1004', 'Here Comes the Sun', 'The Beatles', 'Abbey Road'),
       catalogSong('1005', 'Motion Sickness', 'Phoebe Bridgers', 'Stranger in the Alps'),
+      // D35: the very recording shared this week (can't be chosen), and another version of a shared song.
+      catalogSong('r6', 'Dreams', 'Fleetwood Mac', 'Rumours'),
+      catalogSong('1006', 'Mr. Brightside (Live)', 'The Killers', 'Live from the Royal Albert Hall'),
     ],
   };
 }
@@ -913,6 +942,14 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       const request = body as { providerSongId: string };
       const song = state.catalog.find((s) => s.providers[0]?.providerSongId === request.providerSongId);
       if (song === undefined) throw new ApiError(400, 'VALIDATION_FAILED', 'We couldn’t find that song.');
+      const shared = sampleAlreadyShared(state, [song])[song.songId];
+      if (shared?.sameRecording === true) {
+        throw new ApiError(
+          409,
+          'ALREADY_SHARED',
+          `That song was already shared in this party on ${shared.sharedOn}. Pick a different one.`,
+        );
+      }
       const view: SongView = {
         recommendationId: `new-${state.songs.length + 1}`,
         weekday: today.weekday,
@@ -1002,9 +1039,10 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
     }
     if (is('GET', 'songs', 'search')) {
       const q = (params.get('q') ?? '').toLowerCase();
-      return {
-        songs: state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)),
-      };
+      const songs = state.catalog.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q));
+      return params.get('partyId') === null
+        ? { songs }
+        : { songs, alreadyShared: sampleAlreadyShared(state, songs) };
     }
     if (is('GET', 'parties', ':id', 'search')) {
       return sampleSearch(state, params);
@@ -1041,7 +1079,11 @@ export function createPreviewApi(state: PreviewState = createPreviewState()): Ap
       };
     }
     if (is('POST', 'songs', 'resolve')) {
-      return { song: sampleResolve(state, (body as { url: string }).url) };
+      const request = body as { url: string; partyId?: string };
+      const song = sampleResolve(state, request.url);
+      return request.partyId === undefined
+        ? { song }
+        : { song, alreadyShared: sampleAlreadyShared(state, [song])[song.songId] ?? null };
     }
     notFound();
   }

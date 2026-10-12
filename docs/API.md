@@ -35,7 +35,7 @@ Shared request schemas live in `packages/shared/src/schemas.ts`; the frontend us
 | 401 | `UNAUTHENTICATED` |
 | 403 | `FORBIDDEN`, `NOT_A_MEMBER`, `NOT_HOST`, `OWN_SONG`, `RESULTS_NOT_READY` |
 | 404 | `NOT_FOUND` |
-| 409 | `PARTY_FULL`, `ALREADY_MEMBER`, `PARTY_PAUSED`, `WEEKEND`, `ALREADY_SUBMITTED_TODAY`, `WEEK_CLOSED`, `CONFLICT` |
+| 409 | `PARTY_FULL`, `ALREADY_MEMBER`, `PARTY_PAUSED`, `WEEKEND`, `ALREADY_SUBMITTED_TODAY`, `ALREADY_SHARED`, `WEEK_CLOSED`, `CONFLICT` |
 | 429 | `RATE_LIMITED` (also API Gateway's own throttle, which answers `{"message":"Too Many Requests"}`; the website shows "please wait a few seconds") |
 | 500 | `INTERNAL`: generic message; details are only in server logs |
 | 502 | `PROVIDER_UNAVAILABLE` |
@@ -234,7 +234,13 @@ deletes 29 days after sharing; song lists include it (as a `youtube` provider) o
 Nothing else is accepted (no title, artwork, or date). The server decides today's date in the week's timezone and
 looks the song up itself.
 
-`201`: `{ "song": SongView }` (see below). Errors: `409 ALREADY_SUBMITTED_TODAY`, `409 WEEKEND`,
+No repeat songs (D35): the same recording (Apple Music track) can't be shared twice in a party, whoever shared it
+and whenever (other parties are separate). The share transaction writes a `SHAREDSONG#<trackId>` marker that can
+only be created once, so two people choosing it at the same moment can't both get through. A different version
+(same title and artist) is allowed.
+
+`201`: `{ "song": SongView }` (see below). Errors: `409 ALREADY_SHARED` ("That song was already shared in this
+party on Oct 5. Pick a different one.": the date only, never who), `409 ALREADY_SUBMITTED_TODAY`, `409 WEEKEND`,
 `409 WEEK_CLOSED` (week ended / not this week), `409 PARTY_PAUSED`, `403 NOT_A_MEMBER`,
 `400 VALIDATION_FAILED` (song not found, bad link, or bad input), `404 NOT_FOUND` (unknown week),
 `502 PROVIDER_UNAVAILABLE` (song lookup busy or down).
@@ -477,17 +483,25 @@ Code: `services/api/src/handlers/songs.ts`, catalog `services/api/src/providers/
 ADR-0007). Signed-in users only. Results are cached for 10 minutes per Lambda container to stay well under iTunes'
 ~20 calls/minute.
 
-#### `GET /songs/search?q=midnight+city`
+#### `GET /songs/search?q=midnight+city&partyId=…`
 
 `q`: 2–100 characters. `200`: `{ "songs": Song[] }` (up to 10). Each song's `providers[0]` is Apple Music with
 its `music.apple.com` link; `albumArtUrl` is a 300×300 image URL (show the "Listen on Apple Music" badge next to
 it). Errors: `400 VALIDATION_FAILED`, `502 PROVIDER_UNAVAILABLE` ("Song search is busy right now…").
 
+`partyId` (optional, D35): the party you're sharing in. You must be a member (`403 NOT_A_MEMBER`, or `404
+NOT_FOUND` for an unknown party; checked before iTunes is asked). The answer then also has `alreadyShared`: by `songId`, the songs that party already has,
+`{ "sameRecording": true, "sharedOn": "2026-10-05" }` (this recording: can't be shared) or `sameRecording: false`
+(another version with the same title and artist: a warning only). Songs never shared are left out. Dates only,
+never who shared (D10). The first such request in a party writes the markers for its older songs (once).
+
 #### `POST /songs/resolve`
 
 Paste an Apple Music song link instead of searching (D21). Body: `{ "url": "https://music.apple.com/us/album/…?i=…" }`
-(or `…/song/<name>/<id>`). `200`: `{ "song": Song }`. Errors: `400 VALIDATION_FAILED` (not an Apple Music song
-link, or Apple doesn't have the song), `502 PROVIDER_UNAVAILABLE`.
+(or `…/song/<name>/<id>`), optionally with `"partyId"` (D35, as in search). `200`: `{ "song": Song }`, plus
+`"alreadyShared": AlreadyShared | null` when `partyId` was given. Errors: `400 VALIDATION_FAILED` (not an Apple Music
+song link, or Apple doesn't have the song), `403 NOT_A_MEMBER`, `404 NOT_FOUND` (unknown party),
+`502 PROVIDER_UNAVAILABLE`.
 
 #### `GET /songs/youtube?providerSongId=828259377`
 

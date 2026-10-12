@@ -123,9 +123,23 @@ describe('infra/template.yaml', () => {
   });
 
   it('gives the functions that never touch the table no permissions at all', () => {
-    for (const logicalId of ['HealthFunction', 'SearchSongsFunction', 'ResolveSongFunction']) {
+    const fn = functions.find((candidate) => candidate.logicalId === 'HealthFunction');
+    expect(fn?.props.Policies).toBeUndefined();
+  });
+
+  it('lets song search and pasted links read and mark only what D35 needs', () => {
+    for (const logicalId of ['SearchSongsFunction', 'ResolveSongFunction']) {
       const fn = functions.find((candidate) => candidate.logicalId === logicalId);
-      expect(fn?.props.Policies, logicalId).toBeUndefined();
+      const actions = (fn?.props.Policies ?? []).flatMap((policy) =>
+        policy.Statement.flatMap((s) => s.Action),
+      );
+      // Membership and markers (Get), the party's songs once (Query), writing missing markers (Put/Update).
+      expect(actions.sort(), logicalId).toEqual([
+        'dynamodb:GetItem',
+        'dynamodb:PutItem',
+        'dynamodb:Query',
+        'dynamodb:UpdateItem',
+      ]);
     }
   });
 

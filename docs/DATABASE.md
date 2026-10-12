@@ -26,6 +26,9 @@ Every item has a partition key `PK` and sort key `SK` (both strings) plus an `en
 | "My party" link | `USER#<userId>` | `PARTY#<partyId>` | partyName, role, joinedAt, achievementsSeenAt (P13.9) and notificationsSeenAt (P13.10): when you last looked at your achievements / notifications in this party (server time; yours only) |
 | Saved song (D34) | `USER#<userId>` | `SAVED#<appleTrackId>` | trackId, savedAt, song (a copy without YouTube links), partyId, partyName (at save time), roundId, recommendationId, submittedOn, weekEndsAt, sharedBy (server-side only: never returned before that week ends, D10) |
 | Saved count (D34) | `USER#<userId>` | `SAVEDCOUNT` | count: how many songs are saved; changed in the same transaction as the song so the 500 limit holds under races |
+| Shared song (D35) | `PARTY#<partyId>` | `SHAREDSONG#<appleTrackId>` | sharedOn, roundId, recommendationId (no userId: never who). Written once, with the song |
+| Shared version (D35) | `PARTY#<partyId>` | `SHAREDVERSION#<title\|artist, normalized>` | sharedOn, trackId: the first time a song with that title and artist was shared (for the "a version of this" warning) |
+| Shared songs indexed (D35) | `PARTY#<partyId>` | `SHAREDINDEX` | version, songs: the party's older songs have their markers (written once, the first time they're needed) |
 | Party | `PARTY#<partyId>` | `META` | name, hostUserId, inviteCode, memberCount, settings (incl. shareDays, ratingCloseDay, ratingCloseTime, scoringKey (D37, 11 lines); missing on old parties = defaults), createdAt |
 | Member | `PARTY#<partyId>` | `MEMBER#<userId>` | displayName, avatarColor, avatarImage (copy), role, joinedAt |
 | Week (round) | `PARTY#<partyId>` | `ROUND#<week>` | timezone, startsAt, endsAt (ratings lock), shareDays, revealRecommenderDuringVoting, showWhoRatedWhat (fixed when the week starts), status, imported (D38: only on past weeks from before the group used the app) |
@@ -87,6 +90,8 @@ Notes:
 | 28 | Save a song (D34) | Pattern 5 + `GetItem` of the song and its week, then one transaction: `Put SAVED#track` with `attribute_not_exists(PK)` + `Update SAVEDCOUNT ADD count 1` if `count < 500` |
 | 29 | Your saved songs (D34) | `Query PK=USER#u, SK begins_with SAVED#` (at most 500 small items; sorted by save time in code) + pattern 2; names via pattern 4 for parties you're in; a recent song's video via `GetItem PARTY#p / YTVIDEO#week#rec` |
 | 30 | Remove a saved song (D34) | One transaction: `Delete SAVED#track` if it exists + `Update SAVEDCOUNT ADD count -1` |
+| 31 | Already shared? (D35, search and pasted links) | `GetItem SHAREDINDEX`, then `GetItem` of `SHAREDSONG#track` + `SHAREDVERSION#key` for each of the (up to 10) results, in parallel |
+| 32 | Mark a party's older songs (D35, once per party) | `Query PK=PARTY#p, SK begins_with REC#` (as stats, pattern 15), then per track/version (earliest date wins): `Update SHAREDSONG#` / `SHAREDVERSION#` if `attribute_not_exists(PK) OR sharedOn > :date`; then `Put SHAREDINDEX`. Safe to repeat and alongside new shares (dates only move earlier); a track shared twice before D35 keeps its first date. The past-weeks tool (D38) runs it again after an import |
 
 Every query is limited to one partition. Lists that can grow (history, stats inputs) are paginated with
 `LastEvaluatedKey`.
@@ -107,7 +112,7 @@ then enforces the same rules again, so two simultaneous requests can't both get 
 | Update profile | `Update USER#u/PROFILE` setting only the changed fields; then copies displayName/avatarColor onto each `MEMBER#u` item (best-effort) | Edits from two devices to different fields don't undo each other |
 | Start a week | `Put ROUND#week` with `attribute_not_exists(PK)` | **Exactly one round per week**, even if several people open the app at once; the loser re-reads it |
 | Record a week's close | `Update ROUND#week SET status` with `status = :open` | Recorded once; correctness never depends on it (status is derived from time, ADR-0003) |
-| Share a song | Transaction: put `SUBMITTED#week#u#date` with `attribute_not_exists(PK)` + put `REC#week#recId` | **One song per member per day**. A second attempt fails the marker condition → "You've already shared your song for today." |
+| Share a song | Transaction: put `SUBMITTED#week#u#date` with `attribute_not_exists(PK)` + put `REC#week#recId` + put `SHAREDSONG#track` with `attribute_not_exists(PK)` + update `SHAREDVERSION#key` (`if_not_exists`, never fails) | **One song per member per day**. A second attempt fails the marker condition → "You've already shared your song for today." **No repeat songs in a party (D35)**: the same recording fails the `SHAREDSONG#` condition → "That song was already shared in this party on Oct 5." (pattern 32 runs first if the party's older songs aren't marked yet) |
 | Rate / change a rating | `Put VOTE#week#u#recId` (overwrites the previous rating) | **One rating per member per song** (the key is unique per member + song) |
 
 Every transaction goes through `transactWrite`, which retries briefly (up to 3 attempts) **only** when DynamoDB

@@ -195,12 +195,16 @@ await call('GET rounds (history)', 'GET', `/parties/${partyId}/rounds`, t1.acces
 const search = await call(
   'GET /songs/search?q=midnight city',
   'GET',
-  '/songs/search?q=midnight%20city',
+  `/songs/search?q=midnight%20city&partyId=${partyId}`,
   t1.access,
   null,
   [200],
 );
-const song = search?.songs?.[0];
+// D35: the smoke party is reused, so pick a song it hasn't shared yet (each recording only once per party).
+const alreadyShared = search?.alreadyShared ?? {};
+const song = search?.songs?.find((s) => alreadyShared[s.songId]?.sameRecording !== true);
+const takenSong = search?.songs?.find((s) => alreadyShared[s.songId]?.sameRecording === true);
+print(`     already shared in the smoke party: ${Object.keys(alreadyShared).length}`);
 // The Apple Music id is inside the song's provider list, the same way the website reads it (ShareScreen).
 const appleSongId = song?.providers?.find((p) => p.provider === 'appleMusic')?.providerSongId;
 print(`     search: ${search?.songs?.length ?? 0} songs`);
@@ -223,6 +227,19 @@ if (roundId) {
     { provider: 'appleMusic', providerSongId: appleSongId ?? 'missing-from-search' },
     [201, 409],
   );
+  // D35: a song the party already has is refused (409 ALREADY_SHARED, or ALREADY_SUBMITTED_TODAY if u2 shared today).
+  const repeatSong = shared?.song?.song ?? takenSong;
+  const repeatId = repeatSong?.providers?.find((p) => p.provider === 'appleMusic')?.providerSongId;
+  if (repeatId && week?.today) {
+    await call(
+      'POST already-shared song (u2) -> 409',
+      'POST',
+      `/rounds/${encodeURIComponent(roundId)}/recommendations`,
+      t2.access,
+      { provider: 'appleMusic', providerSongId: repeatId },
+      [409],
+    );
+  }
   const listed = await call(
     'GET recommendations (u2)',
     'GET',

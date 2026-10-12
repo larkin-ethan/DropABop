@@ -7,9 +7,12 @@
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import type { Recommendation } from '@dropabop/shared';
 import { MESSAGES } from '../domain/messages';
+import { alreadySharedMessage } from '../domain/repeats';
+import { trackIdOf } from '../domain/saved';
 import type { DataContext } from './context';
 import { queryByPrefix, transactWrite, withoutKeys } from './context';
 import { DomainError, failedTransactionItems } from './errors';
+import { getSharedSongDate, sharedSongPut, sharedVersionUpdate } from './shared-songs';
 import {
   listWeekYouTubeVideos,
   withYouTubeVideo,
@@ -30,7 +33,9 @@ function weekOf(recommendation: Pick<Recommendation, 'roundId'>): { partyId: str
 
 /**
  * Saves a shared song. One per member per day (D1) is guaranteed by a marker item that can only be created once
- * for that member + date, written in the same transaction as the song.
+ * for that member + date, written in the same transaction as the song. With `blockRepeats` (sharing, D35), a second
+ * marker does the same for the recording in this party; the caller first makes sure older songs have theirs
+ * (ensureSharedSongsIndexed).
  */
 export async function putRecommendation(
   ctx: DataContext,
@@ -38,6 +43,7 @@ export async function putRecommendation(
   /** The song's YouTube video, saved in its own item that expires (ADR-0012). */
   youtube?: { videoId: string; source: YouTubeVideoSource },
   now: Date = new Date(),
+  options: { blockRepeats?: boolean } = {},
 ): Promise<void> {
   const { partyId, weekStart } = weekOf(recommendation);
   if (recommendation.partyId !== partyId) {
@@ -47,39 +53,51 @@ export async function putRecommendation(
   if (!UUID.test(recommendation.recommendationId)) {
     throw new Error('recommendationId must be a random UUID');
   }
+  const trackId = options.blockRepeats === true ? trackIdOf(recommendation.song) : null;
+  const versionUpdate = trackId === null ? null : sharedVersionUpdate(ctx, recommendation, trackId);
+  const items: NonNullable<Parameters<typeof transactWrite>[1]['TransactItems']> = [
+    {
+      Put: {
+        TableName: ctx.tableName,
+        Item: {
+          ...keys.submittedMarker(partyId, weekStart, recommendation.userId, recommendation.submittedOn),
+          entity: 'SubmittedMarker',
+          recommendationId: recommendation.recommendationId,
+        },
+        ConditionExpression: 'attribute_not_exists(PK)',
+      },
+    },
+    {
+      Put: {
+        TableName: ctx.tableName,
+        Item: {
+          ...keys.recommendation(partyId, weekStart, recommendation.recommendationId),
+          entity: 'Recommendation',
+          ...recommendation,
+        },
+        ConditionExpression: 'attribute_not_exists(PK)',
+      },
+    },
+    ...(youtube === undefined
+      ? []
+      : [{ Put: youtubeVideoItem(ctx, recommendation, weekStart, youtube, now) }]),
+  ];
+  const songMarkerIndex = trackId === null ? -1 : items.length;
+  if (trackId !== null) {
+    items.push({ Put: sharedSongPut(ctx, recommendation, trackId) });
+    if (versionUpdate !== null) items.push({ Update: versionUpdate });
+  }
   try {
-    await transactWrite(ctx, {
-      TransactItems: [
-        {
-          Put: {
-            TableName: ctx.tableName,
-            Item: {
-              ...keys.submittedMarker(partyId, weekStart, recommendation.userId, recommendation.submittedOn),
-              entity: 'SubmittedMarker',
-              recommendationId: recommendation.recommendationId,
-            },
-            ConditionExpression: 'attribute_not_exists(PK)',
-          },
-        },
-        {
-          Put: {
-            TableName: ctx.tableName,
-            Item: {
-              ...keys.recommendation(partyId, weekStart, recommendation.recommendationId),
-              entity: 'Recommendation',
-              ...recommendation,
-            },
-            ConditionExpression: 'attribute_not_exists(PK)',
-          },
-        },
-        ...(youtube === undefined
-          ? []
-          : [{ Put: youtubeVideoItem(ctx, recommendation, weekStart, youtube, now) }]),
-      ],
-    });
+    await transactWrite(ctx, { TransactItems: items });
   } catch (error) {
-    if (failedTransactionItems(error)?.includes(0)) {
+    const failed = failedTransactionItems(error);
+    if (failed?.includes(0)) {
       throw new DomainError('ALREADY_SUBMITTED_TODAY', MESSAGES.ALREADY_SUBMITTED_TODAY);
+    }
+    if (trackId !== null && failed?.includes(songMarkerIndex)) {
+      // The date only, never who (D10). The marker can't vanish, but fall back to today just in case.
+      const sharedOn = (await getSharedSongDate(ctx, partyId, trackId)) ?? recommendation.submittedOn;
+      throw new DomainError('ALREADY_SHARED', alreadySharedMessage(sharedOn, recommendation.submittedOn));
     }
     throw error;
   }

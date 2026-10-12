@@ -519,7 +519,7 @@ Starts after P13.16 (the Phase 13 release), unless Ethan says otherwise.
   the desktop sidebar; sample-mode support. *Done when:* screen tests, `e2e/screens.spec.ts` + keyboard checks for
   the toggle, the privacy page and docs/PRIVACY.md list saved songs (and `PRIVACY_POLICY_VERSION` is bumped, since
   the 2026-10-09 policy is already live on prod), docs.
-- [ ] **P14.3 — No repeat songs in a party** (D35) — server: the share transaction also writes a marker
+- [x] **P14.3 — No repeat songs in a party** (D35) — server: the share transaction also writes a marker
   `PARTY#<partyId> / SHAREDSONG#<appleTrackId>` with `attribute_not_exists` (blocks the same recording, races
   included; `409 ALREADY_SHARED` with the date), and checks the party's songs for older shares without a marker
   (one capped key query like search, D33) plus "a version of this" by normalized title + artist (a warning the
@@ -529,10 +529,11 @@ Starts after P13.16 (the Phase 13 release), unless Ethan says otherwise.
   feat., accents), integration tests (same track blocked, other party allowed, race, backfilled history, version
   warning, date only and never the sharer), screen tests, API / DATABASE docs, spec-reviewer. The backfill must
   tolerate a track already shared more than once (imported history, D38): a marker that already exists isn't an
-  error.
-- [ ] **P14.4 — Release** [HUMAN for prod] — dev deploy, the D35 backfill on dev, `scripts/smoke-dev.mjs` (save,
-  list, duplicate, remove, non-member refused; sharing an already-shared song refused), then Ethan runs the backfill
-  and deploys prod.
+  error. *Built as:* the backfill runs by itself the first time a party searches or shares (a script can't list
+  every party without a Scan); the private past-weeks tool reruns it after an import.
+- [ ] **P14.4 — Release** [HUMAN for prod] — dev deploy, `scripts/smoke-dev.mjs` (save, list, duplicate, remove,
+  non-member refused; sharing an already-shared song refused), then Ethan deploys prod (older songs are marked
+  automatically, D35).
 
 ## Phase 15 — 0–10 ratings, scoring key, past weeks (D36–D38; Ethan, 2026-10-11)
 

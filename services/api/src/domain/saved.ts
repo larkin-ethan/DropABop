@@ -25,7 +25,7 @@ export interface StoredSavedSong {
 }
 
 /** The Apple Music track id that identifies a song (every shared song has one: they come from iTunes). */
-export function trackIdOf(song: Song): string | null {
+export function trackIdOf(song: Pick<Song, 'providers'>): string | null {
   return song.providers.find((p) => p.provider === 'appleMusic')?.providerSongId ?? null;
 }
 

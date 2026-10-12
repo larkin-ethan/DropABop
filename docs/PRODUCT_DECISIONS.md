@@ -267,6 +267,8 @@ Section-by-section mapping: `docs/SPEC_V2_RECONCILIATION.md`. Thresholds below a
     left or were removed. Songs already shared twice before this rule are left as they are.
   - The date is the day it was shared (party timezone). Being blocked costs nothing: you can share another song that
     day.
+  - How (P14.3): a marker per recording and per title + artist (docs/DATABASE.md). A party's older songs get their
+    markers automatically the first time someone searches or shares there (no separate step, works for every party).
 
 - **D36 — Ratings are 0–10 (Ethan, 2026-10-11; replaces D7's 1–10).** 0 joins the scale (the lowest score). Everything else stays in points: Perfect Score is still a 10.0 average, Group
   Favorite ≥ 8.0, Most popular counts ratings ≥ 8, and "controversial" keeps its bands (low ≤ 3, now 0–3; high ≥ 8).

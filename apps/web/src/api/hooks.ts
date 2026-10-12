@@ -57,7 +57,7 @@ export const keys = {
   groupStats: (partyId: string) => ['groupStats', partyId] as const,
   leaderboard: (partyId: string, period?: LeaderboardPeriod) =>
     period === undefined ? (['leaderboard', partyId] as const) : (['leaderboard', partyId, period] as const),
-  search: (q: string) => ['search', q] as const,
+  search: (q: string, partyId: string | null) => ['search', q, partyId] as const,
   savedSongs: () => ['savedSongs'] as const,
   partySearch: (partyId: string, q: string, type: PartySearchType) =>
     ['partySearch', partyId, q, type] as const,
@@ -187,13 +187,19 @@ export function useLeaderboard(partyId: string | null, period: LeaderboardPeriod
   });
 }
 
-/** Song search (iTunes, ADR-0007). Only runs for 2+ characters; results are kept for a few minutes. */
-export function useSongSearch(q: string) {
+/**
+ * Song search (iTunes, ADR-0007). Only runs for 2+ characters; results are kept for a few minutes. With a party,
+ * results say which songs it already has (D35).
+ */
+export function useSongSearch(q: string, partyId: string | null = null) {
   const api = useApi();
   const query = q.trim();
   return useQuery({
-    queryKey: keys.search(query),
-    queryFn: () => api.get<SongSearchResponse>(`/songs/search?q=${enc(query)}`),
+    queryKey: keys.search(query, partyId),
+    queryFn: () =>
+      api.get<SongSearchResponse>(
+        `/songs/search?q=${enc(query)}${partyId === null ? '' : `&partyId=${enc(partyId)}`}`,
+      ),
     enabled: query.length >= 2,
     staleTime: 5 * 60_000,
     retry: false,
@@ -430,14 +436,18 @@ export function useShareSong(roundId: string, partyId: string) {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: keys.currentWeek(partyId) });
       void queryClient.invalidateQueries({ queryKey: keys.weekSongs(roundId) });
+      // D35: whatever happened, search results' "already shared" may have changed (yours, or someone else's).
+      void queryClient.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }
 
-export function useResolveSong() {
+/** Looks up a pasted Apple Music link. With a party, says whether it already has the song (D35). */
+export function useResolveSong(partyId: string | null = null) {
   const api = useApi();
   return useMutation({
-    mutationFn: (url: string) => api.post<ResolveSongResponse>('/songs/resolve', { url }),
+    mutationFn: (url: string) =>
+      api.post<ResolveSongResponse>('/songs/resolve', partyId === null ? { url } : { url, partyId }),
   });
 }
 

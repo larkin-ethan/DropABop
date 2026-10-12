@@ -139,7 +139,9 @@ describe('POST /rounds/{roundId}/recommendations', () => {
     });
 
     deps.setNow(THURSDAY);
-    expect((await share(hostId, round.roundId)).statusCode).toBe(201);
+    expect(
+      (await share(hostId, round.roundId, { provider: 'appleMusic', providerSongId: '300' })).statusCode,
+    ).toBe(201);
   });
 
   it('only one of two simultaneous shares gets through', async () => {

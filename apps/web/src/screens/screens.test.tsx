@@ -320,6 +320,67 @@ describe('Share today’s song (P8.4)', () => {
   });
 });
 
+describe('No repeat songs in a party (D35)', () => {
+  const notSharedYet = {
+    setup: (s: { songs: { recommendationId: string }[] }) =>
+      void (s.songs = s.songs.filter((x) => x.recommendationId !== 'r9')),
+  };
+
+  it('a song the party already has can’t be chosen, and says when (never who)', async () => {
+    renderApp('/share', notSharedYet);
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'dreams');
+    expect(await screen.findByText('Already shared · Sep 28')).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Choose Dreams' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription('Already shared · Sep 28');
+  });
+
+  it('another version only warns, in the results and before sharing', async () => {
+    const { state } = renderApp('/share', notSharedYet);
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'brightside');
+    expect(await screen.findByText('A version of this was shared on Sep 28')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Choose Mr. Brightside (Live)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    expect(
+      within(dialog).getByText(/A version of this song was shared in this party on Sep 28/),
+    ).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    await waitFor(() =>
+      expect(state.songs.some((x) => x.isMine && x.song.title === 'Mr. Brightside (Live)')).toBe(true),
+    );
+  });
+
+  it('a pasted link to a song the party already has explains instead of opening the share step', async () => {
+    renderApp('/share', {
+      setup: (s) => {
+        s.songs = s.songs.filter((x) => x.recommendationId !== 'r9');
+        const blueSky = s.catalog.find((x) => x.title === 'Mr. Blue Sky');
+        if (blueSky) s.pastResults[0]!.song = blueSky;
+      },
+    });
+    await userEvent.click(await screen.findByRole('tab', { name: 'Paste a link' }));
+    await userEvent.type(screen.getByLabelText('Song link'), 'https://music.apple.com/us/song/x/1002');
+    await userEvent.click(screen.getByRole('button', { name: 'Find this song' }));
+    expect(
+      await screen.findByText('That song was already shared in this party on Sep 28. Pick a different one.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Share this song?' })).not.toBeInTheDocument();
+  });
+
+  it('shows the server’s answer if someone shared it in the meantime', async () => {
+    const { state } = renderApp('/share', notSharedYet);
+    await userEvent.type(await screen.findByLabelText('Search for a song, artist, or album'), 'blue sky');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Mr. Blue Sky' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share this song?' });
+    // Someone else shares it while this dialog is open.
+    const blueSky = state.catalog.find((x) => x.title === 'Mr. Blue Sky');
+    if (blueSky) state.pastResults[0]!.song = blueSky;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share song' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/already shared in this party/);
+    expect(state.songs.some((x) => x.isMine && x.song.title === 'Mr. Blue Sky')).toBe(false);
+  });
+});
+
 describe('Rate this week’s songs (P8.5)', () => {
   it('shows progress, filters to unrated, and saves a rating', async () => {
     const { state } = renderApp('/rate');

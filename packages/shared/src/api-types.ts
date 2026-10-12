@@ -456,8 +456,20 @@ export interface SaveSongResponse {
   alreadySaved: boolean;
 }
 
+/**
+ * D35: this song, or a version of it, was already shared in the party. Only the date (party timezone), never who
+ * shared it, so it can't give away a sharer in an open week (D10).
+ */
+export interface AlreadyShared {
+  /** True: the same recording (can't be shared again). False: another version with the same title and artist. */
+  sameRecording: boolean;
+  sharedOn: IsoDate;
+}
+
 export interface SongSearchResponse {
   songs: Song[];
+  /** D35, only when `partyId` was given: songs the party already has, by `songId`. Missing = never shared. */
+  alreadyShared?: Record<string, AlreadyShared>;
 }
 
 /** One YouTube search result, exactly as YouTube returned it (ADR-0012: results aren't changed or reordered). */
@@ -479,6 +491,8 @@ export interface YouTubeSuggestionsResponse {
 
 export interface ResolveSongResponse {
   song: Song;
+  /** D35, only when `partyId` was given: null = never shared in that party. */
+  alreadyShared?: AlreadyShared | null;
 }
 
 // ---------------------------------------------------------------------------
