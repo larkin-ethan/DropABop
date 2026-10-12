@@ -59,6 +59,12 @@ Resolved 2026-10-01: ADR-0007 approved (iTunes plan); removed members → app as
 
 <!-- Newest first. One entry per task: date, task id, what changed, how it was verified, anything left over. -->
 
+- 2026-10-12 — **P14.4 (dev part)** — dev deployed from 4ee878b (Ethan approved; P14.1–P14.3 + Phase 15).
+  `scripts/smoke-dev.mjs` now also covers saved songs (save, save again = alreadySaved, list, refused after leaving,
+  remove) and a repeat share (409 ALREADY_SHARED). Verified: `node scripts/smoke-dev.mjs` 61/61 on dev. Left: Ethan
+  merges `build` → `main` and runs `deploy.sh prod` (older songs are marked automatically on first use, D35), then
+  the private past-weeks step (P15.4).
+
 - 2026-10-12 — **P14.3 — No repeat songs in a party** (D35) — the share transaction also writes
   `SHAREDSONG#<trackId>` (write-once: `409 ALREADY_SHARED` with the date, never who; races included) and keeps the
   first date per title + artist in `SHAREDVERSION#` (a warning only). Older songs get their markers automatically

@@ -217,6 +217,9 @@ await call(
   [400],
 );
 
+// D34: a song u2 saves from the smoke party (checked again after u2 leaves).
+let savedFrom = null;
+let savedTrackId = null;
 if (roundId) {
   // Non-sharing day: sharing is closed (409 WEEKEND). Sharing day: 201, or 409 if this user already shared today.
   const shared = await call(
@@ -266,6 +269,31 @@ if (roundId) {
       { rating: 0 },
       [200, 204],
     );
+    // D34: save a song to your private list; saving it again changes nothing.
+    const savedBody = { roundId, recommendationId: othersSong.recommendationId };
+    const saved = await call(
+      'POST /users/me/saved (u2)',
+      'POST',
+      '/users/me/saved',
+      t2.access,
+      savedBody,
+      [200, 201],
+    );
+    const savedAgain = await call(
+      'POST saved again (u2) -> alreadySaved',
+      'POST',
+      '/users/me/saved',
+      t2.access,
+      savedBody,
+      [200],
+    );
+    print(`     saved: trackId ${saved?.trackId ?? '?'}, alreadySaved again: ${savedAgain?.alreadySaved}`);
+    const list = await call('GET /users/me/saved (u2)', 'GET', '/users/me/saved', t2.access, null, [200]);
+    print(
+      `     saved list: ${list?.total ?? '?'} songs, includes it: ${list?.songs?.some((x) => x.trackId === saved?.trackId)}`,
+    );
+    savedFrom = savedBody;
+    savedTrackId = saved?.trackId ?? null;
     await call(
       'PUT vote on own song (u1) -> 403',
       'PUT',
@@ -432,6 +460,19 @@ await call(
   null,
   [200, 204],
 );
+if (savedFrom) {
+  await call('POST saved (u2 after leaving) -> 403', 'POST', '/users/me/saved', t2.access, savedFrom, [403]);
+}
+if (savedTrackId) {
+  await call(
+    'DELETE /users/me/saved/{trackId} (u2)',
+    'DELETE',
+    `/users/me/saved/${savedTrackId}`,
+    t2.access,
+    null,
+    [204],
+  );
+}
 await call(
   'GET search (u2 after leaving) -> 403',
   'GET',
